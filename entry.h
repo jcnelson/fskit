@@ -37,6 +37,11 @@ typedef vector<fskit_dirent> fskit_entry_set;
 #define FSKIT_ENTRY_TYPE_DEAD         0
 #define FSKIT_ENTRY_TYPE_FILE         1
 #define FSKIT_ENTRY_TYPE_DIR          2
+#define FSKIT_ENTRY_TYPE_FIFO         3
+#define FSKIT_ENTRY_TYPE_SOCK         4
+#define FSKIT_ENTRY_TYPE_CHR          5
+#define FSKIT_ENTRY_TYPE_BLK          6
+#define FSKIT_ENTRY_TYPE_LNK          7
 
 // root's UID
 #define FSKIT_ROOT_USER_ID                0
@@ -81,6 +86,9 @@ struct fskit_entry {
    
    // application-defined entry data 
    void* app_data;
+   
+   // if this is a special file, this is the device major/minor number 
+   dev_t dev;
 };
 
 // fskit file handle 
@@ -118,14 +126,16 @@ struct fskit_dir_entry {
 };
 
 typedef uint64_t (*fskit_inode_alloc_t)( struct fskit_entry*, struct fskit_entry*, void* );
+typedef int (*fskit_inode_free_t)( uint64_t, void* );
 
 // fskit core structure 
 struct fskit_core {
    
    struct fskit_entry root;
    
-   // function that allocates inode numbers 
+   // functions to allocate/deallocate inodes 
    fskit_inode_alloc_t fskit_inode_alloc;
+   fskit_inode_free_t fskit_inode_free;
    
    // application-defined fs-wide data
    void* app_fs_data;
@@ -136,15 +146,26 @@ struct fskit_core {
 
 // core management 
 int fskit_core_init( struct fskit_core* core, void* app_data, void* root_app_data );
-int fskit_core_inode_alloc( struct fskit_core* core, fskit_inode_alloc_t inode_alloc );
-struct fskit_entry* fskit_core_resolve_root( struct fskit_core* core, bool writelock );
 int fskit_core_destroy( struct fskit_core* core, void** app_fs_data );
+
+// core callbacks 
+int fskit_core_inode_alloc_cb( struct fskit_core* core, fskit_inode_alloc_t inode_alloc );
+int fskit_core_inode_free_cb( struct fskit_core* core, fskit_inode_free_t inode_free );
+
+// core methods 
+uint64_t fskit_core_inode_alloc( struct fskit_core* core, struct fskit_entry* parent, struct fskit_entry* child );
+int fskit_core_inode_free( struct fskit_core* core, uint64_t inode );
+struct fskit_entry* fskit_core_resolve_root( struct fskit_core* core, bool writelock );
 
 // memory management 
 int fskit_entry_init_lowlevel( struct fskit_entry* fent, uint8_t type, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode, void* app_data );
 int fskit_entry_init_common( struct fskit_entry* fent, uint8_t type, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode, void* app_data );
 int fskit_entry_init_file( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode, void* app_data );
 int fskit_entry_init_dir( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode, void* app_data );
+int fskit_entry_init_fifo( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode, void* app_data );
+int fskit_entry_init_sock( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode, void* app_data );
+int fskit_entry_init_chr( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode, dev_t dev, void* app_data );
+int fskit_entry_init_blk( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode, dev_t dev, void* app_data );
 int fskit_entry_destroy( struct fskit_entry* fent, bool needlock );
 
 // entry sets

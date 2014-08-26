@@ -19,4 +19,9 @@
 #ifndef _FSKIT_MKNOD_H_
 #define _FSKIT_MKNOD_H_
 
+#include "common.h"
+#include "entry.h"
+
+int fskit_mknod( struct fskit_core* core, char const* path, mode_t mode, dev_t dev, uint64_t user, uint64_t group, void* app_data );
+
 #endif

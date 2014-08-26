@@ -204,6 +204,11 @@ static uint64_t fskit_default_inode_alloc( struct fskit_entry* parent, struct fs
    return (upper << 32) | lower;
 }
 
+// default inode releaser; does nothing 
+static int fskit_default_inode_free( uint64_t inode, void* ignored ) {
+   return 0;
+}
+
 // initialize the fskit core 
 int fskit_core_init( struct fskit_core* core, void* app_fs_data, void* root_app_data ) {
    
@@ -216,7 +221,9 @@ int fskit_core_init( struct fskit_core* core, void* app_fs_data, void* root_app_
    }
    
    core->app_fs_data = app_fs_data;
+   
    core->fskit_inode_alloc = fskit_default_inode_alloc;
+   core->fskit_inode_free = fskit_default_inode_free;
    
    pthread_rwlock_init( &core->lock, NULL );
    
@@ -246,14 +253,71 @@ int fskit_core_destroy( struct fskit_core* core, void** app_fs_data ) {
 }
 
 // set the inode allocator
-int fskit_core_inode_alloc( struct fskit_core* core, fskit_inode_alloc_t inode_alloc ) {
+int fskit_core_inode_alloc_cb( struct fskit_core* core, fskit_inode_alloc_t inode_alloc ) {
    
-   fskit_core_wlock( core );
+   int rc = 0;
+   
+   rc = fskit_core_wlock( core );
+   if( rc != 0 ) {
+      return rc;
+   }
    
    core->fskit_inode_alloc = inode_alloc;
    
    fskit_core_unlock( core );
    return 0;
+}
+
+// set the inode releaser 
+int fskit_core_inode_free_cb( struct fskit_core* core, fskit_inode_free_t inode_free ) {
+   
+   int rc = 0;
+   
+   rc = fskit_core_wlock( core );
+   if( rc != 0 ) {
+      return rc;
+   }
+   
+   core->fskit_inode_free = inode_free;
+   
+   fskit_core_unlock( core );
+   return 0;
+}
+
+
+// get the next free inode 
+// return 0 on error
+uint64_t fskit_core_inode_alloc( struct fskit_core* core, struct fskit_entry* parent, struct fskit_entry* child ) {
+   
+   int rc = 0;
+   
+   rc = fskit_core_rlock( core );
+   if( rc != 0 ) {
+      return 0;
+   }
+   
+   uint64_t next_inode = (*core->fskit_inode_alloc)( parent, child, core->app_fs_data );
+   
+   fskit_core_unlock( core );
+   
+   return next_inode;
+}
+
+// release an inode 
+int fskit_core_inode_free( struct fskit_core* core, uint64_t inode ) {
+   
+   int rc = 0;
+   
+   rc = fskit_core_rlock( core );
+   if( rc != 0 ) {
+      return rc;
+   }
+   
+   rc = (*core->fskit_inode_free)( inode, core->app_fs_data );
+   
+   fskit_core_unlock( core );
+   
+   return rc;
 }
 
 // get the root node 
@@ -328,7 +392,7 @@ int fskit_entry_init_file( struct fskit_entry* fent, uint64_t file_id, char cons
    
    rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_FILE, file_id, name, owner, group, mode, app_data );
    if( rc != 0 ) {
-      errorf("fs_entry_init(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
+      errorf("fs_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
       return rc;
    }
    
@@ -344,7 +408,7 @@ int fskit_entry_init_dir( struct fskit_entry* fent, uint64_t file_id, char const
    
    rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_DIR, file_id, name, owner, group, mode, app_data );
    if( rc != 0 ) {
-      errorf("fs_entry_init(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
+      errorf("fs_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
       return rc;
    }
    
@@ -353,6 +417,65 @@ int fskit_entry_init_dir( struct fskit_entry* fent, uint64_t file_id, char const
    return 0;
 }
 
+// high-level initializer: make a fifo 
+int fskit_entry_init_fifo( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode, void* app_data ) {
+   
+   int rc = 0;
+   
+   rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_FIFO, file_id, name, owner, group, mode, app_data );
+   if( rc != 0 ) {
+      errorf("fs_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
+      return rc;
+   }
+   
+   // nothing more to do for now 
+   return 0;
+}
+
+// high-level initializer: make a UNIX domain socket 
+int fskit_entry_init_sock( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode, void* app_data ) {
+   
+   int rc = 0;
+   
+   rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_SOCK, file_id, name, owner, group, mode, app_data );
+   if( rc != 0 ) {
+      errorf("fs_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
+      return rc;
+   }
+   
+   // nothing more to do for now 
+   return 0;
+}
+
+// high-level initializer: make a character device 
+int fskit_entry_init_chr( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode, dev_t dev, void* app_data ) {
+
+   int rc = 0;
+   
+   rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_CHR, file_id, name, owner, group, mode, app_data );
+   if( rc != 0 ) {
+      errorf("fs_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
+      return rc;
+   }
+   
+   fent->dev = dev;
+   return 0;   
+}
+
+// high-level initializer: make a block device 
+int fskit_entry_init_blk( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode, dev_t dev, void* app_data ) {
+   
+   int rc = 0;
+   
+   rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_BLK, file_id, name, owner, group, mode, app_data );
+   if( rc != 0 ) {
+      errorf("fs_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
+      return rc;
+   }
+   
+   fent->dev = dev;
+   return 0;
+}
 
 // destroy a fskit entry
 // NOTE: fent must be write-locked, or needlock must be true

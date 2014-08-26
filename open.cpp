@@ -138,11 +138,26 @@ struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path
          else {
             
             // get an inode for this file 
-            uint64_t child_inode = (*core->fskit_inode_alloc)( parent, child, core->app_fs_data );
-            child->file_id = child_inode;
+            uint64_t child_inode = fskit_core_inode_alloc( core, parent, child );
+            if( child_inode == 0 ) {
+               // error in allocating 
+               errorf("fskit_core_inode_alloc(%s) failed\n", path );
+               
+               *err = -EIO;
+                  
+               fskit_entry_unlock( parent );
+               free( path_basename );
+               free( path );
+               fskit_entry_destroy( child, false );
+               free( child );
+               
+               return NULL;
+            }
             
             // insert it into the filesystem
             fskit_entry_wlock( child );
+            
+            child->file_id = child_inode;
             
             // open it
             child->open_count++;

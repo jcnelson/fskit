@@ -17,3 +17,128 @@
 */
 
 #include "mknod.h"
+#include "path.h"
+
+// make a node
+int fskit_mknod( struct fskit_core* core, char const* path, mode_t mode, dev_t dev, uint64_t user, uint64_t group, void* app_data ) {
+   
+   int err = 0;
+
+   // get the parent directory and lock it
+   char* path_dirname = fskit_dirname( path, NULL );
+   struct fskit_entry* parent = fskit_entry_resolve_path( core, path_dirname, user, group, true, &err );
+   free( path_dirname );
+
+   if( !FSKIT_ENTRY_IS_DIR_READABLE( parent->mode, parent->owner, parent->group, user, group ) ) {
+      // not searchable
+      fskit_entry_unlock( parent );
+      return -EACCES;
+   }
+
+   if( !FSKIT_ENTRY_IS_WRITEABLE( parent->mode, parent->owner, parent->group, user, group ) ) {
+      // not writeable
+      fskit_entry_unlock( parent );
+      return -EACCES;
+   }
+
+   char* path_basename = fskit_basename( path, NULL );
+
+   // make sure it doesn't exist already (or isn't in the process of being deleted, since we might have to re-create it if deleting it fails)
+   if( fskit_entry_set_find_name( parent->children, path_basename ) != NULL ) {
+      fskit_entry_unlock( parent );
+      free( path_basename );
+      return -EEXIST;
+   }
+
+   struct fskit_entry* child = CALLOC_LIST( struct fskit_entry, 1 );
+   
+   mode_t mmode = 0;
+   char const* method_name = NULL;
+   
+   if( S_ISREG(mode) ) {
+      
+      // regular file 
+      mmode = (mode & 0777) | S_IFREG;
+      method_name = "fskit_entry_init_file";
+      
+      err = fskit_entry_init_file( child, 0, path_basename, user, group, mmode, app_data );
+   }
+   else if( S_ISFIFO(mode) ) {
+      
+      // fifo 
+      mmode = (mode & 0777) | S_IFIFO;
+      method_name = "fskit_entry_init_fifo";
+      
+      err = fskit_entry_init_fifo( child, 0, path_basename, user, group, mmode, app_data );
+   }
+   else if( S_ISSOCK(mode) ) {
+      
+      // socket 
+      mmode = (mode & 0777) | S_IFSOCK;
+      method_name = "fskit_entry_init_sock";
+      
+      err = fskit_entry_init_sock( child, 0, path_basename, user, group, mmode, app_data );
+   }
+   else if( S_ISCHR(mode) ) {
+      
+      // character device 
+      mmode = (mode & 0777) | S_IFCHR;
+      method_name = "fskit_entry_init_chr";
+      
+      err = fskit_entry_init_chr( child, 0, path_basename, user, group, mmode, dev, app_data );
+   }
+   else if( S_ISBLK(mode) ) {
+      
+      // block device 
+      mmode = (mode & 0777) | S_IFBLK;
+      method_name = "fskit_entry_init_blk";
+      
+      err = fskit_entry_init_blk( child, 0, path_basename, user, group, mmode, dev, app_data );
+   }
+   else {
+      errorf("Invalid/unsupported mode %o\n", mode );
+      
+      fskit_entry_unlock( parent );
+      free( path_basename );
+      fskit_entry_destroy( child, false );
+      free( child );
+      
+      return -EINVAL;
+   }
+   
+   if( err == 0 ) {
+      
+      // success! get the inode number 
+      uint64_t file_id = fskit_core_inode_alloc( core, parent, child );
+      if( file_id == 0 ) {
+         errorf("fskit_core_inode_alloc(%s) failed\n", path );
+         
+         fskit_entry_unlock( parent );
+         free( path_basename );
+         fskit_entry_destroy( child, false );
+         free( child );
+         
+         return -EIO;
+      }
+      
+      fskit_entry_wlock( child );
+      
+      child->file_id = file_id;
+      
+      // attach the file
+      fskit_entry_attach_lowlevel( parent, child );
+      
+      fskit_entry_unlock( child );
+   }
+   else {
+      errorf("%s(%s) rc = %d\n", method_name, path, err );
+      fskit_entry_destroy( child, false );
+      free( child );
+   }
+   
+   fskit_entry_unlock( parent );
+
+   free( path_basename );
+
+   return err;
+}
