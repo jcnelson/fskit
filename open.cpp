@@ -23,6 +23,7 @@
 // create a file handle from a fskit_entry
 // ent must be read-locked
 static struct fskit_file_handle* fskit_file_handle_create( struct fskit_core* core, struct fskit_entry* ent, char const* opened_path, int flags ) {
+   
    struct fskit_file_handle* fh = CALLOC_LIST( struct fskit_file_handle, 1 );
    
    fh->fent = ent;
@@ -120,7 +121,7 @@ struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path
             fskit_entry_unlock( parent );
             free( path_basename );
             free( path );
-            fskit_entry_destroy( child, false );
+            fskit_entry_destroy( child, false, NULL );
             free( child );
             
             return NULL;
@@ -138,7 +139,7 @@ struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path
                fskit_entry_unlock( parent );
                free( path_basename );
                free( path );
-               fskit_entry_destroy( child, false );
+               fskit_entry_destroy( child, false, NULL );
                free( child );
                
                return NULL;

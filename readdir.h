@@ -19,5 +19,11 @@
 #ifndef _FSKIT_READDIR_H_
 #define _FSKIT_READDIR_H_
 
+#include "entry.h"
+
+void fskit_dir_entry_free( struct fskit_dir_entry* d_ent );
+
+struct fskit_dir_entry** fskit_readdir( struct fskit_dir_handle* dirh, uint64_t child_offset, uint64_t num_children, uint64_t* num_read, int* err );
+struct fskit_dir_entry** fskit_listdir( struct fskit_dir_handle* dirh, uint64_t* num_read, int* err );
 
 #endif

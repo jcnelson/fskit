@@ -55,4 +55,6 @@
 #include <sys/mman.h>
 #include <inttypes.h>
 
+#define MIN( x, y ) (x) > (y) ? (y) : (x)
+
 #endif

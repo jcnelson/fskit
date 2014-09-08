@@ -93,6 +93,7 @@ struct fskit_entry {
 
 // fskit file handle 
 struct fskit_file_handle {
+   
    struct fskit_entry* fent;
    
    char* path;
@@ -108,6 +109,7 @@ struct fskit_file_handle {
 
 // fskit directory handle 
 struct fskit_dir_handle {
+   
    struct fskit_entry* dent;
       
    char* path;
@@ -148,7 +150,7 @@ struct fskit_core {
 
 // core management 
 int fskit_core_init( struct fskit_core* core, void* app_data, void* root_app_data );
-int fskit_core_destroy( struct fskit_core* core, void** app_fs_data );
+int fskit_core_destroy( struct fskit_core* core, void** app_fs_data, void** app_root_data );
 
 // core callbacks 
 int fskit_core_inode_alloc_cb( struct fskit_core* core, fskit_inode_alloc_t inode_alloc );
@@ -168,9 +170,11 @@ int fskit_entry_init_fifo( struct fskit_entry* fent, uint64_t file_id, char cons
 int fskit_entry_init_sock( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode, void* app_data );
 int fskit_entry_init_chr( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode, dev_t dev, void* app_data );
 int fskit_entry_init_blk( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode, dev_t dev, void* app_data );
-int fskit_entry_destroy( struct fskit_entry* fent, bool needlock );
+int fskit_entry_destroy( struct fskit_entry* fent, bool needlock, void** app_data );
+int fskit_entry_try_destroy( struct fskit_entry* fent, void** app_data );
 
 // entry sets
+long fskit_entry_name_hash( char const* name );
 void fskit_entry_set_insert( fskit_entry_set* set, char const* name, struct fskit_entry* child );
 void fskit_entry_set_insert_hash( fskit_entry_set* set, long hash, struct fskit_entry* child );
 struct fskit_entry* fskit_entry_set_find_name( fskit_entry_set* set, char const* name );
@@ -181,6 +185,8 @@ bool fskit_entry_set_replace( fskit_entry_set* set, char const* name, struct fsk
 unsigned int fskit_entry_set_count( fskit_entry_set* set );
 struct fskit_entry* fskit_entry_set_get( fskit_entry_set::iterator* itr );
 long fskit_entry_set_get_name_hash( fskit_entry_set::iterator* itr );
+long fskit_entry_set_name_hash_at( fskit_entry_set* set, uint64_t i );
+struct fskit_entry* fskit_entry_set_child_at( fskit_entry_set* set, uint64_t i );
 
 // locking 
 int fskit_entry_rlock2( struct fskit_entry* fent, char const* from_str, int line_no );

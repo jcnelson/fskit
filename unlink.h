@@ -19,5 +19,8 @@
 #ifndef _FSKIT_UNLINK_H_
 #define _FSKIT_UNLINK_H_
 
+#include "entry.h"
+
+int fskit_unlink( struct fskit_core* core, char const* path, uint64_t owner, uint64_t group, void** app_file_data );
 
 #endif

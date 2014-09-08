@@ -19,4 +19,8 @@
 #ifndef _FSKIT_CLOSEDIR_H_
 #define _FSKIT_CLOSEDIR_H_
 
+#include "entry.h"
+
+int fskit_closedir( struct fskit_dir_handle* dirh, void** app_handle_data, void** app_dir_data );
+
 #endif

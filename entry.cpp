@@ -125,9 +125,32 @@ long fskit_entry_set_get_name_hash( fskit_entry_set::iterator* itr ) {
    return (*itr)->first;
 }
 
+// get the ith child (or NULL if the request is off the end of the set)
+struct fskit_entry* fskit_entry_set_child_at( fskit_entry_set* set, uint64_t i ) {
+   
+   if( i >= set->size() ) {
+      return NULL;
+   }
+   else {
+      return set->at(i).second;
+   }
+}
+
+// get the ith child's name hash (or zero if it's off the end of the set)
+long fskit_entry_set_name_hash_at( fskit_entry_set* set, uint64_t i ) {
+   
+   if( i >= set->size() ) {
+      return 0;
+   }
+   else {
+      return set->at(i).first;
+   }
+}
+
 // attach an entry as a child directly
 // both fskit_entry structures must be write-locked
 int fskit_entry_attach_lowlevel( struct fskit_entry* parent, struct fskit_entry* fent ) {
+   
    fent->link_count++;
 
    struct timespec ts;
@@ -140,8 +163,9 @@ int fskit_entry_attach_lowlevel( struct fskit_entry* parent, struct fskit_entry*
 }
 
 // detach an entry from a parent.
-// both entries must be write-locked 
-// this will destroy child if its open count is 0
+// both entries must be write-locked.
+// child's link count will be decremented
+// the child will not be destroyed even if its link count reaches zero; the caller must take care of that.
 int fskit_entry_detach_lowlevel( struct fskit_entry* parent, struct fskit_entry* child ) {
 
    if( parent == child ) {
@@ -176,24 +200,10 @@ int fskit_entry_detach_lowlevel( struct fskit_entry* parent, struct fskit_entry*
    clock_gettime( CLOCK_REALTIME, &ts );
    parent->mtime_sec = ts.tv_sec;
    parent->mtime_nsec = ts.tv_nsec;
-
-   int rc = 0;
-
-   if( child->open_count == 0 ) {
    
-      fskit_entry_destroy( child, false );
-      free( child );
-      child = NULL;
-   }
-   else {
-      fskit_entry_unlock( child );
-   }
-
-   if( rc == 0 && child ) {
-      child->link_count = 0;
-   }
-
-   return rc;
+   child->link_count--;
+   
+   return 0;
 }
 
 // default inode allocator: pick a random 64-bit number 
@@ -234,13 +244,13 @@ int fskit_core_init( struct fskit_core* core, void* app_fs_data, void* root_app_
 // destroy the fskit core
 // core must be write-locked
 // return the app_fs_data from core upon distruction
-int fskit_core_destroy( struct fskit_core* core, void** app_fs_data ) {
+int fskit_core_destroy( struct fskit_core* core, void** app_fs_data, void** app_root_data ) {
    
    void* fs_data = core->app_fs_data;
    
    core->app_fs_data = NULL;
    
-   fskit_entry_destroy( &core->root, true );
+   fskit_entry_destroy( &core->root, true, app_root_data );
    
    pthread_rwlock_unlock( &core->lock );
    pthread_rwlock_destroy( &core->lock );
@@ -478,8 +488,9 @@ int fskit_entry_init_blk( struct fskit_entry* fent, uint64_t file_id, char const
 }
 
 // destroy a fskit entry
+// give back the caller the fent's app data via app_data
 // NOTE: fent must be write-locked, or needlock must be true
-int fskit_entry_destroy( struct fskit_entry* fent, bool needlock ) {
+int fskit_entry_destroy( struct fskit_entry* fent, bool needlock, void** app_data ) {
 
    dbprintf("destroy %" PRIX64 " (%s) (%p)\n", fent->file_id, fent->name, fent );
 
@@ -500,11 +511,34 @@ int fskit_entry_destroy( struct fskit_entry* fent, bool needlock ) {
 
    fent->type = FSKIT_ENTRY_TYPE_DEAD;      // next thread to hold this lock knows this is a dead entry
 
+   if( app_data ) {
+      *app_data = fent->app_data;
+   }
+   
    fskit_entry_unlock( fent );
    pthread_rwlock_destroy( &fent->lock );
+   
    return 0;
 }
 
+
+// try to destroy an fskit entry, if it is unlinked and no longer open
+// return 0 if not destroyed
+// return 1 if destroyed
+// fent must be write-locked
+int fskit_entry_try_destroy( struct fskit_entry* fent, void** app_data ) {
+   
+   int rc = 0;
+
+   if( fent->link_count <= 0 && fent->open_count <= 0 ) {
+      
+      fskit_entry_destroy( fent, false, app_data );
+      
+      rc = 1;
+   }
+
+   return rc;
+}
 
 
 // lock a file for reading

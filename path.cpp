@@ -138,9 +138,6 @@ void fskit_sanitize_path( char* path ) {
    }
 }
 
-
-
-
 // run the eval function on cur_ent.
 // prev_ent must be write-locked, in case cur_ent gets deleted.
 // return the eval function's return code.

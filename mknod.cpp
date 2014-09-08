@@ -100,7 +100,7 @@ int fskit_mknod( struct fskit_core* core, char const* path, mode_t mode, dev_t d
       
       fskit_entry_unlock( parent );
       free( path_basename );
-      fskit_entry_destroy( child, false );
+      fskit_entry_destroy( child, false, NULL );
       free( child );
       
       return -EINVAL;
@@ -115,7 +115,7 @@ int fskit_mknod( struct fskit_core* core, char const* path, mode_t mode, dev_t d
          
          fskit_entry_unlock( parent );
          free( path_basename );
-         fskit_entry_destroy( child, false );
+         fskit_entry_destroy( child, false, NULL );
          free( child );
          
          return -EIO;
@@ -132,7 +132,7 @@ int fskit_mknod( struct fskit_core* core, char const* path, mode_t mode, dev_t d
    }
    else {
       errorf("%s(%s) rc = %d\n", method_name, path, err );
-      fskit_entry_destroy( child, false );
+      fskit_entry_destroy( child, false, NULL );
       free( child );
    }
    

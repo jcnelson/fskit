@@ -19,4 +19,8 @@
 #ifndef _FSKIT_MKDIR_H_
 #define _FSKIT_MKDIR_H_
 
+#include "entry.h"
+
+int fskit_mkdir( struct fskit_core* core, char const* path, mode_t mode, uint64_t user, uint64_t group, void* app_dir_data );
+
 #endif
