@@ -16,9 +16,4 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _FSKIT_OPENDIR_H_
-#define _FSKIT_OPENDIR_H_
-
-#include "entry.h"
-
-#endif
+#include "readdir.h"

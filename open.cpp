@@ -22,27 +22,17 @@
 
 // create a file handle from a fskit_entry
 // ent must be read-locked
-static struct fskit_file_handle* fskit_file_handle_create( struct fskit_core* core, struct fskit_entry* ent, char const* opened_path ) {
+static struct fskit_file_handle* fskit_file_handle_create( struct fskit_core* core, struct fskit_entry* ent, char const* opened_path, int flags ) {
    struct fskit_file_handle* fh = CALLOC_LIST( struct fskit_file_handle, 1 );
-   fh->flags = 0;
-   fh->open_count = 0;
+   
    fh->fent = ent;
    fh->file_id = ent->file_id;
    fh->path = strdup( opened_path );
+   fh->flags = flags;
    
    pthread_rwlock_init( &fh->lock, NULL );
    
    return fh;
-}
-
-
-// open a file handle
-// fh must be write-locked
-static int fskit_file_handle_open( struct fskit_file_handle* fh, int flags ) {
-   // is this a local file?
-   fh->flags = flags;
-   fh->open_count++;
-   return 0;
 }
 
 // create/open a file, with the given flags and (if creating) mode
@@ -234,8 +224,7 @@ struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path
    if( *err == 0 ) {
       // still here--we can open the file now!
       fskit_entry_set_atime( child, NULL );
-      ret = fskit_file_handle_create( core, child, path );
-      fskit_file_handle_open( ret, flags );
+      ret = fskit_file_handle_create( core, child, path, flags );
    }
    
    if( child ) {

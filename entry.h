@@ -98,8 +98,6 @@ struct fskit_file_handle {
    char* path;
    int flags;
    uint64_t file_id;
-   
-   int open_count;
 
    // lock governing access to this structure
    pthread_rwlock_t lock;
@@ -111,6 +109,9 @@ struct fskit_file_handle {
 // fskit directory handle 
 struct fskit_dir_handle {
    struct fskit_entry* dent;
+      
+   char* path;
+   uint64_t file_id;
    
    // lock governing access to this structure
    pthread_rwlock_t lock;
@@ -121,8 +122,9 @@ struct fskit_dir_handle {
 
 // fskit dir entry 
 struct fskit_dir_entry {
-   uint8_t type;
-   char* name;
+   uint8_t type;        // type of file
+   uint64_t file_id;    // file ID
+   char* name;          // name of file
 };
 
 typedef uint64_t (*fskit_inode_alloc_t)( struct fskit_entry*, struct fskit_entry*, void* );
