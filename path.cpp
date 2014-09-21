@@ -87,19 +87,11 @@ char* fskit_dirname( char const* path, char* dest ) {
    return dest;
 }
 
-// get the basename of a (non-directory) path.
-// put it into dest, if dest is not null.
-// otherwise, allocate a buffer with it and return the buffer
-char* fskit_basename( char const* path, char* dest ) {
+// determine how long the basename of a path is 
+size_t fskit_basename_len( char const* path ) {
    int delim_i = strlen(path) - 1;
    if( delim_i <= 0 ) {
-      if( dest == NULL ) {
-         dest = strdup("/");
-      }
-      else {
-         strcpy(dest, "/");
-      }
-      return dest;
+      return 0;
    }
    if( path[delim_i] == '/' ) {
       // this path ends with '/', so skip over it if it isn't /
@@ -113,17 +105,28 @@ char* fskit_basename( char const* path, char* dest ) {
       }
    }
    delim_i++;
-
-   if( dest == NULL ) {
-      dest = CALLOC_LIST( char, strlen(path) - delim_i + 1 );
-   }
-   else {
-      memset( dest, 0, strlen(path) - delim_i + 1 );
-   }
-   strncpy( dest, path + delim_i, strlen(path) - delim_i );
-   return dest;
+   
+   return strlen(path) - delim_i;
 }
 
+
+// get the basename of a (non-directory) path.
+// put it into dest, if dest is not null.
+// otherwise, allocate a buffer with it and return the buffer
+char* fskit_basename( char const* path, char* dest ) {
+   
+   size_t len = fskit_basename_len( path );
+
+   if( dest == NULL ) {
+      dest = CALLOC_LIST( char, len + 1 );
+   }
+   else {
+      memset( dest, 0, len + 1 );
+   }
+   
+   strncpy( dest, path + strlen(path) - len, len );
+   return dest;
+}
 
 // make sure paths don't end in /, unless they're root.
 // NOTE: this modifies the argument
@@ -159,7 +162,7 @@ static int fskit_entry_ent_eval( struct fskit_entry* prev_ent, struct fskit_entr
          }
       }
       else {
-         free( cur_ent );
+         safe_free( cur_ent );
          
          if( prev_ent ) {
             dbprintf("Remove %s from %s\n", name_dup, prev_ent->name );
@@ -169,7 +172,7 @@ static int fskit_entry_ent_eval( struct fskit_entry* prev_ent, struct fskit_entr
       }
    }
    
-   free( name_dup );
+   safe_free( name_dup );
    
    return eval_rc;
 }
@@ -205,7 +208,7 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
    
    if( cur_ent->link_count == 0 ) {
       // filesystem was nuked
-      free( fpath );
+      safe_free( fpath );
       fskit_entry_unlock( cur_ent );
       *err = -ENOENT;
       return NULL;
@@ -216,7 +219,7 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
       int eval_rc = fskit_entry_ent_eval( prev_ent, cur_ent, ent_eval, cls );
       if( eval_rc != 0 ) {
          *err = eval_rc;
-         free( fpath );
+         safe_free( fpath );
          return NULL;
       }
    }
@@ -232,7 +235,7 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
             *err = -ENOENT;
          }
 
-         free( fpath );
+         safe_free( fpath );
          fskit_entry_unlock( cur_ent );
 
          return NULL;
@@ -246,7 +249,7 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
          
          // the appropriate read flag is not set
          *err = -EACCES;
-         free( fpath );
+         safe_free( fpath );
          fskit_entry_unlock( cur_ent );
 
          return NULL;
@@ -269,7 +272,7 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
       if( cur_ent == NULL || cur_ent->deletion_in_progress ) {
          // not found
          *err = -ENOENT;
-         free( fpath );
+         safe_free( fpath );
          fskit_entry_unlock( prev_ent );
          
          return NULL;
@@ -288,7 +291,7 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
             int eval_rc = fskit_entry_ent_eval( prev_ent, cur_ent, ent_eval, cls );
             if( eval_rc != 0 ) {
                *err = eval_rc;
-               free( fpath );
+               safe_free( fpath );
                return NULL;
             }
          }
@@ -306,7 +309,7 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
          if( cur_ent->link_count == 0 || cur_ent->type == FSKIT_ENTRY_TYPE_DEAD ) {
            // just got removed
            *err = -ENOENT;
-           free( fpath );
+           safe_free( fpath );
            fskit_entry_unlock( cur_ent );
 
            return NULL;
@@ -314,7 +317,7 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
       }
    } while( true );
    
-   free( fpath );
+   safe_free( fpath );
    if( name == NULL ) {
       // ran out of path
       *err = 0;

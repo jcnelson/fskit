@@ -21,6 +21,10 @@
 
 #include "entry.h"
 
-int fskit_entry_rmdir( struct fskit_core* core, char const* _path, uint64_t user, uint64_t group, void** app_dir_data );
+extern "C" {
+
+int fskit_rmdir( struct fskit_core* core, char const* _path, uint64_t user, uint64_t group );
+
+}
 
 #endif

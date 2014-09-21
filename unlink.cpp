@@ -23,7 +23,7 @@
 // return -EUCLEAN if we failed to garbage-collect, but needed to (i.e. a manifest was missing)
 // return -EREMOTEIO for failure to revalidate metadata 
 // return -ESTALE if the given information is out of date
-int fskit_unlink( struct fskit_core* core, char const* path, uint64_t owner, uint64_t group, void** app_file_data ) {
+int fskit_unlink( struct fskit_core* core, char const* path, uint64_t owner, uint64_t group ) {
    
    // get some info about this file first
    int rc = 0;
@@ -64,11 +64,12 @@ int fskit_unlink( struct fskit_core* core, char const* path, uint64_t owner, uin
    }
    
    // try to destroy fent 
-   rc = fskit_entry_try_destroy( fent, app_file_data );
+   rc = fskit_entry_try_destroy( core, path, fent );
    if( rc > 0 ) {
       
       // destroyed 
       free( fent );
+      rc = 0;
    }
    else if( rc < 0 ) {
    

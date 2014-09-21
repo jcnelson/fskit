@@ -21,6 +21,10 @@
 
 #include "entry.h"
 
-int fskit_closedir( struct fskit_dir_handle* dirh, void** app_handle_data, void** app_dir_data );
+extern "C" {
+   
+int fskit_closedir( struct fskit_core* core, struct fskit_dir_handle* dirh );
+
+}
 
 #endif

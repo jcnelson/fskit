@@ -51,6 +51,8 @@ extern int _ERROR_MESSAGES;
 #define DUP_LIST(type, dst, src, duper) do { unsigned int sz = 0; SIZE_LIST( &sz, src ); dst = CALLOC_LIST( type, sz + 1 ); COPY_LIST( dst, src, duper ); } while(0)
 
 #define strdup_or_null( str )  (str) != NULL ? strdup(str) : NULL
+#define safe_free( ptr ) do { if( (ptr) != NULL ) { free( ptr ); (ptr) = NULL; } } while(0)
+#define safe_delete( ptr ) do { if( (ptr) != NULL ) { delete (ptr); (ptr) = NULL; } } while(0)
 
 extern int _debug_locks;
 

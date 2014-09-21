@@ -22,6 +22,13 @@
 #include "common.h"
 #include "entry.h"
 
-struct fskit_file_handle* fskit_create( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, mode_t mode, void* app_data, int* err );
+int fskit_run_user_create( struct fskit_core* core, char const* path, struct fskit_entry* fent, int flags, mode_t mode, void** inode_data, void** handle_data );
+int fskit_do_create( struct fskit_core* core, struct fskit_entry* parent, char const* path, int flags, mode_t mode, uint64_t user, uint64_t group, struct fskit_entry** ret_child, void** handle_data );
+
+extern "C" {
+   
+struct fskit_file_handle* fskit_create( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, mode_t mode, int* err );
+
+}
 
 #endif

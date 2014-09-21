@@ -21,6 +21,10 @@
 
 #include "entry.h"
 
-struct fskit_dir_handle* fskit_opendir( struct fs_core* core, char const* path, uint64_t user, uint64_t group, void* app_handle_data, int* err );
+extern "C" {
+   
+struct fskit_dir_handle* fskit_opendir( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, int* err );
+
+}
 
 #endif

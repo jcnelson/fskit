@@ -17,7 +17,7 @@
 */
 
 #include "readdir.h"
-
+#include "route.h"
 
 // initialize a directory entry from an fskit_entry
 // return the new entry on success
@@ -36,7 +36,7 @@ static struct fskit_dir_entry* fskit_make_dir_entry( struct fskit_entry* dent, c
    
    if( dir_ent->name == NULL ) {
       // out of memory 
-      free( dir_ent );
+      safe_free( dir_ent );
       return NULL;
    }
    
@@ -52,11 +52,11 @@ void fskit_dir_entry_free( struct fskit_dir_entry* dir_ent ) {
    }
    
    if( dir_ent->name != NULL ) {
-      free( dir_ent->name );
+      safe_free( dir_ent->name );
       dir_ent->name = NULL;
    }
    
-   free( dir_ent );
+   safe_free( dir_ent );
 }
 
 // free a list of dir entries 
@@ -66,11 +66,33 @@ void fskit_dir_entry_free_list( struct fskit_dir_entry** dir_ents ) {
       
       if( dir_ents[i] != NULL ) {
          fskit_dir_entry_free( dir_ents[i] );
-         free( dir_ents[i] );
       }
    }
    
-   free( dir_ents );
+   safe_free( dir_ents );
+}
+
+
+// run the user-supplied route for listdir 
+// return 1 if the given dent should be included in the listing 
+// return 0 if the given dent should NOT be included in the listing 
+// return negative on error
+int fskit_run_user_readdir( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_dir_entry* dent ) {
+   
+   int rc = 0;
+   int cbrc = 0;
+   struct fskit_route_dispatch_args dargs;
+   
+   fskit_route_readdir_args( &dargs, dent );
+   
+   rc = fskit_route_call_readdir( core, path, fent, &dargs, &cbrc );
+   
+   if( rc == -EPERM || rc == -ENOSYS ) {
+      // no routes 
+      return 1;
+   }
+   
+   return cbrc;
 }
 
 
@@ -82,7 +104,8 @@ void fskit_dir_entry_free_list( struct fskit_dir_entry** dir_ents ) {
 // On error, returns NULL and sets *err to:
 // * -EDEADLK if there was a deadlock (this is a bug, and should be reported)
 // * -ENOMEM if there was insuffucient memory
-static struct fskit_dir_entry** fskit_readdir_lowlevel( char const* fs_path, struct fskit_entry* dent, uint64_t child_offset, uint64_t num_children, uint64_t* num_read, int* err ) {
+// If there are no children left to read (i.e. child_offset is beyond the end of the directory), then this method sets *err to 0 and returns NULL to indicate EOD
+static struct fskit_dir_entry** fskit_readdir_lowlevel( struct fskit_core* core, char const* fs_path, struct fskit_entry* dent, uint64_t child_offset, uint64_t num_children, uint64_t* num_read, int* err ) {
    
    int rc = 0;
    uint64_t next = 0;
@@ -92,8 +115,9 @@ static struct fskit_dir_entry** fskit_readdir_lowlevel( char const* fs_path, str
       
       // reading off the end of the directory 
       // return EOF condition 
-      struct fskit_dir_entry** dir_ents = CALLOC_LIST( struct fskit_dir_entry*, 1 );
-      return dir_ents;
+      *err = 0;
+      *num_read = 0;
+      return NULL;
    }
    
    // will read at least one child 
@@ -107,7 +131,7 @@ static struct fskit_dir_entry** fskit_readdir_lowlevel( char const* fs_path, str
       return NULL;  
    }
    
-   for( uint64_t i = child_offset; i < max_read; i++ ) {
+   for( uint64_t i = child_offset; i < dent->children->size() && next < num_children; i++ ) {
       
       // extract values from iterators
       struct fskit_entry* fent = fskit_entry_set_child_at( dent->children, i );
@@ -176,14 +200,37 @@ static struct fskit_dir_entry** fskit_readdir_lowlevel( char const* fs_path, str
          fskit_entry_unlock( fent );
       }
 
-      // do we have an entry
+      // do we have an entry?
       if( dir_ent != NULL ) {
          
-         dir_ents[next] = dir_ent;
+         // is this entry to be included in the listing, according to some user route?
+         rc = fskit_run_user_readdir( core, fs_path, dent, dir_ent );
+         if( rc > 0 ) {
+            
+            dir_ents[next] = dir_ent;
+            
+            next++;
+         }
+         else if( rc < 0 ) {
+            
+            // failed 
+            errorf("fskit_run_user_readdir(%s) rc = %d\n", fs_path, rc );
+            
+            fskit_dir_entry_free_list( dir_ents );
+            *err = rc;
+            return NULL;
+         }
+         else {
+            
+            // don't include in the listing 
+            fskit_dir_entry_free( dir_ent );
+         }
+      }
+      else {
          
-         dbprintf( "in '%s': '%s'\n", dent->name, dir_ent->name );
-         
-         next++;
+         // out of memory
+         *err = -ENOMEM;
+         break;
       }
    }
    
@@ -199,7 +246,7 @@ static struct fskit_dir_entry** fskit_readdir_lowlevel( char const* fs_path, str
 // * -ENOMEM if no memory 
 // * -EDEADLK if there would be deadlock (this is a bug if it happens)
 // * -EBADF if the directory hadndle is invalid 
-struct fskit_dir_entry** fskit_readdir( struct fskit_dir_handle* dirh, uint64_t child_offset, uint64_t num_children, uint64_t* num_read, int* err ) {
+struct fskit_dir_entry** fskit_readdir( struct fskit_core* core, struct fskit_dir_handle* dirh, uint64_t child_offset, uint64_t num_children, uint64_t* num_read, int* err ) {
    
    int rc = 0;
    
@@ -230,7 +277,7 @@ struct fskit_dir_entry** fskit_readdir( struct fskit_dir_handle* dirh, uint64_t 
       return NULL;
    }
 
-   struct fskit_dir_entry** dents = fskit_readdir_lowlevel( dirh->path, dirh->dent, child_offset, num_children, num_read, err );
+   struct fskit_dir_entry** dents = fskit_readdir_lowlevel( core, dirh->path, dirh->dent, child_offset, num_children, num_read, err );
    
    fskit_entry_unlock( dirh->dent );
    
@@ -240,6 +287,6 @@ struct fskit_dir_entry** fskit_readdir( struct fskit_dir_handle* dirh, uint64_t 
 }
 
 // list a whole directory's data
-struct fskit_dir_entry** fskit_listdir( struct fskit_dir_handle* dirh, uint64_t* num_read, int* err ) {
-   return fskit_readdir( dirh, 0, UINT64_MAX, num_read, err );
+struct fskit_dir_entry** fskit_listdir( struct fskit_core* core, struct fskit_dir_handle* dirh, uint64_t* num_read, int* err ) {
+   return fskit_readdir( core, dirh, 0, UINT64_MAX, num_read, err );
 }

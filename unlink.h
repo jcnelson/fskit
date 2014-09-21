@@ -21,6 +21,10 @@
 
 #include "entry.h"
 
-int fskit_unlink( struct fskit_core* core, char const* path, uint64_t owner, uint64_t group, void** app_file_data );
+extern "C" {
+   
+int fskit_unlink( struct fskit_core* core, char const* path, uint64_t owner, uint64_t group );
+
+}
 
 #endif

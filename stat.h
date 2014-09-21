@@ -19,4 +19,16 @@
 #ifndef _FSKIT_STAT_H_
 #define _FSKIT_STAT_H_
 
+#include "fskit.h"
+#include "common.h"
+
+#include <sys/stat.h>
+
+extern "C" {
+
+int fskit_stat( struct fskit_core* core, char const* fs_path, uint64_t user, uint64_t group, struct stat* sb );
+int fskit_fstat( struct fskit_core* core, struct fskit_entry* fent, struct stat* sb );
+
+}
+
 #endif

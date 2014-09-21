@@ -21,6 +21,12 @@
 
 #include "entry.h"
 
-int fskit_close( struct fskit_file_handle* fh, void** app_handle_data, void** app_file_data );
+int fskit_run_user_close( struct fskit_core* core, char const* path, struct fskit_entry* fent, void* handle_data );
+
+extern "C" {
+   
+int fskit_close( struct fskit_core* core, struct fskit_file_handle* fh );
+
+}
 
 #endif

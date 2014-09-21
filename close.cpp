@@ -17,15 +17,18 @@
 */
 
 #include "close.h"
+#include "route.h"
 
 // destroy a file handle
 // the file handle must be write-locked
+// this calls the route for close as well.
+// in all cases, the file handle is destroyed, but this method will return negative if the route callback failed.
 static int fskit_file_handle_destroy( struct fskit_file_handle* fh ) {
    
    fh->fent = NULL;
    
    if( fh->path ) {
-      free( fh->path );
+      safe_free( fh->path );
       fh->path = NULL;
    }
    
@@ -33,18 +36,48 @@ static int fskit_file_handle_destroy( struct fskit_file_handle* fh ) {
    
    memset( fh, 0, sizeof(struct fskit_file_handle) );
    
-   free( fh );
+   safe_free( fh );
    
    return 0;
 }
 
+
+// run the user-installed close handler
+// return 0 on success, or if there are no routes 
+// return negative on callback failure
+int fskit_run_user_close( struct fskit_core* core, char const* path, struct fskit_entry* fent, void* handle_data ) {
+   
+   // route?
+   struct fskit_route_dispatch_args dargs;
+   int rc = 0;
+   int cbrc = 0;
+   
+   fskit_route_close_args( &dargs, handle_data );
+   rc = fskit_route_call_close( core, path, fent, &dargs, &cbrc );
+   
+   if( rc == -EPERM || rc == -ENOSYS ) {
+      
+      // no routes
+      return 0;
+   }
+   else if( cbrc != 0 ) {
+      
+      // callback failed 
+      return cbrc;
+   }
+   else {
+      
+      // success!
+      return 0;
+   }
+}
 
 // close a file descriptor.  This will free it, so don't use it again.  On success, the handle's app-specific data will be placed into *app_handle_data.
 // a file may be destroyed by closing it, if it was unlinked.  If so, *app_file_data will contain its app-specific data.
 // return 0 on success
 // return -EBADF if the handle is invalid
 // return -EDEADLK of there is a bug in the lock handling
-int fskit_close( struct fskit_file_handle* fh, void** app_handle_data, void** app_file_data ) {
+int fskit_close( struct fskit_core* core, struct fskit_file_handle* fh ) {
    
    int rc = 0;
    
@@ -69,15 +102,26 @@ int fskit_close( struct fskit_file_handle* fh, void** app_handle_data, void** ap
       return rc;
    }
 
+   // clean up the handle 
+   rc = fskit_run_user_close( core, fh->path, fh->fent, fh->app_data );
+   if( rc != 0 ) {
+      // failed to run user close 
+      errorf("fskit_run_user_close(%s) rc = %d\n", fh->path, rc );
+      
+      fskit_entry_unlock( fh->fent );
+      fskit_file_handle_unlock( fh );
+      return rc;
+   }
+   
    // no longer open by this handle
    fh->fent->open_count--;
-
+   
    // see if we can destroy this....
-   rc = fskit_entry_try_destroy( fh->fent, app_file_data );
+   rc = fskit_entry_try_destroy( core, fh->path, fh->fent );
    if( rc > 0 ) {
       
       // fent was unlocked and destroyed
-      free( fh->fent );
+      safe_free( fh->fent );
       rc = 0;
    }
    else if( rc < 0 ) {
@@ -94,11 +138,6 @@ int fskit_close( struct fskit_file_handle* fh, void** app_handle_data, void** ap
       fskit_entry_unlock( fh->fent );
    }
    
-   // give back the app data 
-   if( app_handle_data != NULL ) {
-      *app_handle_data = fh->app_data;
-   }
-
    // get rid of this handle
    fskit_file_handle_unlock( fh );
    fskit_file_handle_destroy( fh );

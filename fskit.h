@@ -22,11 +22,32 @@
 #include "common.h"
 #include "debug.h"
 #include "entry.h"
-#include "ops.h"
 #include "path.h"
 #include "random.h"
 
+#include "close.h"
+#include "closedir.h"
+#include "create.h"
+#include "mkdir.h"
+#include "mknod.h"
+#include "open.h"
+#include "opendir.h"
+#include "read.h"
+#include "readdir.h"
+#include "rmdir.h"
+#include "stat.h"
+#include "trunc.h"
+#include "unlink.h"
+#include "utime.h"
+#include "write.h"
+
+#define FSKIT_FILESYSTEM_TYPE 0x19880119
+
+extern "C" {
+   
 int fskit_library_init();
 int fskit_library_shutdown();
+
+}
 
 #endif 

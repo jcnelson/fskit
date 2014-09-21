@@ -19,7 +19,7 @@
 #include "rmdir.h"
 #include "path.h"
 
-// remove a directory, if it is empty.  On detach, if the child is no longer open, then also put its app-defined data into *app_dir_data for the caller to deal with.
+// remove a directory, if it is empty.
 // return 0 on success
 // on error, return one of the following:
 // * -ENAMETOOLONG if the path is too long
@@ -27,7 +27,7 @@
 // * -ENOTDIR if one of the directories along the path isn't a directory
 // * -ENOENT if one of the directories along the path doesn't exist
 // * -ENOTEMPTY if the directory isn't empty
-int fskit_entry_rmdir( struct fskit_core* core, char const* _path, uint64_t user, uint64_t group, void** app_dir_data ) {
+int fskit_rmdir( struct fskit_core* core, char const* _path, uint64_t user, uint64_t group ) {
 
    // get some info about this directory first
    int rc = 0;
@@ -90,7 +90,7 @@ int fskit_entry_rmdir( struct fskit_core* core, char const* _path, uint64_t user
    }
    
    // try to destroy?
-   rc = fskit_entry_try_destroy( dent, app_dir_data );
+   rc = fskit_entry_try_destroy( core, path, dent );
    if( rc > 0 ) {
       
       // destroyed 

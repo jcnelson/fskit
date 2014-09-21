@@ -22,9 +22,24 @@
 #include "common.h"
 #include "entry.h"
 
+#ifndef _UTIME_H
+struct utimbuf {
+   time_t actime;
+   time_t modtime;
+};
+#endif
+
+extern "C" {
+   
 // time 
 int fskit_entry_set_ctime( struct fskit_entry* fent, struct timespec* now );
 int fskit_entry_set_mtime( struct fskit_entry* fent, struct timespec* now );
 int fskit_entry_set_atime( struct fskit_entry* fent, struct timespec* now );
+
+// POSIX methods 
+int fskit_utime( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, const struct utimbuf* times );
+int fskit_utimes( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, const struct timeval times[2] );
+
+}
 
 #endif

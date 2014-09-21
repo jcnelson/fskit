@@ -18,6 +18,7 @@
 
 #include "opendir.h"
 #include "path.h"
+#include "open.h"
 
 // create a directory handle from an fskit_entry
 static struct fskit_dir_handle* fskit_dir_handle_create( struct fskit_entry* dir, char const* path, void* app_handle_data ) {
@@ -36,14 +37,16 @@ static struct fskit_dir_handle* fskit_dir_handle_create( struct fskit_entry* dir
 
  
 // open a directory.
-// On success, return an fskit_dir_handle, which will have its app_data field initialized to the given app_handle_data
+// On success, return an fskit_dir_handle
 // Return any error code via the *err argument (which will be non-zero if there was an error).
 // on error, return NULL, and set *err appropriately:
 // * -ENAMETOOLONG if _path is too long
 // * -EACCES if some part of _path is in accessible to the given user and group
 // * -ENOTDIR if the entry referred to by _path isn't a directory
 // * -ENOENT if the entry doesn't exist
-struct fskit_dir_handle* fskit_opendir( struct fskit_core* core, char const* _path, uint64_t user, uint64_t group, void* app_handle_data, int* err ) {
+struct fskit_dir_handle* fskit_opendir( struct fskit_core* core, char const* _path, uint64_t user, uint64_t group, int* err ) {
+   
+   void* app_handle_data = NULL;
    
    if( strlen(_path) >= PATH_MAX ) {
       // too long 
@@ -68,6 +71,18 @@ struct fskit_dir_handle* fskit_opendir( struct fskit_core* core, char const* _pa
    if( dir->type != FSKIT_ENTRY_TYPE_DIR ) {
       *err = -ENOTDIR;
       fskit_entry_unlock( dir );
+      return NULL;
+   }
+   
+   // generate handle data 
+   int rc = fskit_run_user_open( core, path, dir, 0, &app_handle_data );
+   if( rc != 0 ) {
+      
+      // user-run open code failed 
+      errorf("fskit_run_user_open(%s) rc = %d\n", path, rc );
+      
+      fskit_entry_unlock( dir );
+      *err = rc;
       return NULL;
    }
 
