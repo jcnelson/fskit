@@ -82,74 +82,74 @@ int main( int argc, char** argv ) {
    
    // install routes 
    rc = fskit_route_create( &core, "/test-file", create_cb, FSKIT_SEQUENTIAL );
-   if( rc != 0 ) {
+   if( rc < 0 ) {
       errorf("fskit_route_create rc = %d\n", rc );
       exit(1);
    }
    
    rc = fskit_route_mknod( &core, "/test-node", mknod_cb, FSKIT_SEQUENTIAL );
-   if( rc != 0 ) {
+   if( rc < 0 ) {
       errorf("fskit_route_mknod rc = %d\n", rc );
       exit(1);
       
    }
    
    rc = fskit_route_mkdir( &core, "/test-dir", mkdir_cb, FSKIT_SEQUENTIAL );
-   if( rc != 0 ) {
+   if( rc < 0 ) {
       errorf("fskit_route_mkdir rc = %d\n", rc );
       exit(1);
    }
    
    rc = fskit_route_open( &core, "/test-dir", open_cb, FSKIT_SEQUENTIAL );
-   if( rc != 0 ) {
+   if( rc < 0 ) {
       errorf("fskit_route_open rc = %d\n", rc );
       exit(1);
    }
    
    rc = fskit_route_open( &core, "/test-file", open_cb, FSKIT_SEQUENTIAL );
-   if( rc != 0 ) {
+   if( rc < 0 ) {
       errorf("fskit_route_open rc = %d\n", rc );
       exit(1);
    }
    
    rc = fskit_route_close( &core, "/test-file", close_cb, FSKIT_SEQUENTIAL );
-   if( rc != 0 ) {
+   if( rc < 0 ) {
       errorf("fskit_route_close rc = %d\n", rc );
       exit(1);
    }
    
    rc = fskit_route_close( &core, "/test-dir", close_cb, FSKIT_SEQUENTIAL );
-   if( rc != 0 ) {
+   if( rc < 0 ) {
       errorf("fskit_route_close rc = %d\n", rc );
       exit(1);
    }
    
    rc = fskit_route_readdir( &core, "/test-dir", readdir_cb, FSKIT_SEQUENTIAL );
-   if( rc != 0 ) {
+   if( rc < 0 ) {
       errorf("fskit_route_readdir rc = %d\n", rc );
       exit(1);
    }
    
    rc = fskit_route_read( &core, "/test-file", read_cb, FSKIT_SEQUENTIAL );
-   if( rc != 0 ) {
+   if( rc < 0 ) {
       errorf("fskit_route_read rc = %d\n", rc );
       exit(1);
    }
    
    rc = fskit_route_write( &core, "/test-file", write_cb, FSKIT_SEQUENTIAL );
-   if( rc != 0 ) {
+   if( rc < 0 ) {
       errorf("fskit_route_write rc = %d\n", rc );
       exit(1);
    }
    
    rc = fskit_route_trunc( &core, "/test-file", trunc_cb, FSKIT_SEQUENTIAL );
-   if( rc != 0 ) {
+   if( rc < 0 ) {
       errorf("fskit_route_trunc rc = %d\n", rc );
       exit(1);
    }
    
    rc = fskit_route_detach( &core, "/test-file", detach_cb, FSKIT_SEQUENTIAL );
-   if( rc != 0 ) {
+   if( rc < 0 ) {
       errorf("fskit_route_detach rc = %d\n", rc );
       exit(1);
    }
