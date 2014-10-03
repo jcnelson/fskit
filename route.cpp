@@ -164,6 +164,13 @@ static int fskit_match_regex( struct fskit_match_group* match_group, struct fski
 }
 
 
+// is a route defined?
+static bool fskit_path_route_is_defined( struct fskit_path_route* route ) {
+   
+   // a route is defined if it has a defined path regex
+   return route->path_regex_str != NULL;
+}
+
 // start running a route's callback.
 // enforce the consistency discipline by locking the route appropriately
 static int fskit_route_enter( struct fskit_path_route* route ) {
@@ -296,6 +303,10 @@ static int fskit_route_match( fskit_route_table_t* route_table, int route_type, 
    fskit_route_list_t* routes = &itr->second;
    
    for( unsigned int i = 0; i < routes->size(); i++ ) {
+      
+      if( !fskit_path_route_is_defined( &routes->at(i) ) ) {
+         continue;
+      }
       
       // match?
       rc = fskit_match_regex( match_group, &routes->at(i), path );
@@ -437,13 +448,6 @@ int fskit_route_call_detach( struct fskit_core* core, char const* path, struct f
    return fskit_route_call( core, FSKIT_ROUTE_MATCH_DETACH, path, fent, dargs, cbrc );
 }
 
-// is a route defined?
-static bool fskit_path_route_is_defined( struct fskit_path_route* route ) {
-   
-   // a route is defined if it has a defined path regex
-   return route->path_regex_str != NULL;
-}
-
 // initialize a path route 
 // return 0 on success, negative on error
 static int fskit_path_route_init( struct fskit_path_route* route, char const* regex_str, int consistency_discipline, int route_type, union fskit_route_method method ) {
@@ -485,9 +489,9 @@ int fskit_path_route_free( struct fskit_path_route* route ) {
       
       // NOTE: the regex is only set if the string is set 
       regfree( &route->path_regex );
+      
+      pthread_rwlock_destroy( &route->lock );
    }
-   
-   pthread_rwlock_destroy( &route->lock );
    
    memset( route, 0, sizeof(struct fskit_path_route) );
    
@@ -556,7 +560,7 @@ static int fskit_path_route_erase( fskit_route_table_t* route_table, int route_t
    }
    
    // erase at this index 
-   route_list->erase( route_list->begin() + route_handle );
+   fskit_path_route_free( &route_list->at(route_handle) );
    return 0;
 }
 
