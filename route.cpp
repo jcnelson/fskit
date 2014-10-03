@@ -323,10 +323,14 @@ int fskit_route_call( struct fskit_core* core, int route_type, char const* path,
    
    memset( &match_group, 0, sizeof(struct fskit_match_group) );
    
+   // stop routes from getting changed out from under us
+   fskit_core_route_rlock( core );
+   
    route_index = fskit_route_match( core->routes, route_type, path, &match_group );
    
    if( route_index < 0 ) {
       // no route found 
+      fskit_core_route_unlock( core );
       return -EPERM;
    }
    
@@ -335,6 +339,7 @@ int fskit_route_call( struct fskit_core* core, int route_type, char const* path,
    if( itr == core->routes->end() ) {
       
       // should not happen if fskit_route_match succeeded, but you never know...
+      fskit_core_route_unlock( core );
       fskit_match_group_free( &match_group );
       return -EPERM;
    }
@@ -344,6 +349,7 @@ int fskit_route_call( struct fskit_core* core, int route_type, char const* path,
    if( route_index >= (signed)routes->size() ) {
       
       // should not happen since route_index is an index into routes, but you never know...
+      fskit_core_route_unlock( core );
       fskit_match_group_free( &match_group );
       return -EPERM;
    }
@@ -352,6 +358,8 @@ int fskit_route_call( struct fskit_core* core, int route_type, char const* path,
    
    // dispatch 
    *cbrc = fskit_route_dispatch( core, &match_group, route, fent, dargs );
+   
+   fskit_core_route_unlock( core );
    
    fskit_match_group_free( &match_group );
    
@@ -522,11 +530,12 @@ static int fskit_path_route_decl( struct fskit_core* core, char const* route_reg
       return rc;
    }
    
-   fskit_core_wlock( core );
+   // atomically update route table
+   fskit_core_route_wlock( core );
    
    rc = fskit_path_route_add( core->routes, &route );
    
-   fskit_core_unlock( core );
+   fskit_core_route_unlock( core );
    
    if( rc != 0 ) {
       
