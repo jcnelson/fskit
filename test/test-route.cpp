@@ -75,85 +75,92 @@ int main( int argc, char** argv ) {
    int rc;
    void* output;
    
+   int create_rh, mknod_rh, mkdir_rh, opendir_rh, open_rh, close_rh, closedir_rh, readdir_rh, read_rh, write_rh, trunc_rh, unlink_rh, rmdir_rh;
+   
    rc = fskit_test_begin( &core, NULL );
    if( rc != 0 ) {
       exit(1);
    }
    
    // install routes 
-   rc = fskit_route_create( &core, "/test-file", create_cb, FSKIT_SEQUENTIAL );
-   if( rc < 0 ) {
-      errorf("fskit_route_create rc = %d\n", rc );
+   create_rh = fskit_route_create( &core, "/test-file", create_cb, FSKIT_SEQUENTIAL );
+   if( create_rh < 0 ) {
+      errorf("fskit_route_create rc = %d\n", create_rh );
       exit(1);
    }
    
-   rc = fskit_route_mknod( &core, "/test-node", mknod_cb, FSKIT_SEQUENTIAL );
-   if( rc < 0 ) {
-      errorf("fskit_route_mknod rc = %d\n", rc );
+   mknod_rh = fskit_route_mknod( &core, "/test-node", mknod_cb, FSKIT_SEQUENTIAL );
+   if( mknod_rh < 0 ) {
+      errorf("fskit_route_mknod rc = %d\n", mknod_rh );
       exit(1);
       
    }
    
-   rc = fskit_route_mkdir( &core, "/test-dir", mkdir_cb, FSKIT_SEQUENTIAL );
-   if( rc < 0 ) {
-      errorf("fskit_route_mkdir rc = %d\n", rc );
+   mkdir_rh = fskit_route_mkdir( &core, "/test-dir", mkdir_cb, FSKIT_SEQUENTIAL );
+   if( mkdir_rh < 0 ) {
+      errorf("fskit_route_mkdir rc = %d\n", mkdir_rh );
       exit(1);
    }
    
-   rc = fskit_route_open( &core, "/test-dir", open_cb, FSKIT_SEQUENTIAL );
-   if( rc < 0 ) {
-      errorf("fskit_route_open rc = %d\n", rc );
+   opendir_rh = fskit_route_open( &core, "/test-dir", open_cb, FSKIT_SEQUENTIAL );
+   if( opendir_rh < 0 ) {
+      errorf("fskit_route_open rc = %d\n", opendir_rh );
       exit(1);
    }
    
-   rc = fskit_route_open( &core, "/test-file", open_cb, FSKIT_SEQUENTIAL );
-   if( rc < 0 ) {
-      errorf("fskit_route_open rc = %d\n", rc );
+   open_rh = fskit_route_open( &core, "/test-file", open_cb, FSKIT_SEQUENTIAL );
+   if( open_rh < 0 ) {
+      errorf("fskit_route_open rc = %d\n", open_rh );
       exit(1);
    }
    
-   rc = fskit_route_close( &core, "/test-file", close_cb, FSKIT_SEQUENTIAL );
-   if( rc < 0 ) {
-      errorf("fskit_route_close rc = %d\n", rc );
+   close_rh = fskit_route_close( &core, "/test-file", close_cb, FSKIT_SEQUENTIAL );
+   if( close_rh < 0 ) {
+      errorf("fskit_route_close rc = %d\n", close_rh );
       exit(1);
    }
    
-   rc = fskit_route_close( &core, "/test-dir", close_cb, FSKIT_SEQUENTIAL );
-   if( rc < 0 ) {
-      errorf("fskit_route_close rc = %d\n", rc );
+   closedir_rh = fskit_route_close( &core, "/test-dir", close_cb, FSKIT_SEQUENTIAL );
+   if( closedir_rh < 0 ) {
+      errorf("fskit_route_close rc = %d\n", closedir_rh );
       exit(1);
    }
    
-   rc = fskit_route_readdir( &core, "/test-dir", readdir_cb, FSKIT_SEQUENTIAL );
-   if( rc < 0 ) {
-      errorf("fskit_route_readdir rc = %d\n", rc );
+   readdir_rh = fskit_route_readdir( &core, "/test-dir", readdir_cb, FSKIT_SEQUENTIAL );
+   if( readdir_rh < 0 ) {
+      errorf("fskit_route_readdir rc = %d\n", readdir_rh );
       exit(1);
    }
    
-   rc = fskit_route_read( &core, "/test-file", read_cb, FSKIT_SEQUENTIAL );
-   if( rc < 0 ) {
-      errorf("fskit_route_read rc = %d\n", rc );
+   read_rh = fskit_route_read( &core, "/test-file", read_cb, FSKIT_SEQUENTIAL );
+   if( read_rh < 0 ) {
+      errorf("fskit_route_read rc = %d\n", read_rh );
       exit(1);
    }
    
-   rc = fskit_route_write( &core, "/test-file", write_cb, FSKIT_SEQUENTIAL );
-   if( rc < 0 ) {
-      errorf("fskit_route_write rc = %d\n", rc );
+   write_rh = fskit_route_write( &core, "/test-file", write_cb, FSKIT_SEQUENTIAL );
+   if( write_rh < 0 ) {
+      errorf("fskit_route_write rc = %d\n", write_rh );
       exit(1);
    }
    
-   rc = fskit_route_trunc( &core, "/test-file", trunc_cb, FSKIT_SEQUENTIAL );
-   if( rc < 0 ) {
-      errorf("fskit_route_trunc rc = %d\n", rc );
+   trunc_rh = fskit_route_trunc( &core, "/test-file", trunc_cb, FSKIT_SEQUENTIAL );
+   if( trunc_rh < 0 ) {
+      errorf("fskit_route_trunc rc = %d\n", trunc_rh );
       exit(1);
    }
    
-   rc = fskit_route_detach( &core, "/test-file", detach_cb, FSKIT_SEQUENTIAL );
-   if( rc < 0 ) {
-      errorf("fskit_route_detach rc = %d\n", rc );
+   unlink_rh = fskit_route_detach( &core, "/test-file", detach_cb, FSKIT_SEQUENTIAL );
+   if( unlink_rh < 0 ) {
+      errorf("fskit_route_detach rc = %d\n", unlink_rh );
       exit(1);
    }
    
+   rmdir_rh = fskit_route_detach( &core, "/test-dir", detach_cb, FSKIT_SEQUENTIAL );
+   if( rmdir_rh < 0 ) {
+      errorf("fskit_route_detach rc = %d\n", rmdir_rh );
+      exit(1);
+   }
    
    // invoke routes 
    struct fskit_file_handle* fh = NULL;
@@ -219,7 +226,7 @@ int main( int argc, char** argv ) {
    }
    
    // read route 
-   rc = fskit_read( &core, fh, read_buf, 10, 0 );
+   rc = fskit_read( &core, fh2, read_buf, 10, 0 );
    if( rc != (signed)read_len ) {
       errorf("fskit_read rc = %d\n", rc );
       exit(1);
@@ -246,11 +253,89 @@ int main( int argc, char** argv ) {
       exit(1);
    }
    
+   // undefine routes 
+   rc = fskit_unroute_create( &core, create_rh );
+   if( rc != 0 ) {
+      errorf("fskit_unroute_create rc = %d\n", rc );
+      exit(1);
+   }
+   
+   rc = fskit_unroute_mknod( &core, mknod_rh );
+   if( rc < 0 ) {
+      errorf("fskit_unroute_mknod rc = %d\n", rc );
+      exit(1);
+   }
+   
+   rc = fskit_unroute_mkdir( &core, mkdir_rh );
+   if( rc < 0 ) {
+      errorf("fskit_unroute_mkdir rc = %d\n", rc );
+      exit(1);
+   }
+   
+   rc = fskit_unroute_open( &core, open_rh );
+   if( rc < 0 ) {
+      errorf("fskit_unroute_open rc = %d\n", rc );
+      exit(1);
+   }
+   
+   rc = fskit_unroute_open( &core, opendir_rh );
+   if( rc < 0 ) {
+      errorf("fskit_unroute_open rc = %d\n", rc );
+      exit(1);
+   }
+   
+   rc = fskit_unroute_close( &core, close_rh );
+   if( rc < 0 ) {
+      errorf("fskit_unroute_close rc = %d\n", rc );
+      exit(1);
+   }
+   
+   rc = fskit_unroute_close( &core, closedir_rh );
+   if( rc < 0 ) {
+      errorf("fskit_unroute_close rc = %d\n", rc );
+      exit(1);
+   }
+   
+   rc = fskit_unroute_readdir( &core, readdir_rh );
+   if( rc < 0 ) {
+      errorf("fskit_unroute_readdir rc = %d\n", rc );
+      exit(1);
+   }
+   
+   rc = fskit_unroute_read( &core, read_rh );
+   if( rc < 0 ) {
+      errorf("fskit_unroute_read rc = %d\n", rc );
+      exit(1);
+   }
+   
+   rc = fskit_unroute_write( &core, write_rh );
+   if( rc < 0 ) {
+      errorf("fskit_unroute_write rc = %d\n", rc );
+      exit(1);
+   }
+   
+   rc = fskit_unroute_trunc( &core, trunc_rh );
+   if( rc < 0 ) {
+      errorf("fskit_unroute_trunc rc = %d\n", rc );
+      exit(1);
+   }
+   
+   rc = fskit_unroute_detach( &core, unlink_rh );
+   if( rc < 0 ) {
+      errorf("fskit_unroute_detach rc = %d\n", rc );
+      exit(1);
+   }
+   
+   rc = fskit_unroute_detach( &core, rmdir_rh );
+   if( rc < 0 ) {
+      errorf("fskit_unroute_detach rc = %d\n", rc );
+      exit(1);
+   }
+   
    rc = fskit_test_end( &core, &output );
    if( rc != 0 ) {
       errorf("fskit_test_end rc = %d\n", rc );
       exit(1);
    }
-   
    return 0;
 }
