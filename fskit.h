@@ -25,6 +25,9 @@
 #include "path.h"
 #include "random.h"
 
+#include "access.h"
+#include "chmod.h"
+#include "chown.h"
 #include "close.h"
 #include "closedir.h"
 #include "create.h"
@@ -43,6 +46,7 @@
 #include "write.h"
 
 #define FSKIT_FILESYSTEM_TYPE 0x19880119
+#define FSKIT_FILESYSTEM_NAMEMAX 255
 
 extern "C" {
    
