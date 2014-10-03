@@ -202,6 +202,19 @@ int fskit_entry_detach_lowlevel( struct fskit_entry* parent, struct fskit_entry*
    return 0;
 }
 
+// change the number of files 
+uint64_t fskit_file_count_update( struct fskit_core* core, int change ) {
+   
+   fskit_core_wlock( core );
+   
+   core->num_files += change;
+   uint64_t num_files = core->num_files;
+   
+   fskit_core_unlock( core );
+   
+   return num_files;
+}
+
 // default inode allocator: pick a random 64-bit number 
 static uint64_t fskit_default_inode_alloc( struct fskit_entry* parent, struct fskit_entry* child_to_receive_inode, void* ignored ) {
    uint64_t upper = fskit_random32();
@@ -239,6 +252,7 @@ int fskit_core_init( struct fskit_core* core, void* app_fs_data ) {
    core->routes = new fskit_route_table_t();
    
    pthread_rwlock_init( &core->lock, NULL );
+   pthread_rwlock_init( &core->route_lock, NULL );
    
    return 0;
 }
@@ -286,6 +300,7 @@ int fskit_core_destroy( struct fskit_core* core, void** app_fs_data ) {
    
    pthread_rwlock_unlock( &core->lock );
    pthread_rwlock_destroy( &core->lock );
+   pthread_rwlock_destroy( &core->route_lock );
    
    *app_fs_data = fs_data;
    
@@ -330,7 +345,7 @@ int fskit_detach_all_ex( struct fskit_core* core, char const* root_path, fskit_e
             
             return -ENOMEM;
          }
-            
+         
          ctx->destroy_queue->push( child );
          ctx->destroy_paths->push( child_path );
 
@@ -878,6 +893,22 @@ int fskit_core_wlock( struct fskit_core* core ) {
 int fskit_core_unlock( struct fskit_core* core ) {
    return pthread_rwlock_unlock( &core->lock );
 }
+
+// read-lock routes 
+int fskit_core_route_rlock( struct fskit_core* core ) {
+   return pthread_rwlock_rdlock( &core->route_lock );
+}
+
+// write-lock routes 
+int fskit_core_route_wlock( struct fskit_core* core ) {
+   return pthread_rwlock_wrlock( &core->route_lock );
+}
+
+// unlock routes 
+int fskit_core_route_unlock( struct fskit_core* core ) {
+   return pthread_rwlock_unlock( &core->route_lock );
+}
+
 
 // set user data in an fskit_entry (which must be write-locked)
 // return 0 always 

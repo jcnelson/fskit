@@ -51,7 +51,7 @@ typedef vector<fskit_dirent> fskit_entry_set;
 #define FSKIT_ENTRY_IS_READABLE( mode, node_user, node_group, user, group ) ((user) == FSKIT_ROOT_USER_ID || ((mode) & S_IROTH) || ((node_group) == (group) && ((mode) & S_IRGRP)) || ((node_user) == (user) && ((mode) & S_IRUSR)))
 #define FSKIT_ENTRY_IS_DIR_READABLE( mode, node_user, node_group, user, group ) ((user) == FSKIT_ROOT_USER_ID || ((mode) & S_IXOTH) || ((node_group) == (group) && ((mode) & S_IXGRP)) || ((node_user) == (user) && ((mode) & S_IXUSR)))
 #define FSKIT_ENTRY_IS_WRITEABLE( mode, node_user, node_group, user, group ) (((user) == FSKIT_ROOT_USER_ID || (mode) & S_IWOTH) || ((node_group) == (group) && ((mode) & S_IWGRP)) || ((node_user) == (user) && ((mode) & S_IWUSR)))
-#define FSKIT_ENTRY_IS_EXECUTABLE( mode, node_user, node_group, user, group ) FSKIT_IS_DIR_READABLE( mode, node_user, node_group, user, group )
+#define FSKIT_ENTRY_IS_EXECUTABLE( mode, node_user, node_group, user, group ) FSKIT_ENTRY_IS_DIR_READABLE( mode, node_user, node_group, user, group )
 
 
 // fskit inode structure
@@ -145,20 +145,29 @@ typedef map< int, fskit_route_list_t > fskit_route_table_t;             // map r
 // fskit core structure 
 struct fskit_core {
    
+   // root inode
    struct fskit_entry root;
    
    // functions to allocate/deallocate inodes 
    fskit_inode_alloc_t fskit_inode_alloc;
    fskit_inode_free_t fskit_inode_free;
    
-   // path routes, indexed by FSKIT_ROUTE_MATCH_*
-   fskit_route_table_t* routes;
-   
    // application-defined fs-wide data
    void* app_fs_data;
    
-   // lock governing access to this structure
+   // number of files and directories that exist 
+   uint64_t num_files;
+   
+   // lock governing access to the above fields of this structure
    pthread_rwlock_t lock;
+   
+   /////////////////////////////////////////////////
+   
+   // path routes, indexed by FSKIT_ROUTE_MATCH_*
+   fskit_route_table_t* routes;
+   
+   // lock governing access to the above fields of this structure
+   pthread_rwlock_t route_lock;
 };
 
 
@@ -237,11 +246,18 @@ int fskit_core_rlock( struct fskit_core* core );
 int fskit_core_wlock( struct fskit_core* core );
 int fskit_core_unlock( struct fskit_core* core );
 
+int fskit_core_route_rlock( struct fskit_core* core );
+int fskit_core_route_wlock( struct fskit_core* core );
+int fskit_core_route_unlock( struct fskit_core* core );
+
 // low-level linking and unlinking 
 int fskit_entry_attach_lowlevel( struct fskit_entry* parent, struct fskit_entry* child );
 int fskit_entry_detach_lowlevel( struct fskit_entry* parent, struct fskit_entry* child );
 
 // user data 
 int fskit_entry_set_user_data( struct fskit_entry* ent, void* app_data );
+
+// accounting 
+uint64_t fskit_file_count_update( struct fskit_core* core, int change );
 
 #endif
