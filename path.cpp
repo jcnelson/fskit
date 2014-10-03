@@ -128,6 +128,34 @@ char* fskit_basename( char const* path, char* dest ) {
    return dest;
 }
 
+
+// calculate the depth of a path
+// the depth of / is 0
+// the depth of /foo/bar/baz/ is 3
+// the depth of /foo/bar/baz is also 3
+// the paths must be normalized (no //), and not include ..
+int fskit_depth( char const* path ) {
+   int i = strlen(path) - 1;
+   
+   if( i <= 0 ) {
+      return 0;
+   }
+   
+   if( path[i] == '/' ) {
+      i--;
+   }
+   
+   int depth = 0;
+   for( ; i >= 0; i-- ) {
+      if( path[i] == '/' ) {
+         depth++;
+      }
+   }
+   
+   return depth;
+}
+
+
 // make sure paths don't end in /, unless they're root.
 // NOTE: this modifies the argument
 void fskit_sanitize_path( char* path ) {

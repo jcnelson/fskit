@@ -29,6 +29,7 @@ char* fskit_fullpath( char const* parent, char const* child, char* output );
 char* fskit_dirname( char const* path, char* dest ); 
 char* fskit_basename( char const* path, char* dest );
 size_t fskit_basename_len( char const* path );
+int fskit_depth( char const* path );
 void fskit_sanitize_path( char* path );
 
 extern "C" {

@@ -16,39 +16,16 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _FSKIT_H_
-#define _FSKIT_H_
+#ifndef _FSKIT_RENAME_H_
+#define _FSKIT_RENAME_H_
 
-#include "common.h"
-#include "debug.h"
 #include "entry.h"
-#include "path.h"
-#include "random.h"
-
-#include "close.h"
-#include "closedir.h"
-#include "create.h"
-#include "mkdir.h"
-#include "mknod.h"
-#include "open.h"
-#include "opendir.h"
-#include "read.h"
-#include "readdir.h"
-#include "rename.h"
-#include "rmdir.h"
-#include "stat.h"
-#include "trunc.h"
-#include "unlink.h"
-#include "utime.h"
-#include "write.h"
-
-#define FSKIT_FILESYSTEM_TYPE 0x19880119
+#include <set>
 
 extern "C" {
-   
-int fskit_library_init();
-int fskit_library_shutdown();
+
+int fskit_rename( struct fskit_core* core, char const* old_path, char const* new_path, uint64_t user, uint64_t group );
 
 }
 
-#endif 
+#endif
