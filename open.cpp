@@ -16,6 +16,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "fskit.h"
 #include "open.h"
 #include "path.h"
 #include "utime.h"
@@ -190,7 +191,7 @@ struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path
    fskit_sanitize_path( path );
    
    size_t basename_len = fskit_basename_len( path );
-   if( basename_len > NAME_MAX ) {
+   if( basename_len > FSKIT_FILESYSTEM_NAMEMAX ) {
       
       free( path );
       *err = -ENAMETOOLONG;
@@ -202,9 +203,9 @@ struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path
    
    // resolve the parent of this child (and write-lock it)
    char* path_dirname = fskit_dirname( path, NULL );
-   char path_basename[NAME_MAX + 1];
+   char path_basename[FSKIT_FILESYSTEM_NAMEMAX + 1];
    
-   memset( path_basename, 0, NAME_MAX + 1 );
+   memset( path_basename, 0, FSKIT_FILESYSTEM_NAMEMAX + 1 );
    
    fskit_basename( path, path_basename );
    

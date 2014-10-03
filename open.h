@@ -27,7 +27,7 @@ int fskit_do_open( struct fskit_core* core, char const* path, struct fskit_entry
 
 extern "C" {
    
-struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path, uint64_t user, uint64_t group, int flags, mode_t mode, int* err );
+struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, int flags, mode_t mode, int* err );
 
 }
 
