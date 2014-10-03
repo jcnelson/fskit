@@ -115,6 +115,9 @@ static int fskit_mkdir_lowlevel( struct fskit_core* core, char const* path, stru
          
          // attach to parent 
          fskit_entry_attach_lowlevel( parent, child );
+         
+         // update the number of files
+         fskit_file_count_update( core, 1 );
       }
    }
    

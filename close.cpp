@@ -123,6 +123,8 @@ int fskit_close( struct fskit_core* core, struct fskit_file_handle* fh ) {
       // fent was unlocked and destroyed
       safe_free( fh->fent );
       rc = 0;
+      
+      fskit_file_count_update( core, -1 );
    }
    else if( rc < 0 ) {
       

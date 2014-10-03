@@ -110,6 +110,11 @@ int fskit_rmdir( struct fskit_core* core, char const* _path, uint64_t user, uint
    
    fskit_entry_unlock( parent );
    
+   if( rc == 0 ) {
+      // update number of files
+      fskit_file_count_update( core, -1 );
+   }
+   
    return rc;
 }
 

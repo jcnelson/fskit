@@ -16,6 +16,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "fskit.h"
 #include "create.h"
 #include "open.h"
 #include "route.h"
@@ -62,11 +63,11 @@ int fskit_run_user_create( struct fskit_core* core, char const* path, struct fsk
 // NOTE: the child will have an open count of 1
 int fskit_do_create( struct fskit_core* core, struct fskit_entry* parent, char const* path, int flags, mode_t mode, uint64_t user, uint64_t group, struct fskit_entry** ret_child, void** handle_data ) {
 
-   char path_basename[NAME_MAX + 1];
+   char path_basename[FSKIT_FILESYSTEM_NAMEMAX + 1];
    void* inode_data = NULL;
    int rc = 0;
    
-   memset( path_basename, 0, NAME_MAX + 1 );
+   memset( path_basename, 0, FSKIT_FILESYSTEM_NAMEMAX + 1 );
    
    fskit_basename( path, path_basename );
    
@@ -130,6 +131,9 @@ int fskit_do_create( struct fskit_core* core, struct fskit_entry* parent, char c
       fskit_entry_unlock( child );
       
       *ret_child = child;
+      
+      // update the number of files 
+      fskit_file_count_update( core, 1 );
       
       return 0;
    }

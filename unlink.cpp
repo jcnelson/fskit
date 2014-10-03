@@ -88,6 +88,12 @@ int fskit_unlink( struct fskit_core* core, char const* path, uint64_t owner, uin
    
    fskit_entry_unlock( parent );
    
+   if( rc == 0 ) {
+      // update number of files
+      fskit_file_count_update( core, -1 );
+   }
+   
+   
    return rc;
 }
 

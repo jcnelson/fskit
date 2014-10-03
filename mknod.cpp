@@ -55,7 +55,6 @@ int fskit_run_user_mknod( struct fskit_core* core, char const* path, struct fski
 int fskit_mknod( struct fskit_core* core, char const* path, mode_t mode, dev_t dev, uint64_t user, uint64_t group ) {
    
    int err = 0;
-   int rc = 0;
    void* inode_data = NULL;
 
    // get the parent directory and lock it
@@ -167,24 +166,27 @@ int fskit_mknod( struct fskit_core* core, char const* path, mode_t mode, dev_t d
       child->file_id = file_id;
       
       // perform any user-defined creations 
-      rc = fskit_run_user_mknod( core, path, child, mode, dev, &inode_data );
-      if( rc != 0 ) {
+      err = fskit_run_user_mknod( core, path, child, mode, dev, &inode_data );
+      if( err != 0 ) {
          
          // failed. abort creation
-         errorf("fskit_run_user_mknod(%s) rc = %d\n", path, rc );
+         errorf("fskit_run_user_mknod(%s) rc = %d\n", path, err );
          
          fskit_entry_unlock( parent );
          safe_free( path_basename );
          fskit_entry_destroy( core, child, true );
          safe_free( child );
          
-         return rc;
+         return err;
       }
       
       // attach the file
       fskit_entry_attach_lowlevel( parent, child );
       
       fskit_entry_unlock( child );
+      
+      // update the number of files 
+      fskit_file_count_update( core, 1 );
    }
    else {
       errorf("%s(%s) rc = %d\n", method_name, path, err );
