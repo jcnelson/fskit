@@ -437,6 +437,13 @@ int fskit_route_call_detach( struct fskit_core* core, char const* path, struct f
    return fskit_route_call( core, FSKIT_ROUTE_MATCH_DETACH, path, fent, dargs, cbrc );
 }
 
+// is a route defined?
+static bool fskit_path_route_is_defined( struct fskit_path_route* route ) {
+   
+   // a route is defined if it has a defined path regex
+   return route->path_regex_str != NULL;
+}
+
 // initialize a path route 
 // return 0 on success, negative on error
 static int fskit_path_route_init( struct fskit_path_route* route, char const* regex_str, int consistency_discipline, int route_type, union fskit_route_method method ) {
@@ -488,7 +495,7 @@ int fskit_path_route_free( struct fskit_path_route* route ) {
 }
 
 // add a route to a route table, performing a shallow copy (i.e. don't free route after calling this method)
-// return 0 on success
+// return the index into the route table on success (this serves as the "handle" to the route)
 static int fskit_path_route_add( fskit_route_table_t* route_table, struct fskit_path_route* route ) {
    
    fskit_route_table_t::iterator itr;
@@ -507,14 +514,54 @@ static int fskit_path_route_add( fskit_route_table_t* route_table, struct fskit_
       route_list = &itr->second;
    }
    
-   route_list->push_back( *route );
+   // find an empty route slot to insert into...
+   for( unsigned int i = 0; i < route_list->size(); i++ ) {
+      
+      if( !fskit_path_route_is_defined( &route_list->at(i) ) ) {
+         
+         // insert here
+         (*route_list)[i] = *route;
+         return i;
+      }
+   }
    
-   return 0;
+   // all routes are full; insert at the back
+   route_list->push_back( *route );
+   return route_list->size() - 1;
 }
 
 
+// remove a route from a route table, freeing and destroying it.
+// return 0 on success 
+// return -EINVAL if there is no such handle
+static int fskit_path_route_erase( fskit_route_table_t* route_table, int route_type, int route_handle ) {
+   
+   fskit_route_table_t::iterator itr;
+   fskit_route_list_t* route_list = NULL;
+   
+   // any routes for this type?
+   itr = route_table->find( route_type );
+   if( itr == route_table->end() ) {
+      
+      // can't possibly remove 
+      return -EINVAL;
+   }
+   
+   route_list = &itr->second;
+   
+   if( (unsigned)route_handle >= route_list->size() ) {
+      
+      // can't possibly exist 
+      return -EINVAL;
+   }
+   
+   // erase at this index 
+   route_list->erase( route_list->begin() + route_handle );
+   return 0;
+}
+
 // declare a route 
-// return 0 on success
+// return >= 0 on success (this is the "route handle")
 // return -EINVAL if we couldn't compile the regex 
 // return -ENOMEM if out of memory 
 static int fskit_path_route_decl( struct fskit_core* core, char const* route_regex, int route_type, union fskit_route_method method, int consistency_discipline ) {
@@ -537,16 +584,28 @@ static int fskit_path_route_decl( struct fskit_core* core, char const* route_reg
    
    fskit_core_route_unlock( core );
    
-   if( rc != 0 ) {
-      
-      return rc;
-   }
+   return rc;
+}
+
+// undeclare a route 
+// return 0 on success
+// return -EINVAL if it's a bad route handle
+static int fskit_path_route_undecl( struct fskit_core* core, int route_type, int route_handle ) {
    
-   return 0;
+   int rc = 0;
+   
+   // atomically update route table
+   fskit_core_route_wlock( core );
+   
+   rc = fskit_path_route_erase( core->routes, route_type, route_handle );
+   
+   fskit_core_route_unlock( core );
+   
+   return rc;
 }
 
 // declare a route for creating a file 
-// return 0 on success
+// return >= 0 on success (the route handle)
 // return -EINVAL if we couldn't compile the regex 
 // return -ENOMEM if out of memory 
 int fskit_route_create( struct fskit_core* core, char const* route_regex, fskit_entry_route_create_callback_t create_cb, int consistency_discipline ) {
@@ -557,9 +616,16 @@ int fskit_route_create( struct fskit_core* core, char const* route_regex, fskit_
    return fskit_path_route_decl( core, route_regex, FSKIT_ROUTE_MATCH_CREATE, method, consistency_discipline );
 }
 
+// undeclare an existing route for creating a file 
+// return 0 on success
+// return -EINVAL if the route can't possibly exist.
+int fskit_unroute_create( struct fskit_core* core, int route_handle ) {
+   
+   return fskit_path_route_undecl( core, FSKIT_ROUTE_MATCH_CREATE, route_handle );
+}
 
 // declare a route for creating a node 
-// return 0 on success
+// return >= 0 on success (the route handle)
 // return -EINVAL if we couldn't compile the regex 
 // return -ENOMEM if out of memory 
 int fskit_route_mknod( struct fskit_core* core, char const* route_regex, fskit_entry_route_mknod_callback_t mknod_cb, int consistency_discipline ) {
@@ -570,9 +636,16 @@ int fskit_route_mknod( struct fskit_core* core, char const* route_regex, fskit_e
    return fskit_path_route_decl( core, route_regex, FSKIT_ROUTE_MATCH_MKNOD, method, consistency_discipline );
 }
 
+// undeclare an existing route for creating a node
+// return 0 on success
+// return -EINVAL if the route can't possibly exist.
+int fskit_unroute_mknod( struct fskit_core* core, int route_handle ) {
+   
+   return fskit_path_route_undecl( core, FSKIT_ROUTE_MATCH_MKNOD, route_handle );
+}
 
 // declare a route for making a directory
-// return 0 on success
+// return >= 0 on success (the route handle)
 // return -EINVAL if we couldn't compile the regex 
 // return -ENOMEM if out of memory 
 int fskit_route_mkdir( struct fskit_core* core, char const* route_regex, fskit_entry_route_mkdir_callback_t mkdir_cb, int consistency_discipline ) {
@@ -583,9 +656,16 @@ int fskit_route_mkdir( struct fskit_core* core, char const* route_regex, fskit_e
    return fskit_path_route_decl( core, route_regex, FSKIT_ROUTE_MATCH_MKDIR, method, consistency_discipline );
 }
 
+// undeclare an existing route for making a directory
+// return 0 on success
+// return -EINVAL if the route can't possibly exist.
+int fskit_unroute_mkdir( struct fskit_core* core, int route_handle ) {
+   
+   return fskit_path_route_undecl( core, FSKIT_ROUTE_MATCH_MKDIR, route_handle );
+}
 
 // declare a route for opening a file or directory
-// return 0 on success 
+// return >= 0 on success (the route handle)
 // return -EINVAL if we couldn't compile the regex 
 // return -ENOMEM if out of memory 
 int fskit_route_open( struct fskit_core* core, char const* route_regex, fskit_entry_route_open_callback_t open_cb, int consistency_discipline ) {
@@ -596,9 +676,16 @@ int fskit_route_open( struct fskit_core* core, char const* route_regex, fskit_en
    return fskit_path_route_decl( core, route_regex, FSKIT_ROUTE_MATCH_OPEN, method, consistency_discipline );
 }
 
+// undeclare an existing route for opening a file
+// return 0 on success
+// return -EINVAL if the route can't possibly exist.
+int fskit_unroute_open( struct fskit_core* core, int route_handle ) {
+   
+   return fskit_path_route_undecl( core, FSKIT_ROUTE_MATCH_OPEN, route_handle );
+}
 
 // declare a route for closing a file or directory
-// return 0 on success 
+// return >= 0 on success (the route handle)
 // return -EINVAL if we couldn't compile the regex 
 // return -ENOMEM if out of memory 
 int fskit_route_close( struct fskit_core* core, char const* route_regex, fskit_entry_route_close_callback_t close_cb, int consistency_discipline ) {
@@ -609,9 +696,16 @@ int fskit_route_close( struct fskit_core* core, char const* route_regex, fskit_e
    return fskit_path_route_decl( core, route_regex, FSKIT_ROUTE_MATCH_CLOSE, method, consistency_discipline );
 }
 
+// undeclare an existing route for closing a file
+// return 0 on success
+// return -EINVAL if the route can't possibly exist.
+int fskit_unroute_close( struct fskit_core* core, int route_handle ) {
+   
+   return fskit_path_route_undecl( core, FSKIT_ROUTE_MATCH_CLOSE, route_handle );
+}
 
 // declare a route for readdir'ing a directory
-// return 0 on success 
+// return >= 0 on success (the route handle)
 // return -EINVAL if we couldn't compile the regex 
 // return -ENOMEM if out of memory 
 int fskit_route_readdir( struct fskit_core* core, char const* route_regex, fskit_entry_route_readdir_callback_t readdir_cb, int consistency_discipline ) {
@@ -622,9 +716,16 @@ int fskit_route_readdir( struct fskit_core* core, char const* route_regex, fskit
    return fskit_path_route_decl( core, route_regex, FSKIT_ROUTE_MATCH_READDIR, method, consistency_discipline );
 }
 
+// undeclare an existing route for reading a directory
+// return 0 on success
+// return -EINVAL if the route can't possibly exist.
+int fskit_unroute_readdir( struct fskit_core* core, int route_handle ) {
+   
+   return fskit_path_route_undecl( core, FSKIT_ROUTE_MATCH_READDIR, route_handle );
+}
 
 // declare a route for reading a file
-// return 0 on success 
+// return >= 0 on success (the route handle)
 // return -EINVAL if we couldn't compile the regex 
 // return -ENOMEM if out of memory 
 int fskit_route_read( struct fskit_core* core, char const* route_regex, fskit_entry_route_io_callback_t io_cb, int consistency_discipline ) {
@@ -635,9 +736,16 @@ int fskit_route_read( struct fskit_core* core, char const* route_regex, fskit_en
    return fskit_path_route_decl( core, route_regex, FSKIT_ROUTE_MATCH_READ, method, consistency_discipline );
 }
 
+// undeclare an existing route for reading a file 
+// return 0 on success
+// return -EINVAL if the route can't possibly exist.
+int fskit_unroute_read( struct fskit_core* core, int route_handle ) {
+   
+   return fskit_path_route_undecl( core, FSKIT_ROUTE_MATCH_READ, route_handle );
+}
 
 // declare a route for writing a file
-// return 0 on success 
+// return >= 0 on success (the route handle)
 // return -EINVAL if we couldn't compile the regex 
 // return -ENOMEM if out of memory 
 int fskit_route_write( struct fskit_core* core, char const* route_regex, fskit_entry_route_io_callback_t io_cb, int consistency_discipline ) {
@@ -648,9 +756,16 @@ int fskit_route_write( struct fskit_core* core, char const* route_regex, fskit_e
    return fskit_path_route_decl( core, route_regex, FSKIT_ROUTE_MATCH_WRITE, method, consistency_discipline );
 }
 
+// undeclare an existing route for writing a file 
+// return 0 on success
+// return -EINVAL if the route can't possibly exist.
+int fskit_unroute_write( struct fskit_core* core, int route_handle ) {
+   
+   return fskit_path_route_undecl( core, FSKIT_ROUTE_MATCH_WRITE, route_handle );
+}
 
 // declare a route for truncating a file
-// return 0 on success 
+// return >= 0 on success (the route handle)
 // return -EINVAL if we couldn't compile the regex 
 // return -ENOMEM if out of memory 
 int fskit_route_trunc( struct fskit_core* core, char const* route_regex, fskit_entry_route_trunc_callback_t trunc_cb, int consistency_discipline ) {
@@ -661,9 +776,16 @@ int fskit_route_trunc( struct fskit_core* core, char const* route_regex, fskit_e
    return fskit_path_route_decl( core, route_regex, FSKIT_ROUTE_MATCH_TRUNC, method, consistency_discipline );
 }
 
+// undeclare an existing route for truncating a file 
+// return 0 on success
+// return -EINVAL if the route can't possibly exist.
+int fskit_unroute_trunc( struct fskit_core* core, int route_handle ) {
+   
+   return fskit_path_route_undecl( core, FSKIT_ROUTE_MATCH_TRUNC, route_handle );
+}
 
 // declare a route for detaching a file or directory
-// return 0 on success 
+// return >= 0 on success (the route handle)
 // return -EINVAL if we couldn't compile the regex 
 // return -ENOMEM if out of memory 
 int fskit_route_detach( struct fskit_core* core, char const* route_regex, fskit_entry_route_detach_callback_t detach_cb, int consistency_discipline ) {
@@ -674,6 +796,13 @@ int fskit_route_detach( struct fskit_core* core, char const* route_regex, fskit_
    return fskit_path_route_decl( core, route_regex, FSKIT_ROUTE_MATCH_DETACH, method, consistency_discipline );
 }
 
+// undeclare an existing route for detaching a file or directory
+// return 0 on success
+// return -EINVAL if the route can't possibly exist.
+int fskit_unroute_detach( struct fskit_core* core, int route_handle ) {
+   
+   return fskit_path_route_undecl( core, FSKIT_ROUTE_MATCH_DETACH, route_handle );
+}
 
 // set up dargs for create() 
 int fskit_route_create_args( struct fskit_route_dispatch_args* dargs, int flags, mode_t mode ) {

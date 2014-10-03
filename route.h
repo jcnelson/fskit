@@ -152,6 +152,18 @@ int fskit_route_write( struct fskit_core* core, char const* route_regex, fskit_e
 int fskit_route_trunc( struct fskit_core* core, char const* route_regex, fskit_entry_route_trunc_callback_t io_cb, int consistency_discipline );
 int fskit_route_detach( struct fskit_core* core, char const* route_regex, fskit_entry_route_detach_callback_t detach_cb, int consistency_discipline );
 
+// undefine various types of routes 
+int fskit_unroute_create( struct fskit_core* core, int route_handle );
+int fskit_unroute_mknod( struct fskit_core* core, int route_handle );
+int fskit_unroute_mkdir( struct fskit_core* core, int route_handle );
+int fskit_unroute_open( struct fskit_core* core, int route_handle );
+int fskit_unroute_close( struct fskit_core* core, int route_handle );
+int fskit_unroute_readdir( struct fskit_core* core, int route_handle );
+int fskit_unroute_read( struct fskit_core* core, int route_handle );
+int fskit_unroute_write( struct fskit_core* core, int route_handle );
+int fskit_unroute_trunc( struct fskit_core* core, int route_handle );
+int fskit_unroute_detach( struct fskit_core* core, int route_handle );
+
 }
 
 #endif
