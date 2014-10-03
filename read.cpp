@@ -49,7 +49,7 @@ ssize_t fskit_read( struct fskit_core* core, struct fskit_file_handle* fh, char*
    fskit_file_handle_rlock( fh );
    
    // sanity check 
-   if( (fh->flags & (O_RDWR | O_RDONLY)) == 0 ) {
+   if( (fh->flags & O_WRONLY) != 0 ) {
 
       fskit_file_handle_unlock( fh );
       return -EBADF;
