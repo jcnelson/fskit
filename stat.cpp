@@ -74,8 +74,8 @@ int fskit_fstat( struct fskit_core* core, struct fskit_entry* fent, struct stat*
    sb->st_gid = fent->group;
    sb->st_rdev = fent->dev;
    sb->st_size = fent->size;
-   sb->st_blksize = 512;
-   sb->st_blocks = 8;
+   sb->st_blksize = 0;
+   sb->st_blocks = 0;
    
    sb->st_atim.tv_sec = fent->atime_sec;
    sb->st_atim.tv_nsec = fent->atime_nsec;
