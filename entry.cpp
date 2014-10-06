@@ -24,29 +24,46 @@
 
 // hash a name/path
 long fskit_entry_name_hash( char const* name ) {
-   locale loc;
-   const collate<char>& coll = use_facet<collate<char> >(loc);
-   return coll.hash( name, name + strlen(name) );
+   
+   try {
+      locale loc;
+      const collate<char>& coll = use_facet<collate<char> >(loc);
+      return coll.hash( name, name + strlen(name) );
+   }
+   catch( bad_alloc& ba ) {
+      
+      // out of memory
+      return -ENOMEM;
+   }
 }
 
 // insert a child entry into an fskit_entry_set
-void fskit_entry_set_insert( fskit_entry_set* set, char const* name, struct fskit_entry* child ) {
+// return 0 on success, negative on failure
+int fskit_entry_set_insert( fskit_entry_set* set, char const* name, struct fskit_entry* child ) {
    long nh = fskit_entry_name_hash( name );
    return fskit_entry_set_insert_hash( set, nh, child );
 }
 
 // insert a child entry into an fskit_entry_set
-void fskit_entry_set_insert_hash( fskit_entry_set* set, long hash, struct fskit_entry* child ) {
-   for( unsigned int i = 0; i < set->size(); i++ ) {
-      if( set->at(i).second == NULL ) {
-         set->at(i).second = child;
-         set->at(i).first = hash;
-         return;
+int fskit_entry_set_insert_hash( fskit_entry_set* set, long hash, struct fskit_entry* child ) {
+   try {
+      for( unsigned int i = 0; i < set->size(); i++ ) {
+         if( set->at(i).second == NULL ) {
+            set->at(i).second = child;
+            set->at(i).first = hash;
+            return 0;
+         }
       }
-   }
 
-   fskit_dirent dent( hash, child );
-   set->push_back( dent );
+      fskit_dirent dent( hash, child );
+      set->push_back( dent );
+      return 0;
+   }
+   catch( bad_alloc& ba ) {
+      
+      // out of memory 
+      return -ENOMEM;
+   }
 }
 
 
@@ -57,7 +74,7 @@ struct fskit_entry* fskit_entry_set_find_name( fskit_entry_set* set, char const*
 }
 
 
-// find a child entry in an fs_entry set
+// find a child entry in an fskit_entry set
 struct fskit_entry* fskit_entry_set_find_hash( fskit_entry_set* set, long nh ) {
    for( unsigned int i = 0; i < set->size(); i++ ) {
       if( set->at(i).first == nh ) {
@@ -233,9 +250,16 @@ int fskit_core_init( struct fskit_core* core, void* app_fs_data ) {
    
    int rc = 0;
    
+   fskit_route_table_t* routes = safe_new( fskit_route_table_t );
+   if( routes == NULL ) {
+      return -ENOMEM;
+   }
+   
    rc = fskit_entry_init_dir( &core->root, 0, "/", 0, 0, 0755 );
    if( rc != 0 ) {
       errorf("fskit_entry_init_dir(/) rc = %d\n", rc );
+      
+      safe_delete( routes );
       return rc;
    }
    
@@ -249,7 +273,7 @@ int fskit_core_init( struct fskit_core* core, void* app_fs_data ) {
    core->fskit_inode_alloc = fskit_default_inode_alloc;
    core->fskit_inode_free = fskit_default_inode_free;
    
-   core->routes = new fskit_route_table_t();
+   core->routes = routes;
    
    pthread_rwlock_init( &core->lock, NULL );
    pthread_rwlock_init( &core->route_lock, NULL );
@@ -442,16 +466,19 @@ int fskit_detach_all_ex( struct fskit_core* core, char const* root_path, fskit_e
 // set up a detach context 
 int fskit_detach_ctx_init( struct fskit_detach_ctx* ctx ) {
    
-   ctx->destroy_queue = new queue<struct fskit_entry*>();
-   ctx->destroy_paths = new queue<char*>();
+   queue<struct fskit_entry*>* destroy_queue = safe_new( queue<struct fskit_entry*> );
+   queue<char*>* destroy_paths = safe_new( queue<char*> );
    
-   if( ctx->destroy_queue == NULL || ctx->destroy_paths == NULL ) {
+   if( destroy_queue == NULL || destroy_paths == NULL ) {
       
-      safe_delete( ctx->destroy_queue );
-      safe_delete( ctx->destroy_paths );
+      safe_delete( destroy_queue );
+      safe_delete( destroy_paths );
       
       return -ENOMEM;
    }
+   
+   ctx->destroy_queue = destroy_queue;
+   ctx->destroy_paths = destroy_paths;
    
    return 0;
 }
@@ -611,6 +638,12 @@ int fskit_entry_init_common( struct fskit_entry* fent, uint8_t type, uint64_t fi
    int rc = 0;
    struct timespec now;
    
+   fskit_xattr_set* xattrs = safe_new( fskit_xattr_set );
+   
+   if( xattrs == NULL ) {
+      return -ENOMEM;
+   }
+   
    rc = clock_gettime( CLOCK_REALTIME, &now );
    if( rc != 0 ) {
       errorf("clock_gettime rc = %d\n", rc );
@@ -623,6 +656,11 @@ int fskit_entry_init_common( struct fskit_entry* fent, uint8_t type, uint64_t fi
    fskit_entry_set_ctime( fent, &now );
    fskit_entry_set_mtime( fent, &now );
    
+   pthread_rwlock_init( &fent->lock, NULL );
+   pthread_rwlock_init( &fent->xattrs_lock, NULL );
+   
+   fent->xattrs = xattrs;
+   
    return 0;
 }
 
@@ -633,7 +671,7 @@ int fskit_entry_init_file( struct fskit_entry* fent, uint64_t file_id, char cons
    
    rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_FILE, file_id, name, owner, group, mode );
    if( rc != 0 ) {
-      errorf("fs_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
+      errorf("fskit_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
       return rc;
    }
    
@@ -647,14 +685,20 @@ int fskit_entry_init_dir( struct fskit_entry* fent, uint64_t file_id, char const
    
    int rc = 0;
    
+   fskit_entry_set* children = safe_new( fskit_entry_set );
+   if( children == NULL ) {
+      return -ENOMEM;
+   }
+   
    rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_DIR, file_id, name, owner, group, mode );
    if( rc != 0 ) {
-      errorf("fs_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
+      errorf("fskit_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
+      safe_delete( children );
       return rc;
    }
    
    // set up children 
-   fent->children = new fskit_entry_set();
+   fent->children = children;
    return 0;
 }
 
@@ -665,7 +709,7 @@ int fskit_entry_init_fifo( struct fskit_entry* fent, uint64_t file_id, char cons
    
    rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_FIFO, file_id, name, owner, group, mode );
    if( rc != 0 ) {
-      errorf("fs_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
+      errorf("fskit_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
       return rc;
    }
    
@@ -680,7 +724,7 @@ int fskit_entry_init_sock( struct fskit_entry* fent, uint64_t file_id, char cons
    
    rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_SOCK, file_id, name, owner, group, mode );
    if( rc != 0 ) {
-      errorf("fs_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
+      errorf("fskit_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
       return rc;
    }
    
@@ -695,7 +739,7 @@ int fskit_entry_init_chr( struct fskit_entry* fent, uint64_t file_id, char const
    
    rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_CHR, file_id, name, owner, group, mode );
    if( rc != 0 ) {
-      errorf("fs_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
+      errorf("fskit_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
       return rc;
    }
    
@@ -710,7 +754,7 @@ int fskit_entry_init_blk( struct fskit_entry* fent, uint64_t file_id, char const
    
    rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_BLK, file_id, name, owner, group, mode );
    if( rc != 0 ) {
-      errorf("fs_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
+      errorf("fskit_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
       return rc;
    }
    
@@ -764,11 +808,21 @@ int fskit_entry_destroy( struct fskit_core* core, struct fskit_entry* fent, bool
       delete fent->children;
       fent->children = NULL;
    }
+   
+   fskit_xattr_wlock( fent );
+   
+   if( fent->xattrs ) {
+      delete fent->xattrs;
+      fent->xattrs = NULL;
+   }
+   
+   fskit_xattr_unlock( fent );
 
    fent->type = FSKIT_ENTRY_TYPE_DEAD;      // next thread to hold this lock knows this is a dead entry
 
    fskit_entry_unlock( fent );
    pthread_rwlock_destroy( &fent->lock );
+   pthread_rwlock_destroy( &fent->xattrs_lock );
    
    return 0;
 }
@@ -907,6 +961,21 @@ int fskit_core_route_wlock( struct fskit_core* core ) {
 // unlock routes 
 int fskit_core_route_unlock( struct fskit_core* core ) {
    return pthread_rwlock_unlock( &core->route_lock );
+}
+
+// read-lock xattrs 
+int fskit_xattr_rlock( struct fskit_entry* fent ) {
+   return pthread_rwlock_rdlock( &fent->xattrs_lock );
+}
+
+// write-lock xattrs 
+int fskit_xattr_wlock( struct fskit_entry* fent ) {
+   return pthread_rwlock_wrlock( &fent->xattrs_lock );
+}
+
+// unlock xattrs 
+int fskit_xattr_unlock( struct fskit_entry* fent ) {
+   return pthread_rwlock_unlock( &fent->xattrs_lock );
 }
 
 

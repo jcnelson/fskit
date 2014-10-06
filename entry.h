@@ -35,6 +35,8 @@ struct fskit_entry;
 typedef pair<long, fskit_entry*> fskit_dirent;
 typedef vector<fskit_dirent> fskit_entry_set;
 
+typedef map<string, string> fskit_xattr_set;
+
 #define FSKIT_ENTRY_TYPE_DEAD         0
 #define FSKIT_ENTRY_TYPE_FILE         1
 #define FSKIT_ENTRY_TYPE_DIR          2
@@ -84,14 +86,20 @@ struct fskit_entry {
    // if this is a directory, this is allocated and points to a fskit_entry_set 
    fskit_entry_set* children;
    
-   // lock governing access to this structure
-   pthread_rwlock_t lock;
-   
    // application-defined entry data 
    void* app_data;
    
    // if this is a special file, this is the device major/minor number 
    dev_t dev;
+   
+   // lock governing access to the above structure fields
+   pthread_rwlock_t lock;
+   
+   // extended attributes 
+   fskit_xattr_set* xattrs;
+   
+   // lock governing access to xattrs
+   pthread_rwlock_t xattrs_lock;
 };
 
 // fskit file handle 
@@ -212,8 +220,8 @@ int fskit_detach_ctx_free( struct fskit_detach_ctx* ctx );
 
 // entry sets
 long fskit_entry_name_hash( char const* name );
-void fskit_entry_set_insert( fskit_entry_set* set, char const* name, struct fskit_entry* child );
-void fskit_entry_set_insert_hash( fskit_entry_set* set, long hash, struct fskit_entry* child );
+int fskit_entry_set_insert( fskit_entry_set* set, char const* name, struct fskit_entry* child );
+int fskit_entry_set_insert_hash( fskit_entry_set* set, long hash, struct fskit_entry* child );
 struct fskit_entry* fskit_entry_set_find_name( fskit_entry_set* set, char const* name );
 struct fskit_entry* fskit_entry_set_find_hash( fskit_entry_set* set, long nh );
 bool fskit_entry_set_remove( fskit_entry_set* set, char const* name );
@@ -249,6 +257,10 @@ int fskit_core_unlock( struct fskit_core* core );
 int fskit_core_route_rlock( struct fskit_core* core );
 int fskit_core_route_wlock( struct fskit_core* core );
 int fskit_core_route_unlock( struct fskit_core* core );
+
+int fskit_xattr_rlock( struct fskit_entry* fent );
+int fskit_xattr_wlock( struct fskit_entry* fent );
+int fskit_xattr_unlock( struct fskit_entry* fent );
 
 // low-level linking and unlinking 
 int fskit_entry_attach_lowlevel( struct fskit_entry* parent, struct fskit_entry* child );
