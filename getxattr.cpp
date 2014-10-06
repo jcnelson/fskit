@@ -90,10 +90,12 @@ int fskit_fgetxattr( struct fskit_core* core, struct fskit_entry* fent, char con
       return -ERANGE;
    }
    
+   int ret = value_s.size();
+   
    // success!
-   memcpy( value, value_s.data(), size );
+   memcpy( value, value_s.data(), value_s.size() );
    
    fskit_xattr_unlock( fent );
    
-   return size;
+   return ret;
 }
