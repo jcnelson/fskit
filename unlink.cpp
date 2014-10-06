@@ -20,9 +20,7 @@
 #include "path.h"
 
 // unlink a file from the filesystem
-// return -EUCLEAN if we failed to garbage-collect, but needed to (i.e. a manifest was missing)
-// return -EREMOTEIO for failure to revalidate metadata 
-// return -ESTALE if the given information is out of date
+// return the usual path resolution errors 
 int fskit_unlink( struct fskit_core* core, char const* path, uint64_t owner, uint64_t group ) {
    
    // get some info about this file first
