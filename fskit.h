@@ -44,6 +44,7 @@
 #include "rmdir.h"
 #include "setxattr.h"
 #include "stat.h"
+#include "statvfs.h"
 #include "trunc.h"
 #include "unlink.h"
 #include "utime.h"
