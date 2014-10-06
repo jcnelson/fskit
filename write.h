@@ -22,11 +22,11 @@
 #include "common.h"
 #include "fskit.h"
 
-ssize_t fskit_run_user_write( struct fs_core* core, char const* path, struct fskit_entry* fent, char* buf, size_t buflen, off_t offset );
+ssize_t fskit_run_user_write( struct fs_core* core, char const* path, struct fskit_entry* fent, char const* buf, size_t buflen, off_t offset );
 
 extern "C" {
 
-ssize_t fskit_write( struct fskit_core* core, struct fskit_file_handle* fh, char* buf, size_t buflen, off_t offset );
+ssize_t fskit_write( struct fskit_core* core, struct fskit_file_handle* fh, char const* buf, size_t buflen, off_t offset );
 
 }
 
