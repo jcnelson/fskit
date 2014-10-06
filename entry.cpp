@@ -326,7 +326,9 @@ int fskit_core_destroy( struct fskit_core* core, void** app_fs_data ) {
    pthread_rwlock_destroy( &core->lock );
    pthread_rwlock_destroy( &core->route_lock );
    
-   *app_fs_data = fs_data;
+   if( app_fs_data != NULL ) {
+      *app_fs_data = fs_data;
+   }
    
    memset( core, 0, sizeof(struct fskit_core) );
    
