@@ -53,7 +53,9 @@ extern int _ERROR_MESSAGES;
 #define strdup_or_null( str )  (str) != NULL ? strdup(str) : NULL
 #define safe_free( ptr ) do { if( (ptr) != NULL ) { free( ptr ); (ptr) = NULL; } } while(0)
 #define safe_delete( ptr ) do { if( (ptr) != NULL ) { delete (ptr); (ptr) = NULL; } } while(0)
+#define safe_new( cls ) new (nothrow) cls()
 
 extern int _debug_locks;
+
 
 #endif 
