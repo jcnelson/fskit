@@ -53,8 +53,10 @@
 #include <list>
 #include <map>
 #include <vector>
-
+#include <new>
 
 #define MIN( x, y ) (x) > (y) ? (y) : (x)
+
+using namespace std;
 
 #endif
