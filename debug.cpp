@@ -22,7 +22,20 @@ int _debug_locks = 0;
 int _DEBUG_MESSAGES = 1;
 int _ERROR_MESSAGES = 1;
 
-// get task ID (no glibc wrapper around this...)
-pid_t gettid(void) {
-   return syscall( __NR_gettid );
+int _DEBUG = 1;
+
+void fskit_set_debug_level( int d ) {
+   _DEBUG_MESSAGES = d;
+}
+
+void fskit_set_error_level( int e ) {
+   _ERROR_MESSAGES = e;
+}
+
+int fskit_get_debug_level() {
+   return _DEBUG_MESSAGES;
+}
+
+int fskit_get_error_level() {
+   return _ERROR_MESSAGES;
 }

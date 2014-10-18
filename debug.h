@@ -21,41 +21,24 @@
 
 #include "common.h"
 
-#include <sys/syscall.h> 
-
-
-pid_t gettid(void);
-
 #define WHERESTR "%05d:%05d: [%16s:%04u] %s: "
-#define WHEREARG (int)getpid(), (int)gettid(), __FILE__, __LINE__, __func__
-
-extern int _DEBUG_MESSAGES;
-extern int _ERROR_MESSAGES;
-
-#ifdef dbprintf
-#undef dbprintf
-#endif
-
-#ifdef errorf
-#undef errorf
-#endif
+#define WHEREARG (int)getpid(), (int)pthread_self(), __FILE__, __LINE__, __func__
 
 #define dbprintf( format, ... ) do { if( _DEBUG_MESSAGES ) { printf( WHERESTR format, WHEREARG, __VA_ARGS__ ); fflush(stdout); } } while(0)
 #define errorf( format, ... ) do { if( _ERROR_MESSAGES ) { fprintf(stderr, WHERESTR format, WHEREARG, __VA_ARGS__); fflush(stderr); } } while(0)
 
-#define CALLOC_LIST(type, count) (type*)calloc( sizeof(type) * (count), 1 )
-#define FREE_LIST(list) do { for(unsigned int __i = 0; (list)[__i] != NULL; ++ __i) { if( (list)[__i] != NULL ) { free( (list)[__i] ); (list)[__i] = NULL; }} free( (list) ); } while(0)
-#define SIZE_LIST(sz, list) for( *(sz) = 0; (list)[*(sz)] != NULL; ++ *(sz) );
-#define VECTOR_TO_LIST(ret, vec, type) do { ret = CALLOC_LIST(type, ((vec).size() + 1)); for( vector<type>::size_type __i = 0; __i < (vec).size(); ++ __i ) ret[__i] = (vec).at(__i); } while(0)
-#define COPY_LIST(dst, src, duper) do { for( unsigned int __i = 0; (src)[__i] != NULL; ++ __i ) { (dst)[__i] = duper((src)[__i]); } } while(0)
-#define DUP_LIST(type, dst, src, duper) do { unsigned int sz = 0; SIZE_LIST( &sz, src ); dst = CALLOC_LIST( type, sz + 1 ); COPY_LIST( dst, src, duper ); } while(0)
-
-#define strdup_or_null( str )  (str) != NULL ? strdup(str) : NULL
-#define safe_free( ptr ) do { if( (ptr) != NULL ) { free( ptr ); (ptr) = NULL; } } while(0)
-#define safe_delete( ptr ) do { if( (ptr) != NULL ) { delete (ptr); (ptr) = NULL; } } while(0)
-#define safe_new( cls ) new (nothrow) cls()
+extern "C" {
 
 extern int _debug_locks;
 
+extern int _DEBUG_MESSAGES;
+extern int _ERROR_MESSAGES;
+
+void fskit_set_debug_level( int d );
+void fskit_set_error_level( int e );
+int fskit_get_debug_level();
+int fskit_get_error_level();
+
+}
 
 #endif 

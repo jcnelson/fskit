@@ -16,7 +16,7 @@ INCDIR  := /usr/local/include/fskit
 
 all: fskit
 
-fskit: $(OBJ) 
+fskit: $(OBJ)
 	$(CPP) -shared -Wl,-soname,$(LIBFSKIT_SO) -o $(LIBFSKIT_LIB) $(OBJ) $(LIBINC) $(LIB)
 
 install: fskit

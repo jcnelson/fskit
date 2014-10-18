@@ -19,8 +19,13 @@
 #ifndef _FSKIT_RENAME_H_
 #define _FSKIT_RENAME_H_
 
+#include "debug.h"
 #include "entry.h"
+#include "util.h"
+
 #include <set>
+
+using namespace std;
 
 extern "C" {
 

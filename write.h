@@ -19,8 +19,8 @@
 #ifndef _FSKIT_WRITE_H_
 #define _FSKIT_WRITE_H_
 
+#include "debug.h"
 #include "common.h"
-#include "fskit.h"
 
 ssize_t fskit_run_user_write( struct fs_core* core, char const* path, struct fskit_entry* fent, char const* buf, size_t buflen, off_t offset );
 

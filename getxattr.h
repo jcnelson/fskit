@@ -19,6 +19,7 @@
 #ifndef _FSKIT_GETXATTR_H_
 #define _FSKIT_GETXATTR_H_
 
+#include "debug.h"
 #include "entry.h"
 
 #include <attr/xattr.h>

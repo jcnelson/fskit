@@ -19,8 +19,8 @@
 #ifndef _FSKIT_READ_H_
 #define _FSKIT_READ_H_
 
-#include "fskit.h"
-#include "common.h"
+#include "debug.h"
+#include "entry.h"
 
 ssize_t fskit_run_user_read( struct fs_core* core, char const* path, struct fskit_entry* fent, char* buf, size_t buflen, off_t offset );
 

@@ -19,6 +19,7 @@
 #ifndef _FSKIT_TRUNC_H_
 #define _FSKIT_TRUNC_H_
 
+#include "debug.h"
 #include "fskit.h"
 #include "common.h"
 

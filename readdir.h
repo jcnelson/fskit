@@ -19,8 +19,8 @@
 #ifndef _FSKIT_READDIR_H_
 #define _FSKIT_READDIR_H_
 
+#include "debug.h"
 #include "entry.h"
-
 
 extern "C" {
    

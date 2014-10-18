@@ -673,12 +673,6 @@ struct fuse_operations fskit_fuse_get_opers() {
 
 int main( int argc, char** argv ) {
    
-   // don't run as root 
-   if( getuid() == 0 || geteuid() == 0 ) {
-      fprintf(stderr, "Running FUSE as root opens unacceptable security holes\n");
-      exit(1);
-   }
-   
    struct fskit_fuse_state state;
    int rc = 0;
    

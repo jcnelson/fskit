@@ -19,6 +19,7 @@
 #ifndef _FSKIT_UTIME_H_
 #define _FSKIT_UTIME_H_
 
+#include "debug.h"
 #include "common.h"
 #include "entry.h"
 

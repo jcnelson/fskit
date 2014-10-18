@@ -19,6 +19,7 @@
 #ifndef _FSKIT_UNLINK_H_
 #define _FSKIT_UNLINK_H_
 
+#include "debug.h"
 #include "entry.h"
 
 extern "C" {

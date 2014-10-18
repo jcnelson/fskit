@@ -19,6 +19,7 @@
 #ifndef _FSKIT_MKNOD_H_
 #define _FSKIT_MKNOD_H_
 
+#include "debug.h"
 #include "common.h"
 #include "entry.h"
 

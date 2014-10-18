@@ -25,14 +25,16 @@
 
 // path utilities 
 long fskit_entry_name_hash( char const* name );
+void fskit_sanitize_path( char* path );
+
+extern "C" {
+   
+// public path utilities
 char* fskit_fullpath( char const* parent, char const* child, char* output );
 char* fskit_dirname( char const* path, char* dest ); 
 char* fskit_basename( char const* path, char* dest );
 size_t fskit_basename_len( char const* path );
 int fskit_depth( char const* path );
-void fskit_sanitize_path( char* path );
-
-extern "C" {
    
 // path resolution 
 struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, bool writelock, int* err, int (*ent_eval)( struct fskit_entry*, void* ), void* cls );

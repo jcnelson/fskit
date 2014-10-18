@@ -19,6 +19,7 @@
 #ifndef _FSKIT_OPENDIR_H_
 #define _FSKIT_OPENDIR_H_
 
+#include "debug.h"
 #include "entry.h"
 
 extern "C" {

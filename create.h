@@ -19,7 +19,7 @@
 #ifndef _FSKIT_CREATE_H_
 #define _FSKIT_CREATE_H_
 
-#include "common.h"
+#include "debug.h"
 #include "entry.h"
 
 int fskit_run_user_create( struct fskit_core* core, char const* path, struct fskit_entry* fent, int flags, mode_t mode, void** inode_data, void** handle_data );

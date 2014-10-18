@@ -19,6 +19,7 @@
 #ifndef _FSKIT_MKDIR_H_
 #define _FSKIT_MKDIR_H_
 
+#include "debug.h"
 #include "entry.h"
 
 int fskit_run_user_mkdir( struct fskit_core* core, char const* path, struct fskit_entry* fent, mode_t mode, void** inode_data );
