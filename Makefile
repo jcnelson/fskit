@@ -18,6 +18,8 @@ all: fskit
 
 fskit: $(OBJ)
 	$(CPP) -shared -Wl,-soname,$(LIBFSKIT_SO) -o $(LIBFSKIT_LIB) $(OBJ) $(LIBINC) $(LIB)
+	$(SHELL) -c "if ! test -L $(LIBFSKIT_SO); then /bin/ln -s $(LIBFSKIT_LIB) $(LIBFSKIT_SO); fi"
+	$(SHELL) -c "if ! test -L $(LIBFSKIT); then /bin/ln -s $(LIBFSKIT_SO) $(LIBFSKIT); fi"
 
 install: fskit
 	/bin/cp -a $(LIBFSKIT) $(LIBFSKIT_SO) $(LIBFSKIT_LIB) $(DESTDIR)
@@ -32,4 +34,4 @@ install: fskit
 
 .PHONY: clean
 clean:
-	/bin/rm -f $(OBJ) $(LIBFSKIT_LIB)
+	/bin/rm -f $(OBJ) $(LIBFSKIT_LIB) $(LIBFSKIT_SO) $(LIBFSKIT)
