@@ -1,5 +1,5 @@
 /*
-   fuse-demo: a FUSE filesystem demo of fskit
+   fskit: a library for creating multi-threaded in-RAM filesystems
    Copyright (C) 2014  Jude Nelson
 
    This program is free software: you can redistribute it and/or modify
@@ -16,10 +16,10 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _FUSE_DEMO_H_
-#define _FUSE_DEMO_H_
+#ifndef _FSKIT_FUSE_H_
+#define _FSKIT_FUSE_H_
 
-#include "fskit/fskit.h"
+#include "fskit.h"
 
 #define FUSE_USE_VERSION 28
 #include <fuse.h>
@@ -30,11 +30,13 @@
 
 using namespace std;
 
+// private fuse state
 struct fskit_fuse_state {
    
    struct fskit_core* core;
 };
 
+// fskit fuse file handle
 struct fskit_fuse_file_info {
    
    int type;
@@ -46,13 +48,7 @@ struct fskit_fuse_file_info {
 
 extern "C" {
    
-// init/shutdown 
-int fuse_fskit_init( struct fskit_fuse_state* state );
-int fuse_fskit_start( struct fskit_fuse_state* state );
-int fuse_fskit_stop( struct fskit_fuse_state* state );
-int fuse_fskit_free( struct fskit_fuse_state* state );
-
-// access
+// access to state
 struct fskit_fuse_state* fskit_fuse_get_state();
    
 // fs methods
@@ -91,7 +87,13 @@ int fuse_fskit_fgetattr(const char *path, struct stat *statbuf, struct fuse_file
 void *fuse_fskit_fuse_init(struct fuse_conn_info *conn);
 void fuse_fskit_destroy(void *userdata);
 
-struct fuse_operations fuse_fskit_get_opers();
+// get all fs methods
+struct fuse_operations fskit_fuse_get_opers();
+
+// main interface
+int fskit_fuse_init( struct fskit_fuse_state* state, void* user_state );
+int fskit_fuse_main( struct fskit_fuse_state* state, int argc, char** argv );
+int fskit_fuse_shutdown( struct fskit_fuse_state* state, void** user_state );
    
 }
 
