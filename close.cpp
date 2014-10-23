@@ -18,6 +18,7 @@
 
 #include "close.h"
 #include "route.h"
+#include "util.h"
 
 // destroy a file handle
 // the file handle must be write-locked
@@ -84,7 +85,7 @@ int fskit_close( struct fskit_core* core, struct fskit_file_handle* fh ) {
    rc = fskit_file_handle_wlock( fh );
    if( rc != 0 ) {
       // shouldn't happen; indicates deadlock 
-      errorf("BUG: fskit_file_handle_wlock(%p) rc = %d\n", fh, rc );
+      fskit_error("BUG: fskit_file_handle_wlock(%p) rc = %d\n", fh, rc );
       return rc;
    }
    
@@ -97,7 +98,7 @@ int fskit_close( struct fskit_core* core, struct fskit_file_handle* fh ) {
    rc = fskit_entry_wlock( fh->fent );
    if( rc != 0 ) {
       // shouldn't happen: indicates deadlock 
-      errorf("BUG: fskit_entry_wlock(%p) rc = %d\n", fh->fent, rc );
+      fskit_error("BUG: fskit_entry_wlock(%p) rc = %d\n", fh->fent, rc );
       fskit_file_handle_unlock( fh );
       return rc;
    }
@@ -106,7 +107,7 @@ int fskit_close( struct fskit_core* core, struct fskit_file_handle* fh ) {
    rc = fskit_run_user_close( core, fh->path, fh->fent, fh->app_data );
    if( rc != 0 ) {
       // failed to run user close 
-      errorf("fskit_run_user_close(%s) rc = %d\n", fh->path, rc );
+      fskit_error("fskit_run_user_close(%s) rc = %d\n", fh->path, rc );
       
       fskit_entry_unlock( fh->fent );
       fskit_file_handle_unlock( fh );
@@ -129,7 +130,7 @@ int fskit_close( struct fskit_core* core, struct fskit_file_handle* fh ) {
    else if( rc < 0 ) {
       
       // some error occurred 
-      errorf("fskit_entry_try_destroy(%p) rc = %d\n", fh->fent, rc );
+      fskit_error("fskit_entry_try_destroy(%p) rc = %d\n", fh->fent, rc );
       fskit_entry_unlock( fh->fent );
       
       return rc;

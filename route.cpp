@@ -18,6 +18,7 @@
 
 #include "entry.h"
 #include "route.h"
+#include "util.h"
 
 // initialize a match group.
 // the match group becomes the owner of matches
@@ -118,7 +119,7 @@ static int fskit_match_regex( struct fskit_match_group* match_group, struct fski
    // matched! whole path?
    if( (signed)path_len != m[0].rm_eo - m[0].rm_so ) {
       // didn't match the whole path 
-      dbprintf("Matched only %d:%d of 0:%zu\n", m[0].rm_so, m[0].rm_eo, path_len );
+      fskit_debug("Matched only %d:%d of 0:%zu\n", m[0].rm_so, m[0].rm_eo, path_len );
       safe_free( m );
       return -ENOENT;
    }
@@ -188,7 +189,7 @@ static int fskit_route_enter( struct fskit_path_route* route ) {
    if( rc != 0 ) {
       // indicates deadlock 
       rc = -errno;
-      errorf("BUG: locking route %s errno = %d\n", route->path_regex_str, rc );
+      fskit_error("BUG: locking route %s errno = %d\n", route->path_regex_str, rc );
       return rc;
    }
    
@@ -220,7 +221,7 @@ static int fskit_route_dispatch( struct fskit_core* core, struct fskit_match_gro
    if( rc != 0 ) {
       // indicates deadlock 
       rc = -errno;
-      errorf("BUG: pthread_rwlock_wrlock(route %s) errno = %d\n", route->path_regex_str, rc );
+      fskit_error("BUG: pthread_rwlock_wrlock(route %s) errno = %d\n", route->path_regex_str, rc );
       return rc;
    }
    
@@ -275,7 +276,7 @@ static int fskit_route_dispatch( struct fskit_core* core, struct fskit_match_gro
          
       default:
          
-         errorf("Invalid route dispatch code %d\n", route->route_type );
+         fskit_error("Invalid route dispatch code %d\n", route->route_type );
          rc = -EINVAL;
    }
    
@@ -458,7 +459,7 @@ static int fskit_path_route_init( struct fskit_path_route* route, char const* re
    rc = regcomp( &route->path_regex, regex_str, REG_EXTENDED | REG_NEWLINE );
    if( rc != 0 ) {
       
-      errorf("regcomp('%s') rc = %d\n", regex_str, rc );
+      fskit_error("regcomp('%s') rc = %d\n", regex_str, rc );
       return -EINVAL;
    }
    

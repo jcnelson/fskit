@@ -82,7 +82,7 @@ int fskit_rmdir( struct fskit_core* core, char const* _path, uint64_t user, uint
    // empty. Detach from the filesystem 
    rc = fskit_entry_detach_lowlevel( parent, dent );
    if( rc != 0 ) {
-      errorf("fskit_entry_detach_lowlevel(%p) rc = %d\n", dent, rc );
+      fskit_error("fskit_entry_detach_lowlevel(%p) rc = %d\n", dent, rc );
       
       fskit_entry_unlock( dent );
       fskit_entry_unlock( parent );
@@ -99,7 +99,7 @@ int fskit_rmdir( struct fskit_core* core, char const* _path, uint64_t user, uint
    }
    else if( rc < 0 ) {
       
-      errorf("fskit_try_destroy(%p) rc = %d\n", dent, rc );
+      fskit_error("fskit_try_destroy(%p) rc = %d\n", dent, rc );
       fskit_entry_unlock( dent );
    }
    else {

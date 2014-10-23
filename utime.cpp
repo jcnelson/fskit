@@ -31,7 +31,7 @@ int fskit_entry_set_ctime( struct fskit_entry* fent, struct timespec* now ) {
       int rc = clock_gettime( CLOCK_REALTIME, &new_time );
       if( rc != 0 ) {
          rc = -errno;
-         errorf("clock_gettime rc = %d\n", rc);
+         fskit_error("clock_gettime rc = %d\n", rc);
          return rc;
       }
    }
@@ -56,7 +56,7 @@ int fskit_entry_set_mtime( struct fskit_entry* fent, struct timespec* now ) {
       int rc = clock_gettime( CLOCK_REALTIME, &new_time );
       if( rc != 0 ) {
          rc = -errno;
-         errorf("clock_gettime rc = %d\n", rc);
+         fskit_error("clock_gettime rc = %d\n", rc);
          return rc;
       }
    }
@@ -82,7 +82,7 @@ int fskit_entry_set_atime( struct fskit_entry* fent, struct timespec* now ) {
       int rc = clock_gettime( CLOCK_REALTIME, &new_time );
       if( rc != 0 ) {
          rc = -errno;
-         errorf("clock_gettime rc = %d\n", rc);
+         fskit_error("clock_gettime rc = %d\n", rc);
          return rc;
       }
    }
@@ -143,7 +143,7 @@ int fskit_utimes( struct fskit_core* core, char const* path, uint64_t user, uint
       int rc = clock_gettime( CLOCK_REALTIME, &new_time );
       if( rc != 0 ) {
          rc = -errno;
-         errorf("clock_gettime rc = %d\n", rc);
+         fskit_error("clock_gettime rc = %d\n", rc);
          
          fskit_entry_unlock( fent );
          return rc;

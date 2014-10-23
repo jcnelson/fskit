@@ -20,6 +20,7 @@
 #include "create.h"
 #include "open.h"
 #include "route.h"
+#include "util.h"
 
 // get the user-supplied inode and handle data for creating a file 
 int fskit_run_user_create( struct fskit_core* core, char const* path, struct fskit_entry* fent, int flags, mode_t mode, void** inode_data, void** handle_data ) {
@@ -81,7 +82,7 @@ int fskit_do_create( struct fskit_core* core, struct fskit_entry* parent, char c
    rc = fskit_entry_init_file( child, 0, path_basename, user, group, mode );
 
    if( rc != 0 ) {
-      errorf("fskit_entry_init_file(%s) rc = %d\n", path, rc );
+      fskit_error("fskit_entry_init_file(%s) rc = %d\n", path, rc );
       
       fskit_entry_destroy( core, child, false );
       safe_free( child );
@@ -94,7 +95,7 @@ int fskit_do_create( struct fskit_core* core, struct fskit_entry* parent, char c
       uint64_t child_inode = fskit_core_inode_alloc( core, parent, child );
       if( child_inode == 0 ) {
          // error in allocating 
-         errorf("fskit_core_inode_alloc(%s) failed\n", path );
+         fskit_error("fskit_core_inode_alloc(%s) failed\n", path );
          
          fskit_entry_destroy( core, child, false );
          safe_free( child );
@@ -107,7 +108,7 @@ int fskit_do_create( struct fskit_core* core, struct fskit_entry* parent, char c
       if( rc != 0 ) {
          
          // callback error 
-         errorf("fskit_run_user_create(%s) rc = %d\n", path, rc );
+         fskit_error("fskit_run_user_create(%s) rc = %d\n", path, rc );
          
          fskit_entry_destroy( core, child, false );
          safe_free( child );

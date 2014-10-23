@@ -54,7 +54,7 @@ int fskit_unlink( struct fskit_core* core, char const* path, uint64_t owner, uin
    rc = fskit_entry_detach_lowlevel( parent, fent );
    if( rc != 0 ) {
       
-      errorf("fskit_entry_detach_lowlevel(%p) rc = %d\n", fent, rc );
+      fskit_error("fskit_entry_detach_lowlevel(%p) rc = %d\n", fent, rc );
       
       fskit_entry_unlock( fent );
       fskit_entry_unlock( parent );
@@ -72,7 +72,7 @@ int fskit_unlink( struct fskit_core* core, char const* path, uint64_t owner, uin
    else if( rc < 0 ) {
    
       // some error occurred 
-      errorf("fskit_entry_try_destroy(%p) rc = %d\n", fent, rc );
+      fskit_error("fskit_entry_try_destroy(%p) rc = %d\n", fent, rc );
       
       fskit_entry_unlock( fent );
       fskit_entry_unlock( parent );

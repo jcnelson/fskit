@@ -21,6 +21,7 @@
 #include "path.h"
 #include "random.h"
 #include "route.h"
+#include "util.h"
 
 // hash a name/path
 long fskit_entry_name_hash( char const* name ) {
@@ -257,7 +258,7 @@ int fskit_core_init( struct fskit_core* core, void* app_fs_data ) {
    
    rc = fskit_entry_init_dir( &core->root, 0, "/", 0, 0, 0755 );
    if( rc != 0 ) {
-      errorf("fskit_entry_init_dir(/) rc = %d\n", rc );
+      fskit_error("fskit_entry_init_dir(/) rc = %d\n", rc );
       
       safe_delete( routes );
       return rc;
@@ -648,7 +649,7 @@ int fskit_entry_init_common( struct fskit_entry* fent, uint8_t type, uint64_t fi
    
    rc = clock_gettime( CLOCK_REALTIME, &now );
    if( rc != 0 ) {
-      errorf("clock_gettime rc = %d\n", rc );
+      fskit_error("clock_gettime rc = %d\n", rc );
       return rc;
    }
    
@@ -673,7 +674,7 @@ int fskit_entry_init_file( struct fskit_entry* fent, uint64_t file_id, char cons
    
    rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_FILE, file_id, name, owner, group, mode );
    if( rc != 0 ) {
-      errorf("fskit_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
+      fskit_error("fskit_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
       return rc;
    }
    
@@ -694,7 +695,7 @@ int fskit_entry_init_dir( struct fskit_entry* fent, uint64_t file_id, char const
    
    rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_DIR, file_id, name, owner, group, mode );
    if( rc != 0 ) {
-      errorf("fskit_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
+      fskit_error("fskit_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
       safe_delete( children );
       return rc;
    }
@@ -711,7 +712,7 @@ int fskit_entry_init_fifo( struct fskit_entry* fent, uint64_t file_id, char cons
    
    rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_FIFO, file_id, name, owner, group, mode );
    if( rc != 0 ) {
-      errorf("fskit_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
+      fskit_error("fskit_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
       return rc;
    }
    
@@ -726,7 +727,7 @@ int fskit_entry_init_sock( struct fskit_entry* fent, uint64_t file_id, char cons
    
    rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_SOCK, file_id, name, owner, group, mode );
    if( rc != 0 ) {
-      errorf("fskit_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
+      fskit_error("fskit_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
       return rc;
    }
    
@@ -741,7 +742,7 @@ int fskit_entry_init_chr( struct fskit_entry* fent, uint64_t file_id, char const
    
    rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_CHR, file_id, name, owner, group, mode );
    if( rc != 0 ) {
-      errorf("fskit_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
+      fskit_error("fskit_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
       return rc;
    }
    
@@ -756,7 +757,7 @@ int fskit_entry_init_blk( struct fskit_entry* fent, uint64_t file_id, char const
    
    rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_BLK, file_id, name, owner, group, mode );
    if( rc != 0 ) {
-      errorf("fskit_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
+      fskit_error("fskit_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
       return rc;
    }
    
@@ -844,7 +845,7 @@ int fskit_entry_try_destroy( struct fskit_core* core, char const* fs_path, struc
       
       rc = fskit_run_user_detach( core, fs_path, fent );
       if( rc != 0 ) {
-         errorf("fskit_run_user_detach(%s) rc = %d\n", fs_path, rc );
+         fskit_error("fskit_run_user_detach(%s) rc = %d\n", fs_path, rc );
       }
       
       fskit_entry_destroy( core, fent, false );
@@ -860,12 +861,12 @@ int fskit_entry_try_destroy( struct fskit_core* core, char const* fs_path, struc
 int fskit_entry_rlock2( struct fskit_entry* fent, char const* from_str, int line_no ) {
    int rc = pthread_rwlock_rdlock( &fent->lock );
    if( rc == 0 ) {
-      if( _debug_locks ) {
-         dbprintf( "%p: %s, from %s:%d\n", fent, fent->name, from_str, line_no );
+      if( FSKIT_GLOBAL_DEBUG_LOCKS ) {
+         fskit_debug( "%p: %s, from %s:%d\n", fent, fent->name, from_str, line_no );
       }
    }
    else {
-      errorf("pthread_rwlock_rdlock(%p) rc = %d (from %s:%d)\n", fent, rc, from_str, line_no );
+      fskit_error("pthread_rwlock_rdlock(%p) rc = %d (from %s:%d)\n", fent, rc, from_str, line_no );
    }
 
    return rc;
@@ -879,12 +880,12 @@ int fskit_entry_wlock2( struct fskit_entry* fent, char const* from_str, int line
    }
    
    if( rc == 0 ) {
-      if( _debug_locks ) {
-         dbprintf( "%p: %s, from %s:%d\n", fent, fent->name, from_str, line_no );
+      if( FSKIT_GLOBAL_DEBUG_LOCKS ) {
+         fskit_debug( "%p: %s, from %s:%d\n", fent, fent->name, from_str, line_no );
       }
    }
    else {
-      errorf("pthread_rwlock_wrlock(%p) rc = %d (from %s:%d)\n", fent, rc, from_str, line_no );
+      fskit_error("pthread_rwlock_wrlock(%p) rc = %d (from %s:%d)\n", fent, rc, from_str, line_no );
    }
 
    return rc;
@@ -894,12 +895,12 @@ int fskit_entry_wlock2( struct fskit_entry* fent, char const* from_str, int line
 int fskit_entry_unlock2( struct fskit_entry* fent, char const* from_str, int line_no ) {
    int rc = pthread_rwlock_unlock( &fent->lock );
    if( rc == 0 ) {
-      if( _debug_locks ) {
-         dbprintf( "%p: %s, from %s:%d\n", fent, fent->name, from_str, line_no );
+      if( FSKIT_GLOBAL_DEBUG_LOCKS ) {
+         fskit_debug( "%p: %s, from %s:%d\n", fent, fent->name, from_str, line_no );
       }
    }
    else {
-      errorf("pthread_rwlock_unlock(%p) rc = %d (from %s:%d)\n", fent, rc, from_str, line_no );
+      fskit_error("pthread_rwlock_unlock(%p) rc = %d (from %s:%d)\n", fent, rc, from_str, line_no );
    }
 
    return rc;

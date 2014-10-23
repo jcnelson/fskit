@@ -21,7 +21,6 @@
 
 #include "debug.h"
 #include "entry.h"
-#include "util.h"
 
 #include <set>
 

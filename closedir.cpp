@@ -18,6 +18,7 @@
 
 #include "closedir.h"
 #include "close.h"
+#include "util.h"
 
 // free a directory handle
 static void fskit_dir_handle_destroy( struct fskit_dir_handle* dirh ) {
@@ -51,7 +52,7 @@ int fskit_closedir( struct fskit_core* core, struct fskit_dir_handle* dirh ) {
    rc = fskit_dir_handle_wlock( dirh );
    if( rc != 0 ) {
       // indicates deadlock; shouldn't happen 
-      errorf("BUG: fskit_dir_handle_wlock(%p) rc = %d\n", dirh, rc );
+      fskit_error("BUG: fskit_dir_handle_wlock(%p) rc = %d\n", dirh, rc );
       return rc;
    }
    
@@ -65,7 +66,7 @@ int fskit_closedir( struct fskit_core* core, struct fskit_dir_handle* dirh ) {
    if( rc != 0 ) {
       
       // shouldn't happen; indicates deadlock 
-      errorf("BUG: fskit_entry_wlock(%p) rc = %d\n", dirh->dent, rc );
+      fskit_error("BUG: fskit_entry_wlock(%p) rc = %d\n", dirh->dent, rc );
       
       fskit_dir_handle_unlock( dirh );
       return rc;
@@ -75,7 +76,7 @@ int fskit_closedir( struct fskit_core* core, struct fskit_dir_handle* dirh ) {
    rc = fskit_run_user_close( core, dirh->path, dirh->dent, dirh->app_data );
    if( rc != 0 ) {
       
-      errorf("fskit_run_user_close(%s) rc = %d\n", dirh->path, rc );
+      fskit_error("fskit_run_user_close(%s) rc = %d\n", dirh->path, rc );
       
       fskit_entry_unlock( dirh->dent );
       fskit_dir_handle_unlock( dirh );
@@ -96,7 +97,7 @@ int fskit_closedir( struct fskit_core* core, struct fskit_dir_handle* dirh ) {
    else if( rc < 0 ) {
       
       // some error occurred 
-      errorf("fskit_entry_try_destroy(%p) rc = %d\n", dirh->dent, rc );
+      fskit_error("fskit_entry_try_destroy(%p) rc = %d\n", dirh->dent, rc );
       fskit_entry_unlock( dirh->dent );
       
       return rc;

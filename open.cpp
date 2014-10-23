@@ -22,6 +22,7 @@
 #include "utime.h"
 #include "route.h"
 #include "create.h"
+#include "util.h"
 
 // create a file handle from a fskit_entry
 // ent must be read-locked
@@ -155,7 +156,7 @@ int fskit_do_open( struct fskit_core* core, char const* path, struct fskit_entry
    // open will succeed according to fskit.  invoke the user callback to generate handle data
    rc = fskit_run_user_open( core, path, child, flags, handle_data );
    if( rc != 0 ) {
-      errorf("fskit_run_user_open(%s) rc = %d\n", path, rc );
+      fskit_error("fskit_run_user_open(%s) rc = %d\n", path, rc );
       
       return rc;
    }

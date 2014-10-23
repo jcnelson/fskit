@@ -18,6 +18,7 @@
 
 #include "rename.h"
 #include "path.h"
+#include "util.h"
 
 // check that we aren't trying to move a directory into itself
 static int fskit_entry_verify_no_loop( struct fskit_entry* fent, void* cls ) {
@@ -222,7 +223,7 @@ int fskit_rename( struct fskit_core* core, char const* old_path, char const* new
       
       if( err != 0 ) {
          // technically, it's still safe to access fent_new since dest_parent is write-locked
-         errorf("fskit_entry_detach_lowlevel(%s from %s) rc = %d\n", fent_new->name, dest_parent->name, err );
+         fskit_error("fskit_entry_detach_lowlevel(%s from %s) rc = %d\n", fent_new->name, dest_parent->name, err );
       }
    }
    

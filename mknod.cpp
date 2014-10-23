@@ -20,6 +20,7 @@
 #include "path.h"
 #include "open.h"
 #include "route.h"
+#include "util.h"
 
 // get the user-supplied inode data for creating a node 
 int fskit_run_user_mknod( struct fskit_core* core, char const* path, struct fskit_entry* fent, mode_t mode, dev_t dev, void** inode_data ) {
@@ -135,7 +136,7 @@ int fskit_mknod( struct fskit_core* core, char const* path, mode_t mode, dev_t d
    }
    else {
       
-      errorf("Invalid/unsupported mode %o\n", mode );
+      fskit_error("Invalid/unsupported mode %o\n", mode );
       
       fskit_entry_unlock( parent );
       safe_free( path_basename );
@@ -151,7 +152,7 @@ int fskit_mknod( struct fskit_core* core, char const* path, mode_t mode, dev_t d
       uint64_t file_id = fskit_core_inode_alloc( core, parent, child );
       if( file_id == 0 ) {
          
-         errorf("fskit_core_inode_alloc(%s) failed\n", path );
+         fskit_error("fskit_core_inode_alloc(%s) failed\n", path );
          
          fskit_entry_unlock( parent );
          safe_free( path_basename );
@@ -170,7 +171,7 @@ int fskit_mknod( struct fskit_core* core, char const* path, mode_t mode, dev_t d
       if( err != 0 ) {
          
          // failed. abort creation
-         errorf("fskit_run_user_mknod(%s) rc = %d\n", path, err );
+         fskit_error("fskit_run_user_mknod(%s) rc = %d\n", path, err );
          
          fskit_entry_unlock( parent );
          safe_free( path_basename );
@@ -189,7 +190,7 @@ int fskit_mknod( struct fskit_core* core, char const* path, mode_t mode, dev_t d
       fskit_file_count_update( core, 1 );
    }
    else {
-      errorf("%s(%s) rc = %d\n", method_name, path, err );
+      fskit_error("%s(%s) rc = %d\n", method_name, path, err );
       fskit_entry_destroy( core, child, false );
       safe_free( child );
    }

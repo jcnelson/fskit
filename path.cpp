@@ -17,6 +17,7 @@
 */
 
 #include "path.h"
+#include "util.h"
 
 // join two paths, writing the result to dest if dest is not NULL.
 // otherwise, allocate and return a buffer containing the joined paths.
@@ -180,7 +181,7 @@ static int fskit_entry_ent_eval( struct fskit_entry* prev_ent, struct fskit_entr
    int eval_rc = (*ent_eval)( cur_ent, cls );
    if( eval_rc != 0 ) {
       
-      dbprintf("ent_eval(%" PRIX64 " (%s)) rc = %d\n", cur_ent->file_id, name_dup, eval_rc );
+      fskit_debug("ent_eval(%" PRIX64 " (%s)) rc = %d\n", cur_ent->file_id, name_dup, eval_rc );
       
       // cur_ent might not even exist anymore....
       if( cur_ent->type != FSKIT_ENTRY_TYPE_DEAD ) {
@@ -193,7 +194,7 @@ static int fskit_entry_ent_eval( struct fskit_entry* prev_ent, struct fskit_entr
          safe_free( cur_ent );
          
          if( prev_ent ) {
-            dbprintf("Remove %s from %s\n", name_dup, prev_ent->name );
+            fskit_debug("Remove %s from %s\n", name_dup, prev_ent->name );
             fskit_entry_set_remove_hash( prev_ent->children, name_hash );
             fskit_entry_unlock( prev_ent );
          }
@@ -272,7 +273,7 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
       // do we have permission to search this directory?
       if( cur_ent->type == FSKIT_ENTRY_TYPE_DIR && !FSKIT_ENTRY_IS_DIR_READABLE( cur_ent->mode, cur_ent->owner, cur_ent->group, user, group ) ) {
          
-         errorf("User %" PRIu64 " of group %" PRIu64 " cannot read directory %" PRIX64 " owned by %" PRIu64 " in group %" PRIu64 "\n",
+         fskit_error("User %" PRIu64 " of group %" PRIu64 " cannot read directory %" PRIX64 " owned by %" PRIu64 " in group %" PRIu64 "\n",
                 user, group, cur_ent->file_id, cur_ent->owner, cur_ent->group );
          
          // the appropriate read flag is not set
@@ -353,7 +354,7 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
       // check readability
       if( !FSKIT_ENTRY_IS_READABLE( cur_ent->mode, cur_ent->owner, cur_ent->group, user, group ) ) {
          
-         errorf("User %" PRIu64 " of group %" PRIu64 " cannot read file %" PRIX64 " owned by %" PRIu64 " in group %" PRIu64 "\n",
+         fskit_error("User %" PRIu64 " of group %" PRIu64 " cannot read file %" PRIX64 " owned by %" PRIu64 " in group %" PRIu64 "\n",
                 user, group, cur_ent->file_id, cur_ent->owner, cur_ent->group );
          
          *err = -EACCES;

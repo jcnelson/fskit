@@ -21,18 +21,32 @@
 
 #include "common.h"
 
-#define WHERESTR "%05d:%05d: [%16s:%04u] %s: "
-#define WHEREARG (int)getpid(), (int)pthread_self(), __FILE__, __LINE__, __func__
+#define FSKIT_WHERESTR "%05d:%05d: [%16s:%04u] %s: "
+#define FSKIT_WHEREARG (int)getpid(), (int)pthread_self(), __FILE__, __LINE__, __func__
 
-#define dbprintf( format, ... ) do { if( _DEBUG_MESSAGES ) { printf( WHERESTR format, WHEREARG, __VA_ARGS__ ); fflush(stdout); } } while(0)
-#define errorf( format, ... ) do { if( _ERROR_MESSAGES ) { fprintf(stderr, WHERESTR format, WHEREARG, __VA_ARGS__); fflush(stderr); } } while(0)
+#define fskit_debug( format, ... ) \
+   do { \
+      if( FSKIT_GLOBAL_DEBUG_MESSAGES ) { \
+         printf( FSKIT_WHERESTR format, FSKIT_WHEREARG, __VA_ARGS__ ); \
+         fflush(stdout); \
+      } \
+   } while(0)
+   
+   
+#define fskit_error( format, ... ) \
+   do { \
+      if( FSKIT_GLOBAL_ERROR_MESSAGES ) { \
+         fprintf(stderr, FSKIT_WHERESTR format, FSKIT_WHEREARG, __VA_ARGS__); \
+         fflush(stderr); \
+      } \
+   } while(0)
+
 
 extern "C" {
 
-extern int _debug_locks;
-
-extern int _DEBUG_MESSAGES;
-extern int _ERROR_MESSAGES;
+extern int FSKIT_GLOBAL_DEBUG_LOCKS;
+extern int FSKIT_GLOBAL_DEBUG_MESSAGES;
+extern int FSKIT_GLOBAL_ERROR_MESSAGES;
 
 void fskit_set_debug_level( int d );
 void fskit_set_error_level( int e );

@@ -21,7 +21,6 @@
 
 #include "common.h"
 #include "debug.h"
-#include "util.h"
 
 #include <map>
 #include <queue>

@@ -20,6 +20,7 @@
 #include "path.h"
 #include "open.h"
 #include "route.h"
+#include "util.h"
 
 // get the user-supplied inode data for creating a directory 
 int fskit_run_user_mkdir( struct fskit_core* core, char const* path, struct fskit_entry* fent, mode_t mode, void** inode_data ) {
@@ -79,7 +80,7 @@ static int fskit_mkdir_lowlevel( struct fskit_core* core, char const* path, stru
       if( child_inode == 0 ) {
          
          // error in allocation 
-         errorf("fskit_core_inode_alloc(%s) failed\n", path );
+         fskit_error("fskit_core_inode_alloc(%s) failed\n", path );
          
          safe_free( child );
          
@@ -89,7 +90,7 @@ static int fskit_mkdir_lowlevel( struct fskit_core* core, char const* path, stru
       // set up the directory 
       err = fskit_entry_init_dir( child, child_inode, path_basename, user, group, mode );
       if( err != 0 ) {
-         errorf("fskit_entry_init_dir(%s) rc = %d\n", path, err );
+         fskit_error("fskit_entry_init_dir(%s) rc = %d\n", path, err );
          
          safe_free( child );
          return err;
@@ -104,7 +105,7 @@ static int fskit_mkdir_lowlevel( struct fskit_core* core, char const* path, stru
       if( err != 0 ) {
          
          // user route failed 
-         errorf("fskit_run_user_mkdir(%s) rc = %d\n", path, err );
+         fskit_error("fskit_run_user_mkdir(%s) rc = %d\n", path, err );
          
          fskit_entry_destroy( core, child, false );
          safe_free( child );
@@ -174,7 +175,7 @@ int fskit_mkdir( struct fskit_core* core, char const* path, mode_t mode, uint64_
    if( !FSKIT_ENTRY_IS_WRITEABLE(parent->mode, parent->owner, parent->group, user, group) ) {
       
       // parent is not writeable
-      errorf( "%s is not writable by %" PRIu64 " (%o, %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ")\n", path_dirname, user, parent->mode, parent->owner, parent->group, user, group );
+      fskit_error( "%s is not writable by %" PRIu64 " (%o, %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ")\n", path_dirname, user, parent->mode, parent->owner, parent->group, user, group );
       
       fskit_entry_unlock( parent );
       safe_free( path_basename );
@@ -186,7 +187,7 @@ int fskit_mkdir( struct fskit_core* core, char const* path, mode_t mode, uint64_
    err = fskit_mkdir_lowlevel( core, path, parent, path_basename, mode, user, group );
 
    if( err != 0 ) {
-      errorf( "fskit_entry_mkdir_lowlevel(%s) rc = %d\n", path, err );
+      fskit_error( "fskit_entry_mkdir_lowlevel(%s) rc = %d\n", path, err );
    }
    
    // clean up 

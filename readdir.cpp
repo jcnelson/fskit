@@ -18,6 +18,7 @@
 
 #include "readdir.h"
 #include "route.h"
+#include "util.h"
 
 // initialize a directory entry from an fskit_entry
 // return the new entry on success
@@ -161,7 +162,7 @@ static struct fskit_dir_entry** fskit_readdir_lowlevel( struct fskit_core* core,
             if( rc != 0 ) {
                
                // shouldn't happen--indicates deadlock 
-               errorf("fskit_entry_rlock(%p) rc = %d\n", fent, rc );
+               fskit_error("fskit_entry_rlock(%p) rc = %d\n", fent, rc );
                fskit_dir_entry_free_list( dir_ents );
                
                *err = rc;
@@ -182,7 +183,7 @@ static struct fskit_dir_entry** fskit_readdir_lowlevel( struct fskit_core* core,
          if( rc != 0 ) {
             
             // shouldn't happen--indicates deadlock
-            errorf("BUG: fskit_entry_rlock(%p) rc = %d\n", fent, rc );
+            fskit_error("BUG: fskit_entry_rlock(%p) rc = %d\n", fent, rc );
             fskit_dir_entry_free_list( dir_ents );
             
             *err = rc;
@@ -214,7 +215,7 @@ static struct fskit_dir_entry** fskit_readdir_lowlevel( struct fskit_core* core,
          else if( rc < 0 ) {
             
             // failed 
-            errorf("fskit_run_user_readdir(%s) rc = %d\n", fs_path, rc );
+            fskit_error("fskit_run_user_readdir(%s) rc = %d\n", fs_path, rc );
             
             fskit_dir_entry_free_list( dir_ents );
             *err = rc;
@@ -253,7 +254,7 @@ struct fskit_dir_entry** fskit_readdir( struct fskit_core* core, struct fskit_di
    rc = fskit_dir_handle_rlock( dirh );
    if( rc != 0 ) {
       // shouldn't happen--indicates deadlock 
-      errorf("fskit_dir_handle_rlock(%p) rc = %d\n", dirh, rc );
+      fskit_error("fskit_dir_handle_rlock(%p) rc = %d\n", dirh, rc );
       *err = rc;
       return NULL;
    }
@@ -270,7 +271,7 @@ struct fskit_dir_entry** fskit_readdir( struct fskit_core* core, struct fskit_di
    rc = fskit_entry_rlock( dirh->dent );
    if( rc != 0 ) {
       // shouldn't happen--indicates deadlock 
-      errorf("fskit_entry_rlock(%p) rc = %d\n", dirh->dent, rc );
+      fskit_error("fskit_entry_rlock(%p) rc = %d\n", dirh->dent, rc );
       *err = rc;
       
       fskit_dir_handle_unlock( dirh );

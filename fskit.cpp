@@ -24,7 +24,7 @@ int fskit_library_init() {
    
    rc = fskit_random_init();
    if( rc != 0 ) {
-      errorf("fskit_random_init rc = %d\n", rc );
+      fskit_error("fskit_random_init rc = %d\n", rc );
       return rc;
    }
    

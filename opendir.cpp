@@ -19,6 +19,7 @@
 #include "opendir.h"
 #include "path.h"
 #include "open.h"
+#include "util.h"
 
 // create a directory handle from an fskit_entry
 static struct fskit_dir_handle* fskit_dir_handle_create( struct fskit_entry* dir, char const* path, void* app_handle_data ) {
@@ -79,7 +80,7 @@ struct fskit_dir_handle* fskit_opendir( struct fskit_core* core, char const* _pa
    if( rc != 0 ) {
       
       // user-run open code failed 
-      errorf("fskit_run_user_open(%s) rc = %d\n", path, rc );
+      fskit_error("fskit_run_user_open(%s) rc = %d\n", path, rc );
       
       fskit_entry_unlock( dir );
       *err = rc;

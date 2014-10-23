@@ -18,24 +18,22 @@
 
 #include "debug.h"
 
-int _debug_locks = 0;
-int _DEBUG_MESSAGES = 1;
-int _ERROR_MESSAGES = 1;
-
-int _DEBUG = 1;
+int FSKIT_GLOBAL_DEBUG_LOCKS = 0;
+int FSKIT_GLOBAL_DEBUG_MESSAGES = 1;
+int FSKIT_GLOBAL_ERROR_MESSAGES = 1;
 
 void fskit_set_debug_level( int d ) {
-   _DEBUG_MESSAGES = d;
+   FSKIT_GLOBAL_DEBUG_MESSAGES = d;
 }
 
 void fskit_set_error_level( int e ) {
-   _ERROR_MESSAGES = e;
+   FSKIT_GLOBAL_ERROR_MESSAGES = e;
 }
 
 int fskit_get_debug_level() {
-   return _DEBUG_MESSAGES;
+   return FSKIT_GLOBAL_DEBUG_MESSAGES;
 }
 
 int fskit_get_error_level() {
-   return _ERROR_MESSAGES;
+   return FSKIT_GLOBAL_ERROR_MESSAGES;
 }
