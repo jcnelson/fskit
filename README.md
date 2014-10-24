@@ -19,4 +19,4 @@ To install libfskit_fuse to /usr/local/lib and headers to /usr/local/include/fsk
 
     $ sudo make -C fuse/ install
 
-Documentation forthcoming.  Take a look at demos/ to see an example.
+Documentation forthcoming.  Take a look at demo/ to see an example.
