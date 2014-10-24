@@ -56,6 +56,8 @@ int fskit_unlink( struct fskit_core* core, char const* path, uint64_t owner, uin
       
       fskit_error("fskit_entry_detach_lowlevel(%p) rc = %d\n", fent, rc );
       
+      fent->deletion_in_progress = false;
+      
       fskit_entry_unlock( fent );
       fskit_entry_unlock( parent );
       return rc;
