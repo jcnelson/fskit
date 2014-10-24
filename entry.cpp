@@ -988,3 +988,49 @@ int fskit_entry_set_user_data( struct fskit_entry* ent, void* app_data ) {
    ent->app_data = app_data;
    return 0;
 }
+
+// get the file's file ID (i.e. its inode number)
+uint64_t fskit_entry_get_file_id( struct fskit_entry* ent ) {
+   return ent->file_id;
+}
+
+// get user-given data for this entry
+void* fskit_entry_get_user_data( struct fskit_entry* ent ) {
+   return ent->app_data;
+}
+
+// get a reference (not a copy) of the path used to open this handle 
+char* fskit_file_handle_get_path( struct fskit_file_handle* fh ) {
+   return fh->path;
+}
+
+// get the inode structure for this file handle 
+struct fskit_entry* fskit_file_handle_get_entry( struct fskit_file_handle* fh ) {
+   return fh->fent;
+}
+
+// get the file handle's user-given handle data
+void* fskit_file_handle_get_user_data( struct fskit_file_handle* fh ) {
+   return fh->app_data;
+}
+
+// get a reference (not a copy) of the path used to open this handle 
+char* fskit_dir_handle_get_path( struct fskit_dir_handle* dh ) {
+   return dh->path;
+}
+
+// get the inode structure for this file handle 
+struct fskit_entry* fskit_dir_handle_get_entry( struct fskit_dir_handle* dh ) {
+   return dh->dent;
+}
+
+// get the file handle's user-given handle data
+void* fskit_dir_handle_get_user_data( struct fskit_dir_handle* dh ) {
+   return dh->app_data;
+}
+
+// get the user-given data for the filesystem 
+void* fskit_core_get_user_data( struct fskit_core* core ) {
+   return core->app_fs_data;
+}
+

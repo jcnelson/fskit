@@ -199,6 +199,8 @@ uint64_t fskit_core_inode_alloc( struct fskit_core* core, struct fskit_entry* pa
 int fskit_core_inode_free( struct fskit_core* core, uint64_t inode );
 struct fskit_entry* fskit_core_resolve_root( struct fskit_core* core, bool writelock );
 
+void* fskit_core_get_user_data( struct fskit_core* core );
+
 // memory management 
 int fskit_entry_init_lowlevel( struct fskit_entry* fent, uint8_t type, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode );
 int fskit_entry_init_common( struct fskit_entry* fent, uint8_t type, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode );
@@ -266,7 +268,19 @@ int fskit_xattr_unlock( struct fskit_entry* fent );
 int fskit_entry_attach_lowlevel( struct fskit_entry* parent, struct fskit_entry* child );
 int fskit_entry_detach_lowlevel( struct fskit_entry* parent, struct fskit_entry* child );
 
-// user data 
+// getters 
+uint64_t fskit_entry_get_file_id( struct fskit_entry* ent );
+void* fskit_entry_get_user_data( struct fskit_entry* ent );
+
+char* fskit_file_handle_get_path( struct fskit_file_handle* fh );
+struct fskit_entry* fskit_file_handle_get_entry( struct fskit_file_handle* fh );
+void* fskit_file_handle_get_user_data( struct fskit_file_handle* fh );
+
+char* fskit_dir_handle_get_path( struct fskit_file_handle* fh );
+struct fskit_entry* fskit_dir_handle_get_entry( struct fskit_file_handle* fh );
+void* fskit_dir_handle_get_user_data( struct fskit_file_handle* fh );
+
+// setters 
 int fskit_entry_set_user_data( struct fskit_entry* ent, void* app_data );
 
 // accounting 
