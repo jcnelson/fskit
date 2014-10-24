@@ -23,13 +23,13 @@
 // fent does not have to be locked if it is open, but otherwise it must be at least read-locked
 // return 0 on success
 // return negative on failure
-int fskit_run_user_trunc( struct fskit_core* core, char const* path, struct fskit_entry* fent, off_t new_size ) {
+int fskit_run_user_trunc( struct fskit_core* core, char const* path, struct fskit_entry* fent, off_t new_size, void* handle_data ) {
    
    int rc = 0;
    int cbrc = 0;
    struct fskit_route_dispatch_args dargs;
    
-   fskit_route_trunc_args( &dargs, new_size );
+   fskit_route_trunc_args( &dargs, new_size, handle_data );
    
    rc = fskit_route_call_trunc( core, path, fent, &dargs, &cbrc );
    
@@ -58,7 +58,7 @@ int fskit_ftrunc( struct fskit_core* core, struct fskit_file_handle* fh, off_t n
    
    fskit_entry_wlock( fh->fent );
    
-   int rc = fskit_do_trunc( core, fh->path, fh->fent, new_size );
+   int rc = fskit_do_trunc( core, fh->path, fh->fent, new_size, fh->app_data );
    
    fskit_entry_unlock( fh->fent );
    
@@ -82,7 +82,7 @@ int fskit_trunc( struct fskit_core* core, char const* path, uint64_t user, uint6
       return err;
    }
 
-   rc = fskit_do_trunc( core, path, fent, new_size );
+   rc = fskit_do_trunc( core, path, fent, new_size, NULL );
    
    fskit_entry_unlock( fent );
    
@@ -93,9 +93,9 @@ int fskit_trunc( struct fskit_core* core, char const* path, uint64_t user, uint6
 // return 0 on success 
 // return negative on failure 
 // fent must be write-locked
-int fskit_do_trunc( struct fskit_core* core, char const* path, struct fskit_entry* fent, off_t new_size ) {
+int fskit_do_trunc( struct fskit_core* core, char const* path, struct fskit_entry* fent, off_t new_size, void* handle_data ) {
    
-   int rc = fskit_run_user_trunc( core, path, fent, new_size );
+   int rc = fskit_run_user_trunc( core, path, fent, new_size, handle_data );
    
    if( rc >= 0 ) {
       

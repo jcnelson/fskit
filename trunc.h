@@ -23,9 +23,9 @@
 #include "fskit.h"
 #include "common.h"
 
-int fskit_run_user_trunc( struct fskit_core* core, char const* path, struct fskit_entry* fent, off_t new_size );
+int fskit_run_user_trunc( struct fskit_core* core, char const* path, struct fskit_entry* fent, off_t new_size, void* handle_data );
 
-int fskit_do_trunc( struct fskit_core* core, char const* path, struct fskit_entry* fent, off_t new_size );
+int fskit_do_trunc( struct fskit_core* core, char const* path, struct fskit_entry* fent, off_t new_size, void* handle_data );
 
 extern "C" {
 

@@ -23,13 +23,13 @@
 // run the user-given write route callback 
 // return the number of bytes written on success
 // return negative on failure
-ssize_t fskit_run_user_write( struct fskit_core* core, char const* path, struct fskit_entry* fent, char const* buf, size_t buflen, off_t offset ) {
+ssize_t fskit_run_user_write( struct fskit_core* core, char const* path, struct fskit_entry* fent, char const* buf, size_t buflen, off_t offset, void* handle_data ) {
    
    int rc = 0;
    int cbrc = 0;
    struct fskit_route_dispatch_args dargs;
    
-   fskit_route_io_args( &dargs, (char*)buf, buflen, offset );
+   fskit_route_io_args( &dargs, (char*)buf, buflen, offset, handle_data );
    
    rc = fskit_route_call_write( core, path, fent, &dargs, &cbrc );
    
@@ -56,7 +56,7 @@ ssize_t fskit_write( struct fskit_core* core, struct fskit_file_handle* fh, char
       return -EBADF;
    }
    
-   ssize_t num_written = fskit_run_user_write( core, fh->path, fh->fent, buf, buflen, offset );
+   ssize_t num_written = fskit_run_user_write( core, fh->path, fh->fent, buf, buflen, offset, fh->app_data );
    
    if( num_written >= 0 ) {
       

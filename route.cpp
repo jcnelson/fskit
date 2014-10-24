@@ -230,7 +230,7 @@ static int fskit_route_dispatch( struct fskit_core* core, struct fskit_match_gro
       
       case FSKIT_ROUTE_MATCH_CREATE:
          
-         rc = fskit_safe_dispatch( route->method.create_cb, core, match_group, fent, dargs->flags, dargs->mode, &dargs->inode_data, &dargs->handle_data );
+         rc = fskit_safe_dispatch( route->method.create_cb, core, match_group, fent, dargs->mode, &dargs->inode_data, &dargs->handle_data );
          break;
       
       case FSKIT_ROUTE_MATCH_MKNOD:
@@ -256,12 +256,12 @@ static int fskit_route_dispatch( struct fskit_core* core, struct fskit_match_gro
       case FSKIT_ROUTE_MATCH_READ:
       case FSKIT_ROUTE_MATCH_WRITE:
          
-         rc = fskit_safe_dispatch( route->method.io_cb, core, match_group, fent, dargs->iobuf, dargs->iolen, dargs->iooff );
+         rc = fskit_safe_dispatch( route->method.io_cb, core, match_group, fent, dargs->iobuf, dargs->iolen, dargs->iooff, dargs->handle_data );
          break;
          
       case FSKIT_ROUTE_MATCH_TRUNC:
          
-         rc = fskit_safe_dispatch( route->method.trunc_cb, core, match_group, fent, dargs->iooff );
+         rc = fskit_safe_dispatch( route->method.trunc_cb, core, match_group, fent, dargs->iooff, dargs->handle_data );
          break;
          
       case FSKIT_ROUTE_MATCH_CLOSE:
@@ -810,11 +810,10 @@ int fskit_unroute_detach( struct fskit_core* core, int route_handle ) {
 }
 
 // set up dargs for create() 
-int fskit_route_create_args( struct fskit_route_dispatch_args* dargs, int flags, mode_t mode ) {
+int fskit_route_create_args( struct fskit_route_dispatch_args* dargs, mode_t mode ) {
    
    memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
    
-   dargs->flags = flags;
    dargs->mode = mode;
    
    return 0;
@@ -868,23 +867,25 @@ int fskit_route_readdir_args( struct fskit_route_dispatch_args* dargs, struct fs
 }
 
 // set up dargs for read() and write()
-int fskit_route_io_args( struct fskit_route_dispatch_args* dargs, char* iobuf, size_t iolen, off_t iooff ) {
+int fskit_route_io_args( struct fskit_route_dispatch_args* dargs, char* iobuf, size_t iolen, off_t iooff, void* handle_data ) {
    
    memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
    
    dargs->iobuf = iobuf;
    dargs->iolen = iolen;
    dargs->iooff = iooff;
+   dargs->handle_data = handle_data;
    
    return 0;
 }
 
 // set up dargs for trunc
-int fskit_route_trunc_args( struct fskit_route_dispatch_args* dargs, off_t iooff ) {
+int fskit_route_trunc_args( struct fskit_route_dispatch_args* dargs, off_t iooff, void* handle_data ) {
    
    memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
    
    dargs->iooff = iooff;
+   dargs->handle_data = handle_data;
    
    return 0;
 }

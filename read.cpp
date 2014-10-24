@@ -22,13 +22,13 @@
 // run the user-given read route callback 
 // return the number of bytes read on success
 // return negative on failure
-ssize_t fskit_run_user_read( struct fskit_core* core, char const* path, struct fskit_entry* fent, char* buf, size_t buflen, off_t offset ) {
+ssize_t fskit_run_user_read( struct fskit_core* core, char const* path, struct fskit_entry* fent, char* buf, size_t buflen, off_t offset, void* handle_data ) {
    
    int rc = 0;
    int cbrc = 0;
    struct fskit_route_dispatch_args dargs;
    
-   fskit_route_io_args( &dargs, buf, buflen, offset );
+   fskit_route_io_args( &dargs, buf, buflen, offset, handle_data );
    
    rc = fskit_route_call_read( core, path, fent, &dargs, &cbrc );
    
@@ -55,7 +55,7 @@ ssize_t fskit_read( struct fskit_core* core, struct fskit_file_handle* fh, char*
       return -EBADF;
    }
    
-   ssize_t num_read = fskit_run_user_read( core, fh->path, fh->fent, buf, buflen, offset );
+   ssize_t num_read = fskit_run_user_read( core, fh->path, fh->fent, buf, buflen, offset, fh->app_data );
    
    if( num_read >= 0 ) {
       
