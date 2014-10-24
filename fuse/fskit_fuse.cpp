@@ -610,10 +610,10 @@ int fskit_fuse_fgetattr(const char *path, struct stat *statbuf, struct fuse_file
    int rc = 0;
    
    if( ffi->type == FSKIT_ENTRY_TYPE_FILE ) {
-      rc = fskit_fstat( state->core, ffi->handle.fh->fent, statbuf );
+      rc = fskit_fstat( state->core, ffi->handle.fh->path, ffi->handle.fh->fent, statbuf );
    }
    else {
-      rc = fskit_fstat( state->core, ffi->handle.dh->dent, statbuf );
+      rc = fskit_fstat( state->core, ffi->handle.dh->path, ffi->handle.dh->dent, statbuf );
    }
    
    fskit_debug("fgetattr(%s, %p, %p) rc = %d\n", path, statbuf, fi, rc );
