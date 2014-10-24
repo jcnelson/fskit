@@ -274,6 +274,16 @@ static int fskit_route_dispatch( struct fskit_core* core, struct fskit_match_gro
          rc = fskit_safe_dispatch( route->method.detach_cb, core, match_group, fent, dargs->inode_data );
          break;
          
+      case FSKIT_ROUTE_MATCH_STAT:
+         
+         rc = fskit_safe_dispatch( route->method.stat_cb, core, match_group, fent, dargs->sb );
+         break;
+         
+      case FSKIT_ROUTE_MATCH_SYNC:
+         
+         rc = fskit_safe_dispatch( route->method.sync_cb, core, match_group, fent );
+         break;
+         
       default:
          
          fskit_error("Invalid route dispatch code %d\n", route->route_type );
@@ -447,6 +457,20 @@ int fskit_route_call_trunc( struct fskit_core* core, char const* path, struct fs
 // set the route callback return code in *cbrc
 int fskit_route_call_detach( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc ) {
    return fskit_route_call( core, FSKIT_ROUTE_MATCH_DETACH, path, fent, dargs, cbrc );
+}
+
+// call the route to stat
+// return 0 if a route was called, or -EPERM if there are no routes.
+// set the route callback return code in *cbrc
+int fskit_route_call_stat( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc ) {
+   return fskit_route_call( core, FSKIT_ROUTE_MATCH_STAT, path, fent, dargs, cbrc );
+}
+
+// call the route to sync
+// return 0 if a route was called, or -EPERM if there are no routes.
+// set the route callback return code in *cbrc
+int fskit_route_call_sync( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc ) {
+   return fskit_route_call( core, FSKIT_ROUTE_MATCH_SYNC, path, fent, dargs, cbrc );
 }
 
 // initialize a path route 
@@ -809,6 +833,46 @@ int fskit_unroute_detach( struct fskit_core* core, int route_handle ) {
    return fskit_path_route_undecl( core, FSKIT_ROUTE_MATCH_DETACH, route_handle );
 }
 
+// declare a route for stating a file or directory
+// return >= 0 on success (the route handle)
+// return -EINVAL if we couldn't compile the regex 
+// return -ENOMEM if out of memory 
+int fskit_route_stat( struct fskit_core* core, char const* route_regex, fskit_entry_route_stat_callback_t stat_cb, int consistency_discipline ) {
+   
+   union fskit_route_method method;
+   method.stat_cb = stat_cb;
+   
+   return fskit_path_route_decl( core, route_regex, FSKIT_ROUTE_MATCH_STAT, method, consistency_discipline );
+}
+
+// undeclare an existing route for stating a file or directory
+// return 0 on success
+// return -EINVAL if the route can't possibly exist.
+int fskit_unroute_stat( struct fskit_core* core, int route_handle ) {
+   
+   return fskit_path_route_undecl( core, FSKIT_ROUTE_MATCH_STAT, route_handle );
+}
+
+// declare a route for syncing a file or directory
+// return >= 0 on success (the route handle)
+// return -EINVAL if we couldn't compile the regex 
+// return -ENOMEM if out of memory 
+int fskit_route_sync( struct fskit_core* core, char const* route_regex, fskit_entry_route_sync_callback_t sync_cb, int consistency_discipline ) {
+   
+   union fskit_route_method method;
+   method.sync_cb = sync_cb;
+   
+   return fskit_path_route_decl( core, route_regex, FSKIT_ROUTE_MATCH_SYNC, method, consistency_discipline );
+}
+
+// undeclare an existing route for syncing a file or directory
+// return 0 on success
+// return -EINVAL if the route can't possibly exist.
+int fskit_unroute_sync( struct fskit_core* core, int route_handle ) {
+   
+   return fskit_path_route_undecl( core, FSKIT_ROUTE_MATCH_SYNC, route_handle );
+}
+
 // set up dargs for create() 
 int fskit_route_create_args( struct fskit_route_dispatch_args* dargs, mode_t mode ) {
    
@@ -896,6 +960,24 @@ int fskit_route_detach_args( struct fskit_route_dispatch_args* dargs, void* inod
    memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
    
    dargs->inode_data = inode_data;
+   
+   return 0;
+}
+
+// set up dargs for stat()
+int fskit_route_stat_args( struct fskit_route_dispatch_args* dargs, struct stat* sb ) {
+   
+   memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
+   
+   dargs->sb = sb;
+   
+   return 0;
+}
+
+// set up dargs for sync()
+int fskit_route_sync_args( struct fskit_route_dispatch_args* dargs ) {
+   
+   memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
    
    return 0;
 }

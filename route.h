@@ -39,7 +39,9 @@ struct fskit_dir_entry;
 #define FSKIT_ROUTE_MATCH_TRUNC                 7
 #define FSKIT_ROUTE_MATCH_CLOSE                 8
 #define FSKIT_ROUTE_MATCH_DETACH                9
-#define FSKIT_ROUTE_NUM_ROUTE_TYPES             10
+#define FSKIT_ROUTE_MATCH_STAT                  10
+#define FSKIT_ROUTE_MATCH_SYNC                  11
+#define FSKIT_ROUTE_NUM_ROUTE_TYPES             11
 
 // route consistency disciplines
 #define FSKIT_SEQUENTIAL        0x1
@@ -65,6 +67,8 @@ typedef int (*fskit_entry_route_open_callback_t)( struct fskit_core*, struct fsk
 typedef int (*fskit_entry_route_close_callback_t)( struct fskit_core*, struct fskit_match_group*, struct fskit_entry*, void* );              // close() and closedir()
 typedef int (*fskit_entry_route_io_callback_t)( struct fskit_core*, struct fskit_match_group*, struct fskit_entry*, char*, size_t, off_t, void* );  // read() and write()
 typedef int (*fskit_entry_route_trunc_callback_t)( struct fskit_core*, struct fskit_match_group*, struct fskit_entry*, off_t, void* );
+typedef int (*fskit_entry_route_sync_callback_t)( struct fskit_core*, struct fskit_match_group*, struct fskit_entry* );         // fsync(), fdatasync()
+typedef int (*fskit_entry_route_stat_callback_t)( struct fskit_core*, struct fskit_match_group*, struct fskit_entry*, struct stat* );
 typedef int (*fskit_entry_route_readdir_callback_t)( struct fskit_core*, struct fskit_match_group*, struct fskit_entry*, struct fskit_dir_entry* );
 typedef int (*fskit_entry_route_detach_callback_t)( struct fskit_core*, struct fskit_match_group*, struct fskit_entry*, void* );             // unlink() and rmdir()
 
@@ -77,6 +81,8 @@ union fskit_route_method {
    fskit_entry_route_close_callback_t        close_cb;
    fskit_entry_route_io_callback_t           io_cb;
    fskit_entry_route_trunc_callback_t        trunc_cb;
+   fskit_entry_route_sync_callback_t         sync_cb;
+   fskit_entry_route_stat_callback_t         stat_cb;
    fskit_entry_route_readdir_callback_t      readdir_cb;
    fskit_entry_route_detach_callback_t       detach_cb;
 };
@@ -113,6 +119,8 @@ struct fskit_route_dispatch_args {
    off_t iooff;         // read(), write(), trunc() only
    
    struct fskit_dir_entry* dent;        // readdir() only
+   
+   struct stat* sb;      // stat() only
 };
 
 // populate route dispatch arguments 
@@ -125,6 +133,8 @@ int fskit_route_readdir_args( struct fskit_route_dispatch_args* dargs, struct fs
 int fskit_route_io_args( struct fskit_route_dispatch_args* dargs, char* iobuf, size_t iolen, off_t iooff, void* handle_data );
 int fskit_route_trunc_args( struct fskit_route_dispatch_args* dargs, off_t iooff, void* handle_data );
 int fskit_route_detach_args( struct fskit_route_dispatch_args* dargs, void* inode_data );
+int fskit_route_stat_args( struct fskit_route_dispatch_args* dargs, struct stat* sb );
+int fskit_route_sync_args( struct fskit_route_dispatch_args* args );
 
 // call user-supplied routes 
 int fskit_route_call_create( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
@@ -137,6 +147,8 @@ int fskit_route_call_read( struct fskit_core* core, char const* path, struct fsk
 int fskit_route_call_write( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
 int fskit_route_call_trunc( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
 int fskit_route_call_detach( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
+int fskit_route_call_stat( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
+int fskit_route_call_sync( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
 
 // memory management 
 int fskit_path_route_free( struct fskit_path_route* route );
@@ -154,6 +166,8 @@ int fskit_route_read( struct fskit_core* core, char const* route_regex, fskit_en
 int fskit_route_write( struct fskit_core* core, char const* route_regex, fskit_entry_route_io_callback_t io_cb, int consistency_discipline );
 int fskit_route_trunc( struct fskit_core* core, char const* route_regex, fskit_entry_route_trunc_callback_t io_cb, int consistency_discipline );
 int fskit_route_detach( struct fskit_core* core, char const* route_regex, fskit_entry_route_detach_callback_t detach_cb, int consistency_discipline );
+int fskit_route_stat( struct fskit_core* core, char const* route_regex, fskit_entry_route_stat_callback_t stat_cb, int consistency_discipline );
+int fskit_route_sync( struct fskit_core* core, char const* route_regex, fskit_entry_route_sync_callback_t sync_cb, int consistency_discipline );
 
 // undefine various types of routes 
 int fskit_unroute_create( struct fskit_core* core, int route_handle );
@@ -166,6 +180,8 @@ int fskit_unroute_read( struct fskit_core* core, int route_handle );
 int fskit_unroute_write( struct fskit_core* core, int route_handle );
 int fskit_unroute_trunc( struct fskit_core* core, int route_handle );
 int fskit_unroute_detach( struct fskit_core* core, int route_handle );
+int fskit_unroute_stat( struct fskit_core* core, int route_handle );
+int fskit_unroute_sync( struct fskit_core* core, int route_handle );
 
 }
 
