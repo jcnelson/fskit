@@ -293,10 +293,10 @@ int fskit_fuse_read(const char *path, char *buf, size_t size, off_t offset, stru
    
    struct fskit_fuse_state* state = fskit_fuse_get_state();
    
-   struct fskit_file_handle* fh = (struct fskit_file_handle*)fi->fh;
+   struct fskit_fuse_file_info* ffi = (struct fskit_fuse_file_info*)fi->fh;
    ssize_t num_read = 0;
    
-   num_read = fskit_read( state->core, fh, buf, size, offset );
+   num_read = fskit_read( state->core, ffi->handle.fh, buf, size, offset );
 
    fskit_debug("read(%s, %p, %zu, %jd, %p) rc = %zd\n", path, buf, size, offset, fi, num_read);
       
@@ -309,10 +309,10 @@ int fskit_fuse_write(const char *path, const char *buf, size_t size, off_t offse
    
    struct fskit_fuse_state* state = fskit_fuse_get_state();
    
-   struct fskit_file_handle* fh = (struct fskit_file_handle*)fi->fh;
+   struct fskit_fuse_file_info* ffi = (struct fskit_fuse_file_info*)fi->fh;
    ssize_t num_written = 0;
    
-   num_written = fskit_write( state->core, fh, buf, size, offset );
+   num_written = fskit_write( state->core, ffi->handle.fh, buf, size, offset );
    
    fskit_debug("write(%s, %p, %zu, %jd, %p) rc = %zd\n", path, buf, size, offset, fi, num_written);
    
@@ -746,3 +746,7 @@ int fskit_fuse_shutdown( struct fskit_fuse_state* state, void** core_state ) {
    return rc;
 }
 
+// get the fskit core from the state 
+struct fskit_core* fskit_fuse_get_core( struct fskit_fuse_state* state ) {
+   return state->core;
+}

@@ -94,6 +94,8 @@ struct fuse_operations fskit_fuse_get_opers();
 int fskit_fuse_init( struct fskit_fuse_state* state, void* user_state );
 int fskit_fuse_main( struct fskit_fuse_state* state, int argc, char** argv );
 int fskit_fuse_shutdown( struct fskit_fuse_state* state, void** user_state );
+
+struct fskit_core* fskit_fuse_get_core( struct fskit_fuse_state* state );
    
 }
 
