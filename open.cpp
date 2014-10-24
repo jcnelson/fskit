@@ -253,7 +253,7 @@ struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path
       else {
          
          // can create!
-         rc = fskit_do_create( core, parent, path, flags, mode, user, group, &child, &handle_data );
+         rc = fskit_do_create( core, parent, path, mode, user, group, &child, &handle_data );
          if( rc != 0 ) {
             
             // failed to create 
@@ -287,7 +287,7 @@ struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path
    if( (flags & O_TRUNC) && (flags & (O_RDWR | O_WRONLY)) ) {
       
       // do the truncate 
-      rc = fskit_do_trunc( core, path, child, 0 );
+      rc = fskit_do_trunc( core, path, child, 0, NULL );
       if( rc != 0 ) {
          
          // truncate failed 
