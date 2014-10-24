@@ -23,13 +23,13 @@
 #include "util.h"
 
 // get the user-supplied inode and handle data for creating a file 
-int fskit_run_user_create( struct fskit_core* core, char const* path, struct fskit_entry* fent, int flags, mode_t mode, void** inode_data, void** handle_data ) {
+int fskit_run_user_create( struct fskit_core* core, char const* path, struct fskit_entry* fent, mode_t mode, void** inode_data, void** handle_data ) {
    
    int rc = 0;
    int cbrc = 0;
    struct fskit_route_dispatch_args dargs;
    
-   fskit_route_create_args( &dargs, flags, mode );
+   fskit_route_create_args( &dargs, mode );
    
    rc = fskit_route_call_create( core, path, fent, &dargs, &cbrc );
    
@@ -62,7 +62,7 @@ int fskit_run_user_create( struct fskit_core* core, char const* path, struct fsk
 // on success, fill in *ret_child with a newly-created child (which will NOT be locked), and *handle_data with the file handle's app-specific data (generated from the user route)
 // also, the child will have been inserted into the parent's children list 
 // NOTE: the child will have an open count of 1
-int fskit_do_create( struct fskit_core* core, struct fskit_entry* parent, char const* path, int flags, mode_t mode, uint64_t user, uint64_t group, struct fskit_entry** ret_child, void** handle_data ) {
+int fskit_do_create( struct fskit_core* core, struct fskit_entry* parent, char const* path, mode_t mode, uint64_t user, uint64_t group, struct fskit_entry** ret_child, void** handle_data ) {
 
    char path_basename[FSKIT_FILESYSTEM_NAMEMAX + 1];
    void* inode_data = NULL;
@@ -103,8 +103,11 @@ int fskit_do_create( struct fskit_core* core, struct fskit_entry* parent, char c
          return -EIO;
       }
       
+      // set the inode
+      child->file_id = child_inode;
+      
       // Generate any app data we need to 
-      rc = fskit_run_user_create( core, path, child, flags, mode, &inode_data, handle_data );
+      rc = fskit_run_user_create( core, path, child, mode, &inode_data, handle_data );
       if( rc != 0 ) {
          
          // callback error 
@@ -121,8 +124,6 @@ int fskit_do_create( struct fskit_core* core, struct fskit_entry* parent, char c
       
       // insert it into the filesystem
       fskit_entry_wlock( child );
-      
-      child->file_id = child_inode;
       
       // open it
       child->open_count++;
