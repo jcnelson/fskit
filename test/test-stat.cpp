@@ -38,7 +38,7 @@ int main( int argc, char** argv ) {
       fh = fskit_create( &core, name_buf, 0, i, 0644, &rc );
       
       if( fh == NULL ) {
-         errorf("fskit_create('%s') rc = %d\n", name_buf, rc );
+         fskit_error("fskit_create('%s') rc = %d\n", name_buf, rc );
          exit(1);
       }
       
@@ -55,11 +55,11 @@ int main( int argc, char** argv ) {
       rc = fskit_stat( &core, name_buf, 0, i, &sb );
       
       if( rc != 0 ) {
-         errorf("fskit_stat('%s') rc = %d\n", name_buf, rc );
+         fskit_error("fskit_stat('%s') rc = %d\n", name_buf, rc );
          exit(1);
       }
       
-      dbprintf("%s: stat(st_dev=%lX st_ino=%lX st_mode=%o st_nlink=%lu st_uid=%d st_gid=%d st_rdev=%lX st_size=%jd st_blksize=%ld st_blocks=%ld)\n",
+      fskit_debug("%s: stat(st_dev=%lX st_ino=%lX st_mode=%o st_nlink=%lu st_uid=%d st_gid=%d st_rdev=%lX st_size=%jd st_blksize=%ld st_blocks=%ld)\n",
                name_buf, sb.st_dev, sb.st_ino, sb.st_mode, sb.st_nlink, sb.st_uid, sb.st_gid, sb.st_rdev, sb.st_size, sb.st_blksize, sb.st_blocks );
    }
    

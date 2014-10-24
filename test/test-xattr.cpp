@@ -31,7 +31,7 @@ static int print_xattrs( struct fskit_core* core, char const* path_buf ) {
    
    int len = fskit_listxattr( core, path_buf, 0, 0, listxattr_buf, 4095 );
    if( len < 0 ) {
-      errorf("fskit_listxattr rc = %d\n", len );
+      fskit_error("fskit_listxattr rc = %d\n", len );
       return rc;
    }
    
@@ -48,7 +48,7 @@ static int print_xattrs( struct fskit_core* core, char const* path_buf ) {
       
       rc = fskit_getxattr( core, path_buf, 0, 0, name_buf, xattr_buf, 100 );
       if( rc < 0 ) {
-         errorf("fskit_getxattr( '%s', '%s' ) rc = %d\n", path_buf, name_buf, rc );
+         fskit_error("fskit_getxattr( '%s', '%s' ) rc = %d\n", path_buf, name_buf, rc );
          return rc;
       }
       
@@ -83,7 +83,7 @@ int main( int argc, char** argv ) {
    fh = fskit_create( &core, path_buf, 0, 0, 0644, &rc );
    
    if( fh == NULL ) {
-      errorf("fskit_create('%s') rc = %d\n", path_buf, rc );
+      fskit_error("fskit_create('%s') rc = %d\n", path_buf, rc );
       exit(1);
    }
    
@@ -100,7 +100,7 @@ int main( int argc, char** argv ) {
       
       rc = fskit_setxattr( &core, path_buf, 0, 0, name_buf, xattr_buf, strlen(xattr_buf), XATTR_CREATE );
       if( rc != 0 ) {
-         errorf("fskit_setxattr( '%s', '%s', '%s' ) rc = %d\n", path_buf, name_buf, xattr_buf, rc );
+         fskit_error("fskit_setxattr( '%s', '%s', '%s' ) rc = %d\n", path_buf, name_buf, xattr_buf, rc );
          exit(1);
       }
    }
@@ -120,7 +120,7 @@ int main( int argc, char** argv ) {
       
       rc = fskit_removexattr( &core, path_buf, 0, 0, name_buf );
       if( rc != 0 ) {
-         errorf("fskit_removexattr( '%s', '%s' ) rc = %d\n", path_buf, name_buf, rc );
+         fskit_error("fskit_removexattr( '%s', '%s' ) rc = %d\n", path_buf, name_buf, rc );
          exit(1);
       }
    }

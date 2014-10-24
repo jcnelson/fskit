@@ -44,7 +44,7 @@ int main( int argc, char** argv ) {
       fh = fskit_create( &core, name_buf, 0, i, 0644, &rc );
       
       if( fh == NULL ) {
-         errorf("fskit_create('%s') rc = %d\n", name_buf, rc );
+         fskit_error("fskit_create('%s') rc = %d\n", name_buf, rc );
          exit(1);
       }
       
@@ -57,7 +57,7 @@ int main( int argc, char** argv ) {
       
       rc = fskit_mkdir( &core, name_buf, 0755, 0, 0 );
       if( rc != 0 ) {
-         errorf("fskit_mkdir('%s') rc = %d\n", name_buf, rc );
+         fskit_error("fskit_mkdir('%s') rc = %d\n", name_buf, rc );
          exit(1);
       }
    }
@@ -77,7 +77,7 @@ int main( int argc, char** argv ) {
       
       rc = fskit_rename( &core, name_buf, name_buf2, 0, 0 );
       if( rc != 0 ) {
-         errorf("fskit_rename('%s', '%s') rc = %d\n", name_buf, name_buf2, rc );
+         fskit_error("fskit_rename('%s', '%s') rc = %d\n", name_buf, name_buf2, rc );
          exit(1);
       }
    }
@@ -97,7 +97,7 @@ int main( int argc, char** argv ) {
       
       rc = fskit_rename( &core, name_buf, name_buf2, 0, 0 );
       if( rc != 0 ) {
-         errorf("fskit_rename('%s', '%s') rc = %d\n", name_buf, name_buf2, rc );
+         fskit_error("fskit_rename('%s', '%s') rc = %d\n", name_buf, name_buf2, rc );
          exit(1);
       }
    }
@@ -118,7 +118,7 @@ int main( int argc, char** argv ) {
       
       rc = fskit_rename( &core, name_buf, name_buf2, 0, 0 );
       if( rc != 0 ) {
-         errorf("fskit_rename('%s', '%s') rc = %d\n", name_buf, name_buf2, rc );
+         fskit_error("fskit_rename('%s', '%s') rc = %d\n", name_buf, name_buf2, rc );
          exit(1);
       }
    }

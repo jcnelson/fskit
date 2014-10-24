@@ -90,7 +90,7 @@ int fskit_print_tree( FILE* out, struct fskit_entry* root ) {
       if( node->type == FSKIT_ENTRY_TYPE_DIR ) {
          
          if( node->children == NULL ) {
-            errorf("ERR: children of %p == NULL\n", node );
+            fskit_error("ERR: children of %p == NULL\n", node );
             
             rc = -EINVAL;
             break;
@@ -114,7 +114,7 @@ int fskit_print_tree( FILE* out, struct fskit_entry* root ) {
          }
       }
       
-      safe_free( next_path );
+      free( next_path );
    }
    
    if( rc != 0 ) {
@@ -122,7 +122,7 @@ int fskit_print_tree( FILE* out, struct fskit_entry* root ) {
       for( unsigned int i = 0; i < frontier_paths.size(); i++ ) {
          
          if( frontier_paths.at(i) ) {
-            safe_free( frontier_paths.at(i) );
+            free( frontier_paths.at(i) );
          }
       }
       
@@ -140,13 +140,13 @@ int fskit_test_begin( struct fskit_core* core, void* test_data ) {
    
    rc = fskit_library_init();
    if( rc != 0 ) {
-      errorf("fskit_library_init rc = %d\n", rc );
+      fskit_error("fskit_library_init rc = %d\n", rc );
       return rc;
    }
    
    rc = fskit_core_init( core, test_data );
    if( rc != 0 ) {
-      errorf("fskit_core_init rc = %d\n", rc );
+      fskit_error("fskit_core_init rc = %d\n", rc );
    }
    
    return rc;
@@ -160,13 +160,13 @@ int fskit_test_end( struct fskit_core* core, void** test_data ) {
    
    rc = fskit_detach_all( core, "/", core->root.children );
    if( rc != 0 ) {
-      errorf("fskit_detach_all(\"/\") rc = %d\n", rc );
+      fskit_error("fskit_detach_all(\"/\") rc = %d\n", rc );
       return rc;
    }
    
    rc = fskit_core_destroy( core, test_data );
    if( rc != 0 ) {
-      errorf("fskit_core_destroy rc = %d\n", rc );
+      fskit_error("fskit_core_destroy rc = %d\n", rc );
       return rc;
    }
    
@@ -186,7 +186,7 @@ int fskit_test_mkdir_LR_recursive( struct fskit_core* core, char const* path, in
    
    int rc = fskit_mkdir( core, path, 0755, 0, 0 );
    if( rc != 0 ) {
-      errorf("fskit_mkdir('%s') rc = %d\n", path, rc );
+      fskit_error("fskit_mkdir('%s') rc = %d\n", path, rc );
       return rc;
    }
    
@@ -195,24 +195,24 @@ int fskit_test_mkdir_LR_recursive( struct fskit_core* core, char const* path, in
    
    rc = fskit_test_mkdir_LR_recursive( core, new_path_1, depth - 1 );
    if( rc != 0 ) {
-      errorf("fskit_test_mkdir_LR_recursive('%s') rc = %d\n", new_path_1, rc );
+      fskit_error("fskit_test_mkdir_LR_recursive('%s') rc = %d\n", new_path_1, rc );
       
-      safe_free( new_path_1 );
-      safe_free( new_path_2 );
+      free( new_path_1 );
+      free( new_path_2 );
       return rc;
    }
    
    rc = fskit_test_mkdir_LR_recursive( core, new_path_2, depth - 1 );
    if( rc != 0 ) {
-      errorf("fskit_test_mkdir_LR_recursive('%s') rc = %d\n", new_path_2, rc );
+      fskit_error("fskit_test_mkdir_LR_recursive('%s') rc = %d\n", new_path_2, rc );
       
-      safe_free( new_path_1 );
-      safe_free( new_path_2 );
+      free( new_path_1 );
+      free( new_path_2 );
       return rc;
    }
    
-   safe_free( new_path_1 );
-   safe_free( new_path_2 );
+   free( new_path_1 );
+   free( new_path_2 );
    
    return 0;
 }

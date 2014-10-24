@@ -32,7 +32,7 @@ int main( int argc, char** argv ) {
    
    rc = fskit_test_mkdir_LR_recursive( &core, "/root", 7 );
    if( rc != 0 ) {
-      errorf("fskit_test_mkdir_LR_recursive('/root') rc = %d\n", rc );
+      fskit_error("fskit_test_mkdir_LR_recursive('/root') rc = %d\n", rc );
       exit(1);
    }
    

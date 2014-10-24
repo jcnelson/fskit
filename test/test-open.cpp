@@ -38,7 +38,7 @@ int main( int argc, char** argv ) {
       fh = fskit_create( &core, name_buf, 0, i, 0644, &rc );
       
       if( fh == NULL ) {
-         errorf("fskit_create(%s) rc = %d\n", name_buf, rc );
+         fskit_error("fskit_create(%s) rc = %d\n", name_buf, rc );
          exit(1);
       }
       
@@ -63,11 +63,11 @@ int main( int argc, char** argv ) {
       fh = fskit_open( &core, name_buf, 0, i, f, 0, &rc );
       
       if( fh == NULL ) {
-         errorf("fskit_create(%s) rc = %d\n", name_buf, rc );
+         fskit_error("fskit_create(%s) rc = %d\n", name_buf, rc );
          exit(1);
       }
       
-      dbprintf("Open %s (flags = %x) handle = %p\n", name_buf, f, fh );
+      fskit_debug("Open %s (flags = %x) handle = %p\n", name_buf, f, fh );
       
       fskit_close( &core, fh );
    }

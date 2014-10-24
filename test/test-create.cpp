@@ -38,7 +38,7 @@ int main( int argc, char** argv ) {
       fh = fskit_create( &core, name_buf, 0, i, 0644, &rc );
       
       if( fh == NULL ) {
-         errorf("fskit_create('%s') rc = %d\n", name_buf, rc );
+         fskit_error("fskit_create('%s') rc = %d\n", name_buf, rc );
          exit(1);
       }
       

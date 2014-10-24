@@ -48,7 +48,7 @@ int main( int argc, char** argv ) {
       int rc = fskit_mknod( &core, name_buf, type | 0644, makedev( i, i ), 0, i );
       
       if( rc != 0 ) {
-         errorf("fskit_mknod( path=%s, type=%o ) rc = %d\n", name_buf, type, rc );
+         fskit_error("fskit_mknod( path=%s, type=%o ) rc = %d\n", name_buf, type, rc );
          exit(1);
       }
    }

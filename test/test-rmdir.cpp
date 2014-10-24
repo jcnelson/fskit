@@ -27,13 +27,13 @@ int fskit_test_rmdir_recursive( struct fskit_core* core, char const* path ) {
    struct fskit_dir_handle* dh = fskit_opendir( core, path, 0, 0, &rc );
    
    if( rc != 0 ) {
-      errorf("fskit_opendir('%s') rc = %d\n", path, rc );
+      fskit_error("fskit_opendir('%s') rc = %d\n", path, rc );
       return rc;
    }
    
    dents = fskit_listdir( core, dh, &num_read, &rc );
    if( rc != 0 ) {
-      errorf("fskit_listdir('%s') rc = %d\n", path, rc );
+      fskit_error("fskit_listdir('%s') rc = %d\n", path, rc );
       return rc;
    }
    
@@ -42,7 +42,7 @@ int fskit_test_rmdir_recursive( struct fskit_core* core, char const* path ) {
       // nothing to do 
       rc = fskit_closedir( core, dh );
       if( rc != 0 ) {
-         errorf("fskit_closedir('%s') rc = %d\n", path, rc );
+         fskit_error("fskit_closedir('%s') rc = %d\n", path, rc );
       }
       
       return rc;
@@ -55,7 +55,7 @@ int fskit_test_rmdir_recursive( struct fskit_core* core, char const* path ) {
       }
       
       if( dents[i]->type != FSKIT_ENTRY_TYPE_DIR ) {
-         errorf("ERR: directory '%s' not empty\n", path );
+         fskit_error("ERR: directory '%s' not empty\n", path );
          rc = -ENOTEMPTY;
          break;
       }
@@ -65,7 +65,7 @@ int fskit_test_rmdir_recursive( struct fskit_core* core, char const* path ) {
       rc = fskit_test_rmdir_recursive( core, child_path );
       
       if( rc != 0 ) {
-         errorf("fskit_test_rmdir_recursive('%s') rc = %d\n", child_path, rc );
+         fskit_error("fskit_test_rmdir_recursive('%s') rc = %d\n", child_path, rc );
          
          free( child_path );
          break;
@@ -78,16 +78,16 @@ int fskit_test_rmdir_recursive( struct fskit_core* core, char const* path ) {
    
    if( rc == 0 ) {
       // remove this directory 
-      dbprintf("rmdir '%s'\n", path );
+      fskit_debug("rmdir '%s'\n", path );
       rc = fskit_rmdir( core, path, 0, 0 );
       if( rc != 0 ) {
-         errorf("fskit_rmdir('%s') rc = %d\n", path, rc );
+         fskit_error("fskit_rmdir('%s') rc = %d\n", path, rc );
       }
    }
    
    rc = fskit_closedir( core, dh );
    if( rc != 0 ) {
-      errorf("fskit_closedir('%s') rc = %d\n", path, rc );
+      fskit_error("fskit_closedir('%s') rc = %d\n", path, rc );
    }
    
    return rc;
@@ -107,13 +107,13 @@ int main( int argc, char** argv ) {
    
    rc = fskit_test_mkdir_LR_recursive( &core, "/root", 7 );
    if( rc != 0 ) {
-      errorf("fskit_test_mkdir_LR_recursive('/root') rc = %d\n", rc );
+      fskit_error("fskit_test_mkdir_LR_recursive('/root') rc = %d\n", rc );
       exit(1);
    }
    
    rc = fskit_test_rmdir_recursive( &core, "/root" );
    if( rc != 0 ) {
-      errorf("fskit_test_rmdir_recursive('/root') rc = %d\n", rc );
+      fskit_error("fskit_test_rmdir_recursive('/root') rc = %d\n", rc );
       exit(1);
    }
    
