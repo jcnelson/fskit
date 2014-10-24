@@ -17,6 +17,26 @@
 */
 
 #include "stat.h"
+#include "route.h"
+
+int fskit_do_user_stat( struct fskit_core* core, char const* fs_path, struct fskit_entry* fent, struct stat* sb ) {
+   
+   int rc = 0;
+   int cbrc = 0;
+   
+   struct fskit_route_dispatch_args dargs;
+   
+   fskit_route_stat_args( &dargs, sb );
+   
+   rc = fskit_route_call_stat( core, fs_path, fent, &dargs, &cbrc );
+   
+   if( rc == -EPERM || rc == -ENOSYS ) {
+      // no stat defined
+      return 0;
+   }
+   
+   return cbrc;
+}
 
 // stat a path.
 // fill in the stat buffer on success.
@@ -33,7 +53,7 @@ int fskit_stat( struct fskit_core* core, char const* fs_path, uint64_t user, uin
    }
 
    // stat it 
-   rc = fskit_fstat( core, fent, sb );
+   rc = fskit_fstat( core, fs_path, fent, sb );
    
    fskit_entry_unlock( fent );
    return rc;
@@ -41,7 +61,7 @@ int fskit_stat( struct fskit_core* core, char const* fs_path, uint64_t user, uin
 
 // stat an inode directly
 // fill in the stat buffer
-int fskit_fstat( struct fskit_core* core, struct fskit_entry* fent, struct stat* sb ) {
+int fskit_fstat( struct fskit_core* core, char const* fs_path, struct fskit_entry* fent, struct stat* sb ) {
    
    int type = 0;
    if( fent->type == FSKIT_ENTRY_TYPE_FILE ) {
@@ -66,6 +86,7 @@ int fskit_fstat( struct fskit_core* core, struct fskit_entry* fent, struct stat*
       type = S_IFLNK;
    }
    
+   // fill in defaults
    sb->st_dev = 0;
    sb->st_ino = fent->file_id;
    sb->st_mode = type | fent->mode;
@@ -86,5 +107,8 @@ int fskit_fstat( struct fskit_core* core, struct fskit_entry* fent, struct stat*
    sb->st_ctim.tv_sec = fent->ctime_sec;
    sb->st_ctim.tv_nsec = fent->ctime_nsec;
    
-   return 0;
+   // route to user callback 
+   int rc = fskit_do_user_stat( core, fs_path, fent, sb );
+   
+   return rc;
 }
