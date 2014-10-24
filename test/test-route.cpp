@@ -68,6 +68,16 @@ int detach_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fs
    return 0;
 }
 
+int stat_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* fent, struct stat* sb ) {
+   fskit_debug("Stat %" PRIX64 " (%s)\n", fent->file_id, grp->path );
+   return 0;
+}
+
+int sync_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* fent ) {
+   fskit_debug("Sync %" PRIX64 " (%s)\n", fent->file_id, grp->path );
+   return 0;
+}
+
 int main( int argc, char** argv ) {
    
    
@@ -75,7 +85,7 @@ int main( int argc, char** argv ) {
    int rc;
    void* output;
    
-   int create_rh, mknod_rh, mkdir_rh, opendir_rh, open_rh, close_rh, closedir_rh, readdir_rh, read_rh, write_rh, trunc_rh, unlink_rh, rmdir_rh;
+   int create_rh, mknod_rh, mkdir_rh, opendir_rh, open_rh, close_rh, closedir_rh, readdir_rh, read_rh, write_rh, trunc_rh, unlink_rh, rmdir_rh, stat_rh, sync_rh;
    
    rc = fskit_test_begin( &core, NULL );
    if( rc != 0 ) {
@@ -162,6 +172,18 @@ int main( int argc, char** argv ) {
       exit(1);
    }
    
+   stat_rh = fskit_route_stat( &core, "/test-file", stat_cb, FSKIT_SEQUENTIAL );
+   if( stat_rh < 0 ) {
+      fskit_error("fskit_route_stat rc = %d\n", stat_rh );
+      exit(1);
+   }
+   
+   sync_rh = fskit_route_sync( &core, "/test-file", sync_cb, FSKIT_SEQUENTIAL );
+   if( sync_rh < 0 ) {
+      fskit_error("fskit_route_sync rc = %d\n", sync_rh );
+      exit(1);
+   }
+   
    // invoke routes 
    struct fskit_file_handle* fh = NULL;
    struct fskit_file_handle* fh2 = NULL;
@@ -172,6 +194,7 @@ int main( int argc, char** argv ) {
    char read_buf[10];
    size_t read_len = 10;
    size_t write_len = strlen(write_buf) + 1;
+   struct stat sb;
    
    // mkdir route 
    rc = fskit_mkdir( &core, "/test-dir", 0755, 0, 0 );
@@ -232,6 +255,13 @@ int main( int argc, char** argv ) {
       exit(1);
    }
    
+   // sync route 
+   rc = fskit_fsync( &core, fh );
+   if( rc != 0 ) {
+      fskit_error("fskit_sync rc = %d\n", rc );
+      exit(1);
+   }
+   
    // close route 
    rc = fskit_close( &core, fh );
    if( rc != 0 ) {
@@ -250,6 +280,13 @@ int main( int argc, char** argv ) {
    rc = fskit_mknod( &core, "/test-node", S_IFBLK | 0644, makedev( 1, 9 ), 0, 0 );
    if( rc != 0 ) {
       fskit_error("fskit_mknod rc = %d\n", rc );
+      exit(1);
+   }
+   
+   // stat route 
+   rc = fskit_stat( &core, "/test-file", 0, 0, &sb );
+   if( rc != 0 ) {
+      fskit_error("fskit_stat rc = %d\n", rc );
       exit(1);
    }
    
