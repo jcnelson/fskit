@@ -286,8 +286,8 @@ struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path
    // do we have to truncate?
    if( (flags & O_TRUNC) && (flags & (O_RDWR | O_WRONLY)) ) {
       
-      // do the truncate 
-      rc = fskit_do_trunc( core, path, child, 0, NULL );
+      // run user truncate
+      rc = fskit_run_user_trunc( core, path, child, 0, NULL );
       if( rc != 0 ) {
          
          // truncate failed 

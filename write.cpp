@@ -20,6 +20,26 @@
 #include "utime.h"
 #include "route.h"
 
+
+// continuation for successful write 
+// fent must be write-locked
+int fskit_write_cont( struct fskit_core* core, struct fskit_entry* fent, off_t offset, ssize_t num_written ) {
+   
+   if( num_written >= 0 ) {
+      fskit_entry_set_mtime( fent, NULL );
+      fskit_entry_set_atime( fent, NULL );
+      
+      off_t size_delta = 0;
+      if( offset + num_written > fent->size ) {
+         size_delta = (offset + num_written) - fent->size;
+      }
+      
+      fent->size += size_delta;
+   }
+   
+   return 0;
+}
+
 // run the user-given write route callback 
 // return the number of bytes written on success
 // return negative on failure
@@ -29,12 +49,12 @@ ssize_t fskit_run_user_write( struct fskit_core* core, char const* path, struct 
    int cbrc = 0;
    struct fskit_route_dispatch_args dargs;
    
-   fskit_route_io_args( &dargs, (char*)buf, buflen, offset, handle_data );
+   fskit_route_io_args( &dargs, (char*)buf, buflen, offset, handle_data, fskit_write_cont );
    
    rc = fskit_route_call_write( core, path, fent, &dargs, &cbrc );
    
    if( rc == -EPERM || rc == -ENOSYS ) {
-      // can't write, so nothing written
+      // no routes installed
       return 0;
    }
    

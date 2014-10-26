@@ -264,11 +264,23 @@ static int fskit_route_dispatch( struct fskit_core* core, struct fskit_match_gro
       case FSKIT_ROUTE_MATCH_WRITE:
          
          rc = fskit_safe_dispatch( route->method.io_cb, core, match_group, fent, dargs->iobuf, dargs->iolen, dargs->iooff, dargs->handle_data );
+         
+         if( dargs->io_cont != NULL ) {
+            // call the continuation within the context of the enforced consistency discipline
+            (*dargs->io_cont)( core, fent, dargs->iooff, rc );
+         }
+         
          break;
          
       case FSKIT_ROUTE_MATCH_TRUNC:
          
          rc = fskit_safe_dispatch( route->method.trunc_cb, core, match_group, fent, dargs->iooff, dargs->handle_data );
+         
+         if( dargs->io_cont != NULL ) {
+            // call the continuation within the context of the enforced consistency discipline 
+            (*dargs->io_cont)( core, fent, dargs->iooff, rc );
+         }
+         
          break;
          
       case FSKIT_ROUTE_MATCH_CLOSE:
@@ -940,7 +952,7 @@ int fskit_route_readdir_args( struct fskit_route_dispatch_args* dargs, struct fs
 
 
 // set up dargs for read() and write()
-int fskit_route_io_args( struct fskit_route_dispatch_args* dargs, char* iobuf, size_t iolen, off_t iooff, void* handle_data ) {
+int fskit_route_io_args( struct fskit_route_dispatch_args* dargs, char* iobuf, size_t iolen, off_t iooff, void* handle_data, fskit_route_io_continuation io_cont ) {
    
    memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
    
@@ -948,17 +960,19 @@ int fskit_route_io_args( struct fskit_route_dispatch_args* dargs, char* iobuf, s
    dargs->iolen = iolen;
    dargs->iooff = iooff;
    dargs->handle_data = handle_data;
+   dargs->io_cont = io_cont;
    
    return 0;
 }
 
 // set up dargs for trunc
-int fskit_route_trunc_args( struct fskit_route_dispatch_args* dargs, off_t iooff, void* handle_data ) {
+int fskit_route_trunc_args( struct fskit_route_dispatch_args* dargs, off_t iooff, void* handle_data, fskit_route_io_continuation io_cont ) {
    
    memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
    
    dargs->iooff = iooff;
    dargs->handle_data = handle_data;
+   dargs->io_cont = io_cont;
    
    return 0;
 }

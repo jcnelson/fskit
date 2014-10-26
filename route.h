@@ -44,9 +44,9 @@ struct fskit_dir_entry;
 #define FSKIT_ROUTE_NUM_ROUTE_TYPES             12
 
 // route consistency disciplines
-#define FSKIT_SEQUENTIAL        0x1
-#define FSKIT_CONCURRENT        0x2
-#define FSKIT_INODE_SEQUENTIAL  0x3
+#define FSKIT_SEQUENTIAL        1       // route method calls will be serialized
+#define FSKIT_CONCURRENT        2       // route method calls will be concurrent
+#define FSKIT_INODE_SEQUENTIAL  3       // route method calls on the same inode will be serialized
 
 // common routes 
 #define FSKIT_ROUTE_ANY         "/([^/]+[/]*)+"
@@ -104,6 +104,9 @@ struct fskit_path_route {
 };
 
 
+// I/O continuation for successful read/write/trunc (i.e. to be called with the route's consistency discipline enforced)
+typedef int (*fskit_route_io_continuation)( struct fskit_core*, struct fskit_entry*, off_t, ssize_t );
+
 // dispatch arguments 
 struct fskit_route_dispatch_args {
    
@@ -118,12 +121,14 @@ struct fskit_route_dispatch_args {
    char* iobuf;         // read(), write() only.  In read(), this is an output value.
    size_t iolen;        // read(), write() only 
    off_t iooff;         // read(), write(), trunc() only
+   fskit_route_io_continuation io_cont;  // read(), write(), trunc() only
    
    struct fskit_dir_entry** dents;        // readdir() only
    uint64_t num_dents;
    
    struct stat* sb;      // stat() only
 };
+
 
 // populate route dispatch arguments 
 int fskit_route_create_args( struct fskit_route_dispatch_args* dargs, mode_t mode );
@@ -132,8 +137,8 @@ int fskit_route_mkdir_args( struct fskit_route_dispatch_args* dargs, mode_t mode
 int fskit_route_open_args( struct fskit_route_dispatch_args* dargs, int flags );
 int fskit_route_close_args( struct fskit_route_dispatch_args* dargs, void* handle_data );
 int fskit_route_readdir_args( struct fskit_route_dispatch_args* dargs, struct fskit_dir_entry** dents, uint64_t num_dents );
-int fskit_route_io_args( struct fskit_route_dispatch_args* dargs, char* iobuf, size_t iolen, off_t iooff, void* handle_data );
-int fskit_route_trunc_args( struct fskit_route_dispatch_args* dargs, off_t iooff, void* handle_data );
+int fskit_route_io_args( struct fskit_route_dispatch_args* dargs, char* iobuf, size_t iolen, off_t iooff, void* handle_data, fskit_route_io_continuation io_cont );
+int fskit_route_trunc_args( struct fskit_route_dispatch_args* dargs, off_t iooff, void* handle_data, fskit_route_io_continuation io_cont );
 int fskit_route_detach_args( struct fskit_route_dispatch_args* dargs, void* inode_data );
 int fskit_route_stat_args( struct fskit_route_dispatch_args* dargs, struct stat* sb );
 int fskit_route_sync_args( struct fskit_route_dispatch_args* args );

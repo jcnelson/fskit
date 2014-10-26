@@ -28,12 +28,12 @@ ssize_t fskit_run_user_read( struct fskit_core* core, char const* path, struct f
    int cbrc = 0;
    struct fskit_route_dispatch_args dargs;
    
-   fskit_route_io_args( &dargs, buf, buflen, offset, handle_data );
+   fskit_route_io_args( &dargs, buf, buflen, offset, handle_data, NULL );
    
    rc = fskit_route_call_read( core, path, fent, &dargs, &cbrc );
    
    if( rc == -EPERM || rc == -ENOSYS ) {
-      // no routes, so EOF
+      // no routes installed
       return 0;
    }
    
