@@ -174,7 +174,7 @@ static bool fskit_path_route_is_defined( struct fskit_path_route* route ) {
 
 // start running a route's callback.
 // enforce the consistency discipline by locking the route appropriately
-static int fskit_route_enter( struct fskit_path_route* route ) {
+static int fskit_route_enter( struct fskit_path_route* route, struct fskit_entry* fent ) {
    
    int rc = 0;
    
@@ -184,6 +184,9 @@ static int fskit_route_enter( struct fskit_path_route* route ) {
    }
    else if( route->consistency_discipline == FSKIT_CONCURRENT ) {
       rc = pthread_rwlock_rdlock( &route->lock );
+   }
+   else if( route->consistency_discipline == FSKIT_INODE_SEQUENTIAL ) {
+      rc = fskit_entry_wlock( fent );
    }
 
    if( rc != 0 ) {
@@ -198,7 +201,11 @@ static int fskit_route_enter( struct fskit_path_route* route ) {
 
 // finish running a route's callback.
 // clean up from enforcing the consistency discipline 
-static int fskit_route_leave( struct fskit_path_route* route ) {
+static int fskit_route_leave( struct fskit_path_route* route, struct fskit_entry* fent ) {
+   
+   if( route->consistency_discipline == FSKIT_INODE_SEQUENTIAL ) {
+      fskit_entry_unlock( fent );
+   }
    
    pthread_rwlock_unlock( &route->lock );
    return 0;
@@ -213,7 +220,7 @@ static int fskit_route_dispatch( struct fskit_core* core, struct fskit_match_gro
    int rc = 0;
    
    // enforce the consistency discipline 
-   rc = fskit_route_enter( route );
+   rc = fskit_route_enter( route, fent );
    if( rc != 0 ) {
       return rc;
    }
@@ -290,7 +297,7 @@ static int fskit_route_dispatch( struct fskit_core* core, struct fskit_match_gro
          rc = -EINVAL;
    }
    
-   fskit_route_leave( route );
+   fskit_route_leave( route, fent );
    
    return rc;
 }

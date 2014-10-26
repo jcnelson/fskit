@@ -46,6 +46,7 @@ struct fskit_dir_entry;
 // route consistency disciplines
 #define FSKIT_SEQUENTIAL        0x1
 #define FSKIT_CONCURRENT        0x2
+#define FSKIT_INODE_SEQUENTIAL  0x3
 
 // common routes 
 #define FSKIT_ROUTE_ANY         "/([^/]+[/]*)+"
