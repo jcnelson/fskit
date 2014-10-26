@@ -19,7 +19,7 @@
 #ifndef _FSKIT_FUSE_H_
 #define _FSKIT_FUSE_H_
 
-#include "fskit.h"
+#include "fskit/fskit.h"
 
 #define FUSE_USE_VERSION 28
 #include <fuse.h>
