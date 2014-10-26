@@ -41,7 +41,7 @@ struct fskit_dir_entry;
 #define FSKIT_ROUTE_MATCH_DETACH                9
 #define FSKIT_ROUTE_MATCH_STAT                  10
 #define FSKIT_ROUTE_MATCH_SYNC                  11
-#define FSKIT_ROUTE_NUM_ROUTE_TYPES             11
+#define FSKIT_ROUTE_NUM_ROUTE_TYPES             12
 
 // route consistency disciplines
 #define FSKIT_SEQUENTIAL        0x1
@@ -69,7 +69,7 @@ typedef int (*fskit_entry_route_io_callback_t)( struct fskit_core*, struct fskit
 typedef int (*fskit_entry_route_trunc_callback_t)( struct fskit_core*, struct fskit_match_group*, struct fskit_entry*, off_t, void* );
 typedef int (*fskit_entry_route_sync_callback_t)( struct fskit_core*, struct fskit_match_group*, struct fskit_entry* );         // fsync(), fdatasync()
 typedef int (*fskit_entry_route_stat_callback_t)( struct fskit_core*, struct fskit_match_group*, struct fskit_entry*, struct stat* );
-typedef int (*fskit_entry_route_readdir_callback_t)( struct fskit_core*, struct fskit_match_group*, struct fskit_entry*, struct fskit_dir_entry* );
+typedef int (*fskit_entry_route_readdir_callback_t)( struct fskit_core*, struct fskit_match_group*, struct fskit_entry*, struct fskit_dir_entry**, size_t );
 typedef int (*fskit_entry_route_detach_callback_t)( struct fskit_core*, struct fskit_match_group*, struct fskit_entry*, void* );             // unlink() and rmdir()
 
 // which method will be called?
@@ -118,7 +118,8 @@ struct fskit_route_dispatch_args {
    size_t iolen;        // read(), write() only 
    off_t iooff;         // read(), write(), trunc() only
    
-   struct fskit_dir_entry* dent;        // readdir() only
+   struct fskit_dir_entry** dents;        // readdir() only
+   uint64_t num_dents;
    
    struct stat* sb;      // stat() only
 };
@@ -129,7 +130,7 @@ int fskit_route_mknod_args( struct fskit_route_dispatch_args* dargs, mode_t mode
 int fskit_route_mkdir_args( struct fskit_route_dispatch_args* dargs, mode_t mode );
 int fskit_route_open_args( struct fskit_route_dispatch_args* dargs, int flags );
 int fskit_route_close_args( struct fskit_route_dispatch_args* dargs, void* handle_data );
-int fskit_route_readdir_args( struct fskit_route_dispatch_args* dargs, struct fskit_dir_entry* dent );
+int fskit_route_readdir_args( struct fskit_route_dispatch_args* dargs, struct fskit_dir_entry** dents, uint64_t num_dents );
 int fskit_route_io_args( struct fskit_route_dispatch_args* dargs, char* iobuf, size_t iolen, off_t iooff, void* handle_data );
 int fskit_route_trunc_args( struct fskit_route_dispatch_args* dargs, off_t iooff, void* handle_data );
 int fskit_route_detach_args( struct fskit_route_dispatch_args* dargs, void* inode_data );

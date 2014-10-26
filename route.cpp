@@ -250,9 +250,9 @@ static int fskit_route_dispatch( struct fskit_core* core, struct fskit_match_gro
       
       case FSKIT_ROUTE_MATCH_READDIR:
          
-         rc = fskit_safe_dispatch( route->method.readdir_cb, core, match_group, fent, dargs->dent );
+         rc = fskit_safe_dispatch( route->method.readdir_cb, core, match_group, fent, dargs->dents, dargs->num_dents );
          break;
-      
+         
       case FSKIT_ROUTE_MATCH_READ:
       case FSKIT_ROUTE_MATCH_WRITE:
          
@@ -922,13 +922,15 @@ int fskit_route_close_args( struct fskit_route_dispatch_args* dargs, void* handl
 }
 
 // set up dargs for readdir()
-int fskit_route_readdir_args( struct fskit_route_dispatch_args* dargs, struct fskit_dir_entry* dent ) {
+int fskit_route_readdir_args( struct fskit_route_dispatch_args* dargs, struct fskit_dir_entry** dents, uint64_t num_dents ) {
    
    memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
    
-   dargs->dent = dent;
+   dargs->dents = dents;
+   dargs->num_dents = num_dents;
    return 0;
 }
+
 
 // set up dargs for read() and write()
 int fskit_route_io_args( struct fskit_route_dispatch_args* dargs, char* iobuf, size_t iolen, off_t iooff, void* handle_data ) {
