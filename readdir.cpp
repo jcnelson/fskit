@@ -78,13 +78,13 @@ void fskit_dir_entry_free_list( struct fskit_dir_entry** dir_ents ) {
 // return 1 if the given dent should be included in the listing 
 // return 0 if the given dent should NOT be included in the listing 
 // return negative on error
-int fskit_run_user_readdir( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_dir_entry* dent ) {
+int fskit_run_user_readdir( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_dir_entry** dents, uint64_t num_dents ) {
    
    int rc = 0;
    int cbrc = 0;
    struct fskit_route_dispatch_args dargs;
    
-   fskit_route_readdir_args( &dargs, dent );
+   fskit_route_readdir_args( &dargs, dents, num_dents );
    
    rc = fskit_route_call_readdir( core, path, fent, &dargs, &cbrc );
    
@@ -204,28 +204,8 @@ static struct fskit_dir_entry** fskit_readdir_lowlevel( struct fskit_core* core,
       // do we have an entry?
       if( dir_ent != NULL ) {
          
-         // is this entry to be included in the listing, according to some user route?
-         rc = fskit_run_user_readdir( core, fs_path, dent, dir_ent );
-         if( rc > 0 ) {
-            
-            dir_ents[next] = dir_ent;
-            
-            next++;
-         }
-         else if( rc < 0 ) {
-            
-            // failed 
-            fskit_error("fskit_run_user_readdir(%s) rc = %d\n", fs_path, rc );
-            
-            fskit_dir_entry_free_list( dir_ents );
-            *err = rc;
-            return NULL;
-         }
-         else {
-            
-            // don't include in the listing 
-            fskit_dir_entry_free( dir_ent );
-         }
+         dir_ents[next] = dir_ent;
+         next++;
       }
       else {
          
@@ -280,10 +260,20 @@ struct fskit_dir_entry** fskit_readdir( struct fskit_core* core, struct fskit_di
 
    struct fskit_dir_entry** dents = fskit_readdir_lowlevel( core, dirh->path, dirh->dent, child_offset, num_children, num_read, err );
    
+   if( dents != NULL ) {
+      rc = fskit_run_user_readdir( core, dirh->path, dirh->dent, dents, *num_read );
+      if( rc != 0 ) {
+         
+         fskit_dir_entry_free_list( dents );
+         *num_read = 0;
+         *err = rc;
+      }
+   }
+   
    fskit_entry_unlock( dirh->dent );
    
    fskit_dir_handle_unlock( dirh );
-
+   
    return dents;
 }
 
