@@ -30,10 +30,15 @@
 
 using namespace std;
 
+// allow the filesystem process to call arbitrary methods on itself externally, bypassing permissions checks
+#define FSKIT_FUSE_SET_FS_ACCESS        0x1
+
 // private fuse state
 struct fskit_fuse_state {
    
    struct fskit_core* core;
+   pid_t my_pid;
+   uint64_t settings;           // bitmask of FSKIT_FUSE_SET_*
 };
 
 // fskit fuse file handle
@@ -50,7 +55,14 @@ extern "C" {
    
 // access to state
 struct fskit_fuse_state* fskit_fuse_get_state();
-   
+uid_t fskit_fuse_get_uid();
+gid_t fskit_fuse_get_gid();
+pid_t fskit_fuse_get_pid();
+mode_t fskit_fuse_get_umask();
+
+int fskit_fuse_setting_enable( struct fskit_fuse_state* state, uint64_t flag );
+int fskit_fuse_setting_disable( struct fskit_fuse_state* state, uint64_t flag );
+
 // fs methods
 int fuse_fskit_getattr(const char *path, struct stat *statbuf);
 int fuse_fskit_readlink(const char *path, char *link, size_t size);
