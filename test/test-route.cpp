@@ -58,9 +58,9 @@ int trunc_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fsk
    return 0;
 }
 
-int readdir_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* dir, struct fskit_dir_entry* dent ) {
-   fskit_debug("Readdir %" PRIX64 " (%s) dent=(%" PRIX64 " %s)\n", dent->file_id, grp->path, dent->file_id, dent->name );
-   return 1;
+int readdir_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* dir, struct fskit_dir_entry** dents, uint64_t num_dents ) {
+   fskit_debug("Readdir %" PRIX64 " (%s) dents[0]=(%" PRIX64 " %s), num_dents=%" PRIu64 "\n", dents[0]->file_id, grp->path, dents[0]->file_id, dents[0]->name, num_dents );
+   return 0;
 }
 
 int detach_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* fent, void* inode_data ) {
