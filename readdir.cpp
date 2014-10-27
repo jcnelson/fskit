@@ -90,7 +90,7 @@ int fskit_run_user_readdir( struct fskit_core* core, char const* path, struct fs
    
    if( rc == -EPERM || rc == -ENOSYS ) {
       // no routes 
-      return 1;
+      return 0;
    }
    
    return cbrc;
@@ -132,7 +132,7 @@ static struct fskit_dir_entry** fskit_readdir_lowlevel( struct fskit_core* core,
       return NULL;  
    }
    
-   for( uint64_t i = child_offset; i < dent->children->size() && next < num_children; i++ ) {
+   for( uint64_t i = child_offset; i < dent->children->size() && next < max_read; i++ ) {
       
       // extract values from iterators
       struct fskit_entry* fent = fskit_entry_set_child_at( dent->children, i );
@@ -221,6 +221,60 @@ static struct fskit_dir_entry** fskit_readdir_lowlevel( struct fskit_core* core,
 }
 
 
+// user-called method to omit directories from a directory listing 
+int fskit_readdir_omit( struct fskit_dir_entry** dents, int i ) {
+   
+   fskit_dir_entry_free( dents[i] );
+   dents[i] = NULL;
+   
+   return 0;
+}
+
+
+// compactify a list of directory entries, so there are no NULLs in the list.
+// return 0 on success
+// return -ENOMEM on allocation failure
+int fskit_readdir_compactify_list( struct fskit_dir_entry*** ret_entries, uint64_t num_entries, uint64_t* ret_new_size ) {
+   
+   uint64_t new_size = num_entries;
+   struct fskit_dir_entry** entries = *ret_entries;
+   
+   for( uint64_t i = 0; i < num_entries; i++ ) {
+      
+      if( entries[i] == NULL ) {
+         new_size--;
+      }
+   }
+   
+   if( new_size == num_entries ) {
+      // no compactification needed 
+      *ret_new_size = num_entries;
+      return 0;
+   }
+   
+   struct fskit_dir_entry** new_entries = CALLOC_LIST( struct fskit_dir_entry*, new_size + 1 );
+   
+   if( new_entries == NULL ) {
+      return -ENOMEM;
+   }
+   
+   uint64_t j = 0;
+   for( uint64_t i = 0; i < num_entries; i++ ) {
+      
+      if( entries[i] != NULL ) {
+         new_entries[j] = entries[i];
+         j++;
+      }
+   }
+   
+   *ret_entries = new_entries;
+   *ret_new_size = new_size;
+   free( entries );
+   
+   return 0;
+}
+
+
 // read data from a directory, using the given directory handle.
 // starts reading at child_offset, and reads at most a range of num_children (the actual value will be set into *num_read)
 // on failure, it sets *err to one of the following:
@@ -267,6 +321,20 @@ struct fskit_dir_entry** fskit_readdir( struct fskit_core* core, struct fskit_di
          fskit_dir_entry_free_list( dents );
          *num_read = 0;
          *err = rc;
+      }
+      
+      // compactify results 
+      uint64_t new_num_read = 0;
+      rc = fskit_readdir_compactify_list( &dents, *num_read, &new_num_read );
+      
+      if( rc != 0 ) {
+      
+         fskit_dir_entry_free_list( dents );
+         *num_read = 0;
+         *err = rc;
+      }
+      else {
+         *num_read = new_num_read;
       }
    }
    

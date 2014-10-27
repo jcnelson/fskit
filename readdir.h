@@ -30,6 +30,8 @@ struct fskit_dir_entry** fskit_listdir( struct fskit_core* core, struct fskit_di
 void fskit_dir_entry_free_list( struct fskit_dir_entry** dir_ents );
 void fskit_dir_entry_free( struct fskit_dir_entry* d_ent );
 
+int fskit_readdir_omit( struct fskit_dir_entry** dents, int i );
+
 }
 
 #endif
