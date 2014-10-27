@@ -232,7 +232,6 @@ static int fskit_route_dispatch( struct fskit_core* core, struct fskit_match_gro
       return rc;
    }
    
-   
    switch( route->route_type ) {
       
       case FSKIT_ROUTE_MATCH_CREATE:
@@ -330,6 +329,7 @@ static int fskit_route_match( fskit_route_table_t* route_table, int route_type, 
    }
    
    int rc = 0;
+   int tries = 0;
    fskit_route_list_t* routes = &itr->second;
    
    for( unsigned int i = 0; i < routes->size(); i++ ) {
@@ -345,6 +345,8 @@ static int fskit_route_match( fskit_route_table_t* route_table, int route_type, 
          // matched!
          return i;
       }
+      
+      tries++;
    }
    
    // no match
