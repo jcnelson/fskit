@@ -37,7 +37,6 @@ using namespace std;
 struct fskit_fuse_state {
    
    struct fskit_core* core;
-   pid_t my_pid;
    uint64_t settings;           // bitmask of FSKIT_FUSE_SET_*
 };
 
@@ -57,8 +56,8 @@ extern "C" {
 struct fskit_fuse_state* fskit_fuse_get_state();
 uid_t fskit_fuse_get_uid( struct fskit_fuse_state* state );
 gid_t fskit_fuse_get_gid( struct fskit_fuse_state* state );
-pid_t fskit_fuse_get_pid( struct fskit_fuse_state* state );
-mode_t fskit_fuse_get_umask( struct fskit_fuse_state* state );
+pid_t fskit_fuse_get_pid();
+mode_t fskit_fuse_get_umask();
 
 int fskit_fuse_setting_enable( struct fskit_fuse_state* state, uint64_t flag );
 int fskit_fuse_setting_disable( struct fskit_fuse_state* state, uint64_t flag );

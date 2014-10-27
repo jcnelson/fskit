@@ -26,7 +26,7 @@ struct fskit_fuse_state* fskit_fuse_get_state() {
 // get caller UID 
 uid_t fskit_fuse_get_uid( struct fskit_fuse_state* state ) {
    
-   if( state->my_pid == fuse_get_context()->pid && (state->settings & FSKIT_FUSE_SET_FS_ACCESS) ) {
+   if( getpid() == fuse_get_context()->pid && (state->settings & FSKIT_FUSE_SET_FS_ACCESS) ) {
       // filesystem process can access anything 
       return 0;
    }
@@ -38,7 +38,7 @@ uid_t fskit_fuse_get_uid( struct fskit_fuse_state* state ) {
 // get caller GID 
 gid_t fskit_fuse_get_gid( struct fskit_fuse_state* state ) {
    
-   if( state->my_pid == fuse_get_context()->pid && (state->settings & FSKIT_FUSE_SET_FS_ACCESS) ) {
+   if( getpid() == fuse_get_context()->pid && (state->settings & FSKIT_FUSE_SET_FS_ACCESS) ) {
       // filesystem process can access anything 
       return 0;
    }
@@ -48,12 +48,12 @@ gid_t fskit_fuse_get_gid( struct fskit_fuse_state* state ) {
 }
 
 // get caller PID 
-pid_t fskit_fuse_get_pid( struct fskit_fuse_state* state ) {
+pid_t fskit_fuse_get_pid() {
    return fuse_get_context()->pid;
 }
 
 // get caller umask 
-mode_t fskit_fuse_get_umask( struct fskit_fuse_state* state ) {
+mode_t fskit_fuse_get_umask() {
    return fuse_get_context()->umask;
 }
 
@@ -283,7 +283,7 @@ int fskit_fuse_open(const char *path, struct fuse_file_info *fi) {
    struct fskit_fuse_state* state = fskit_fuse_get_state();
    uid_t uid = fskit_fuse_get_uid( state );
    gid_t gid = fskit_fuse_get_gid( state );
-   mode_t umask = fskit_fuse_get_umask( state );
+   mode_t umask = fskit_fuse_get_umask();
    struct fskit_fuse_file_info* ffi = NULL;
    int rc = 0;
    
@@ -518,6 +518,10 @@ int fskit_fuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
    
    fskit_dir_entry_free_list( dirents );
    
+   if( rc > 0 ) {
+      rc = 0;
+   }
+   
    fskit_debug("readdir(%s, %jd, %p, %p) rc = %d\n", path, offset, buf, fi, rc );
    return rc;
 }
@@ -723,7 +727,6 @@ int fskit_fuse_init( struct fskit_fuse_state* state, void* core_state ) {
    memset( state, 0, sizeof(struct fskit_fuse_state) );
    
    state->core = core;
-   state->my_pid = getpid();
    
    return 0;
 }
