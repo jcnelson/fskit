@@ -32,6 +32,7 @@ int fskit_test_readdir( struct fskit_core* core, char const* path ) {
    int num_to_read = 1;
    int offset = 0;
    uint64_t num_read = 0;
+   int count = 0;
    char type_str[10];
    struct fskit_dir_entry** dents;
    
@@ -66,7 +67,10 @@ int fskit_test_readdir( struct fskit_core* core, char const* path ) {
       
       offset += num_read;
       num_to_read ++;
+      count++;
    }
+   
+   fskit_debug("Read %d entries\n", count );
    
    rc = fskit_closedir( core, dh );
    if( rc != 0 ) {
