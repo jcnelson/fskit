@@ -183,7 +183,7 @@ int main( int argc, char** argv ) {
    core = fskit_fuse_get_core( &state );
    
    // add handlers.  reads and writes must happen sequentially, since we seek and then perform I/O
-   // NOTE: FSKIT_ROUTE_ANY matches any path, and is a macro for the regex "/([^/]+[/]*)+"
+   // NOTE: FSKIT_ROUTE_ANY matches any path, and is a macro for the regex "/([^/]+[/]*)*"
    fskit_route_create( core, FSKIT_ROUTE_ANY, create_cb, FSKIT_CONCURRENT );
    fskit_route_open(   core, FSKIT_ROUTE_ANY, open_cb,   FSKIT_CONCURRENT );
    fskit_route_read(   core, FSKIT_ROUTE_ANY, read_cb,   FSKIT_SEQUENTIAL );
