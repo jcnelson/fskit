@@ -336,10 +336,12 @@ int fskit_core_destroy( struct fskit_core* core, void** app_fs_data ) {
    return 0;
 }
 
+
 // unlink a directory's immediate children and subsequent descendants
 // run any detach route callbacks.
 // return 0 on success
 // return -ENOMEM if out of memory
+// NOTE: the owner of dir_children should be write-locked
 // NOTE: if -ENOMEM is encountered, this method will fail fast and return.
 // This is because it will be unable to safely run user-defined routes.
 // If this occurs, free up some memory and call this method again with the same detach context, but NULL for dir_children
@@ -373,6 +375,9 @@ int fskit_detach_all_ex( struct fskit_core* core, char const* root_path, fskit_e
             return -ENOMEM;
          }
          
+         child->deletion_in_progress = true;
+         child->link_count--;
+         
          ctx->destroy_queue->push( child );
          ctx->destroy_paths->push( child_path );
 
@@ -387,56 +392,22 @@ int fskit_detach_all_ex( struct fskit_core* core, char const* root_path, fskit_e
       
       ctx->destroy_queue->pop();
       ctx->destroy_paths->pop();
-
-      int old_type = fent->type;
       
-      // unlink this entry
-      fent->type = FSKIT_ENTRY_TYPE_DEAD;
-      fent->link_count = 0;
-
-      // destroy the entry if it's not a directory and no longer referenced
-      if( old_type != FSKIT_ENTRY_TYPE_DIR ) {
+      if( fent->type == FSKIT_ENTRY_TYPE_DIR ) {
          
-         fent->link_count = 0;
-         
-         rc = fskit_entry_try_destroy( core, fent_path, fent );
-         if( rc > 0 ) {
-            
-            // destroyed!
-            safe_free( fent );
-            rc = 0;
-         }
-         
-         safe_free( fent_path );
-      }
-
-      else {
-         
-         // unlink this directory
-         fskit_entry_set* children = fent->children;
-         fent->children = NULL;
-         
-         fent->link_count = 0;
-
-         rc = fskit_entry_try_destroy( core, fent_path, fent );
-         if( rc > 0 ) {
-            
-            // destroyed!
-            safe_free( fent );
-            rc = 0;
-         }
-
-         for( fskit_entry_set::iterator itr = children->begin(); itr != children->end(); itr++ ) {
+         for( fskit_entry_set::iterator itr = fent->children->begin(); itr != fent->children->end(); ) {
             
             struct fskit_entry* child = fskit_entry_set_get( &itr );
 
             if( child == NULL ) {
+               itr++;
                continue;
             }
             
             long fent_name_hash = fskit_entry_set_get_name_hash( &itr );
 
             if( fent_name_hash == fskit_entry_name_hash( "." ) || fent_name_hash == fskit_entry_name_hash( ".." ) ) {
+               itr++;
                continue;
             }
             
@@ -448,16 +419,28 @@ int fskit_detach_all_ex( struct fskit_core* core, char const* root_path, fskit_e
                return -ENOMEM;
             }
             else {
+               
+               child->deletion_in_progress = true;
+               child->link_count--;
+               
                // queue for destruction
                ctx->destroy_queue->push( child );
                ctx->destroy_paths->push( child_path );
             }
+            
+            itr = fent->children->erase( itr );
          }
-
-         delete children;
-         
-         safe_free( fent_path );
       }
+      
+      rc = fskit_entry_try_destroy( core, fent_path, fent );
+      if( rc > 0 ) {
+         
+         // destroyed!
+         safe_free( fent );
+         rc = 0;
+      }
+      
+      safe_free( fent_path );
    }
    
    // if all went well, then ctx's queues will be empty
