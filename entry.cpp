@@ -375,7 +375,6 @@ int fskit_detach_all_ex( struct fskit_core* core, char const* root_path, fskit_e
             return -ENOMEM;
          }
          
-         child->deletion_in_progress = true;
          child->link_count--;
          
          ctx->destroy_queue->push( child );
@@ -420,7 +419,6 @@ int fskit_detach_all_ex( struct fskit_core* core, char const* root_path, fskit_e
             }
             else {
                
-               child->deletion_in_progress = true;
                child->link_count--;
                
                // queue for destruction
@@ -438,6 +436,10 @@ int fskit_detach_all_ex( struct fskit_core* core, char const* root_path, fskit_e
          // destroyed!
          safe_free( fent );
          rc = 0;
+      }
+      else {
+         // not destroyed 
+         fskit_entry_unlock( fent );
       }
       
       safe_free( fent_path );
