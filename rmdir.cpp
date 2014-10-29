@@ -43,33 +43,57 @@ int fskit_rmdir( struct fskit_core* core, char const* _path, uint64_t user, uint
 
    fskit_sanitize_path( path );
    
-   // write-lock the directory
-   int err = 0;
-   struct fskit_entry* dent = fskit_entry_resolve_path( core, path, user, group, true, &err );
-   if( !dent || err ) {
-      return err;
+   
+   // look up the parent and write-lock it
+   char* path_dirname = fskit_dirname( path, NULL );
+   char* path_basename = fskit_basename( path, NULL );
+   
+   struct fskit_entry* parent = fskit_entry_resolve_path( core, path_dirname, user, group, true, &rc );
+
+   free( path_dirname );
+   
+   if( !parent || rc ) {
+      
+      fskit_entry_unlock( parent );
+
+      free( path_basename );
+      
+      return rc;
    }
+   
+   // is the parent a directory?
+   if( parent->type != FSKIT_ENTRY_TYPE_DIR ) {
+      // nope 
+      fskit_entry_unlock( parent );
+      
+      free( path_basename );
+      
+      return -ENOTDIR;
+   }
+   
+   // find the directory, and write-lock it
+   struct fskit_entry* dent = fskit_entry_set_find_name( parent->children, path_basename );
+   
+   free( path_basename );
+   
+   if( dent == NULL ) {
+      
+      fskit_entry_unlock( parent );
+      
+      return -ENOENT;
+   }
+   
+   fskit_entry_wlock( dent );
    
    // is this a directory?
    if( dent->type != FSKIT_ENTRY_TYPE_DIR ) {
+      // nope
       fskit_entry_unlock( dent );
+      fskit_entry_unlock( parent );
+      
       return -ENOTDIR;
    }
-
-   char* path_dirname = fskit_dirname( path, NULL );
-
-   // write-lock the parent
-   struct fskit_entry* parent = fskit_entry_resolve_path( core, path_dirname, user, group, true, &err );
-
-   free( path_dirname );
-
-   // parent not found?
-   if( !parent || err ) {
-      fskit_entry_unlock( dent );
-
-      return err;
-   }
-
+   
    // IS THE PARENT EMPTY?
    if( fskit_entry_set_count( dent->children ) > 2 ) {
       // nope

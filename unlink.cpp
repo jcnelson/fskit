@@ -27,25 +27,46 @@ int fskit_unlink( struct fskit_core* core, char const* path, uint64_t owner, uin
    int rc = 0;
    int err = 0;
    
-   // get the fent, and write-lock it
-   struct fskit_entry* fent = fskit_entry_resolve_path( core, path, owner, group, true, &err );
-   if( !fent || err ) {
-      return err;
-   }
-
    // look up the parent and write-lock it
    char* path_dirname = fskit_dirname( path, NULL );
+   char* path_basename = fskit_basename( path, NULL );
    
    struct fskit_entry* parent = fskit_entry_resolve_path( core, path_dirname, owner, group, true, &err );
 
    free( path_dirname );
-
    
    if( !parent || err ) {
-      fskit_entry_unlock( fent );
+      
+      fskit_entry_unlock( parent );
 
+      free( path_basename );
+      
       return err;
    }
+   
+   // is the parent a directory?
+   if( parent->type != FSKIT_ENTRY_TYPE_DIR ) {
+      // nope 
+      fskit_entry_unlock( parent );
+      
+      free( path_basename );
+      
+      return -ENOTDIR;
+   }
+   
+   // find the fent, and write-lock it
+   struct fskit_entry* fent = fskit_entry_set_find_name( parent->children, path_basename );
+   
+   free( path_basename );
+   
+   if( fent == NULL ) {
+      
+      fskit_entry_unlock( parent );
+      
+      return -ENOENT;
+   }
+   
+   fskit_entry_wlock( fent );
    
    // mark the file as deleted, so it won't show up again in any listing 
    fent->deletion_in_progress = true;
