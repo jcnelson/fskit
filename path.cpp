@@ -313,7 +313,14 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
             name = strtok_r( NULL, "/", &tmp );
          }
          
-         fskit_entry_wlock( cur_ent );
+         // If this is the last step of the path,
+         // do a write lock if requested
+         if( name == NULL && writelock ) {
+            fskit_entry_wlock( cur_ent );
+         }
+         else {
+            fskit_entry_rlock( cur_ent );
+         }
          
          // before unlocking the previous ent, run our evaluator (if we have one)
          if( ent_eval ) {
@@ -323,14 +330,6 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
                safe_free( fpath );
                return NULL;
             }
-         }
-         
-         
-         // If this is the last step of the path,
-         // downgrade to a read lock if requested
-         if( name == NULL && !writelock ) {
-            fskit_entry_unlock( cur_ent );
-            fskit_entry_rlock( cur_ent );
          }
          
          fskit_entry_unlock( prev_ent );
