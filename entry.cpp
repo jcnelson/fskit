@@ -372,10 +372,14 @@ int fskit_detach_all_ex( struct fskit_core* core, char const* root_path, fskit_e
          char* child_path = fskit_fullpath( root_path, child->name, NULL );
          if( child_path == NULL ) {
             
+            fskit_entry_unlock( child );
             return -ENOMEM;
          }
          
          child->link_count--;
+         child->open_count++;   // this method references the child
+         
+         fskit_entry_unlock( child );
          
          ctx->destroy_queue->push( child );
          ctx->destroy_paths->push( child_path );
@@ -388,6 +392,8 @@ int fskit_detach_all_ex( struct fskit_core* core, char const* root_path, fskit_e
       
       struct fskit_entry* fent = ctx->destroy_queue->front();
       char* fent_path = ctx->destroy_paths->front();
+      
+      fskit_entry_wlock( fent );
       
       ctx->destroy_queue->pop();
       ctx->destroy_paths->pop();
@@ -415,11 +421,15 @@ int fskit_detach_all_ex( struct fskit_core* core, char const* root_path, fskit_e
             char* child_path = fskit_fullpath( fent_path, child->name, NULL );
             if( child_path == NULL ) {
                
+               fskit_entry_unlock( child );
                return -ENOMEM;
             }
             else {
                
                child->link_count--;
+               child->open_count++;     // this method references the child
+               
+               fskit_entry_unlock( child );
                
                // queue for destruction
                ctx->destroy_queue->push( child );
@@ -429,6 +439,8 @@ int fskit_detach_all_ex( struct fskit_core* core, char const* root_path, fskit_e
             itr = fent->children->erase( itr );
          }
       }
+      
+      fent->open_count--;
       
       rc = fskit_entry_try_destroy( core, fent_path, fent );
       if( rc > 0 ) {
@@ -844,35 +856,39 @@ int fskit_entry_try_destroy( struct fskit_core* core, char const* fs_path, struc
 
 // lock a file for reading
 int fskit_entry_rlock2( struct fskit_entry* fent, char const* from_str, int line_no ) {
-   int rc = pthread_rwlock_rdlock( &fent->lock );
-   if( rc == 0 ) {
-      if( FSKIT_GLOBAL_DEBUG_LOCKS ) {
-         fskit_debug( "%p: %s, from %s:%d\n", fent, fent->name, from_str, line_no );
-      }
+   if( FSKIT_GLOBAL_DEBUG_LOCKS ) {
+      fskit_debug( "%p: %s, from %s:%d\n", fent, fent->name, from_str, line_no );
    }
-   else {
+   
+   int rc = pthread_rwlock_rdlock( &fent->lock );
+   
+   if( rc != 0 ) {
       fskit_error("pthread_rwlock_rdlock(%p) rc = %d (from %s:%d)\n", fent, rc, from_str, line_no );
    }
-
+   else if( fent->type == FSKIT_ENTRY_TYPE_DEAD ) {
+      pthread_rwlock_unlock( &fent->lock );
+      return -ENOENT;
+   }
+   
    return rc;
 }
 
 // lock a file for writing
 int fskit_entry_wlock2( struct fskit_entry* fent, char const* from_str, int line_no ) {
+   if( FSKIT_GLOBAL_DEBUG_LOCKS ) {
+      fskit_debug( "%p: %s, from %s:%d\n", fent, fent->name, from_str, line_no );
+   }
+   
    int rc = pthread_rwlock_wrlock( &fent->lock );
-   if( fent->type == FSKIT_ENTRY_TYPE_DEAD ) {
+   
+   if( rc != 0 ) {
+      fskit_error("pthread_rwlock_wrlock(%p) rc = %d (from %s:%d)\n", fent, rc, from_str, line_no );
+   }
+   else if( fent->type == FSKIT_ENTRY_TYPE_DEAD ) {
+      pthread_rwlock_unlock( &fent->lock );
       return -ENOENT;
    }
    
-   if( rc == 0 ) {
-      if( FSKIT_GLOBAL_DEBUG_LOCKS ) {
-         fskit_debug( "%p: %s, from %s:%d\n", fent, fent->name, from_str, line_no );
-      }
-   }
-   else {
-      fskit_error("pthread_rwlock_wrlock(%p) rc = %d (from %s:%d)\n", fent, rc, from_str, line_no );
-   }
-
    return rc;
 }
 
