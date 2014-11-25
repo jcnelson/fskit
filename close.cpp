@@ -117,17 +117,9 @@ int fskit_close( struct fskit_core* core, struct fskit_file_handle* fh ) {
    // no longer open by this handle
    fh->fent->open_count--;
    
-   // see if we can destroy this....
-   rc = fskit_entry_try_destroy( core, fh->path, fh->fent );
-   if( rc > 0 ) {
-      
-      // fent was unlocked and destroyed
-      safe_free( fh->fent );
-      rc = 0;
-      
-      fskit_file_count_update( core, -1 );
-   }
-   else if( rc < 0 ) {
+   rc = fskit_entry_try_destroy_and_free( core, fh->path, fh->fent );
+   
+   if( rc < 0 ) {
       
       // some error occurred 
       fskit_error("fskit_entry_try_destroy(%p) rc = %d\n", fh->fent, rc );
@@ -135,10 +127,16 @@ int fskit_close( struct fskit_core* core, struct fskit_file_handle* fh ) {
       
       return rc;
    }
+   else if( rc == 0 ) {
+      
+      // done with this entry--it's still exists
+      fskit_entry_unlock( fh->fent );
+   }
    else {
       
-      // done with this entry
-      fskit_entry_unlock( fh->fent );
+      // destroyed and freed
+      fh->fent = NULL;
+      rc = 0;
    }
    
    // get rid of this handle
