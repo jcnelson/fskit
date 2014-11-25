@@ -222,6 +222,11 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
    }
    else {
       fpath = strdup( path );
+      
+      if( fpath == NULL ) {
+         *err = -ENOMEM;
+         return NULL;
+      }
    }
 
    char* tmp = NULL;
@@ -235,7 +240,7 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
    struct fskit_entry* cur_ent = fskit_core_resolve_root( core, (writelock && name == NULL) );
    struct fskit_entry* prev_ent = NULL;
    
-   if( cur_ent->link_count == 0 ) {
+   if( cur_ent->link_count == 0 || cur_ent->type == FSKIT_ENTRY_TYPE_DEAD ) {
       // filesystem was nuked
       safe_free( fpath );
       fskit_entry_unlock( cur_ent );
@@ -284,13 +289,27 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
          return NULL;
       }
       
-      if( name == NULL )
+      // NOTE: check this here, since we might just be resolving root
+      if( name == NULL ) {
          break;
-
+      }
+      
       // resolve next name
       prev_ent = cur_ent;
       if( name != NULL ) {
-         cur_ent = fskit_entry_set_find_name( prev_ent->children, name );
+         
+         if( prev_ent->type != FSKIT_ENTRY_TYPE_DIR ) {
+            
+            // not a directory 
+            *err = -ENOTDIR;
+            safe_free( fpath );
+            fskit_entry_unlock( prev_ent );
+            
+            return NULL;
+         }
+         else {
+            cur_ent = fskit_entry_set_find_name( prev_ent->children, name );
+         }
       }
       else {
          // out of path
@@ -299,6 +318,7 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
       
       // NOTE: we can safely check deletion_in_progress, since it only gets written once (and while the parent is write-locked)
       if( cur_ent == NULL || cur_ent->deletion_in_progress ) {
+         
          // not found
          *err = -ENOENT;
          safe_free( fpath );
@@ -307,6 +327,7 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
          return NULL;
       }
       else {
+         
          // next path name
          name = strtok_r( NULL, "/", &tmp );
          while( name != NULL && strcmp(name, ".") == 0 ) {
@@ -332,16 +353,16 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
             }
          }
          
-         fskit_entry_unlock( prev_ent );
-
          if( cur_ent->link_count == 0 || cur_ent->type == FSKIT_ENTRY_TYPE_DEAD ) {
-           // just got removed
-           *err = -ENOENT;
-           safe_free( fpath );
-           fskit_entry_unlock( cur_ent );
+            // just got removed
+            *err = -ENOENT;
+            safe_free( fpath );
+            fskit_entry_unlock( cur_ent );
 
-           return NULL;
+            return NULL;
          }
+         
+         fskit_entry_unlock( prev_ent );
       }
    } while( true );
    
