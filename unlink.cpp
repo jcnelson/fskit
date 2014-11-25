@@ -18,6 +18,7 @@
 
 #include "unlink.h"
 #include "path.h"
+#include "util.h"
 
 // unlink a file from the filesystem
 // return the usual path resolution errors 
@@ -68,16 +69,11 @@ int fskit_unlink( struct fskit_core* core, char const* path, uint64_t owner, uin
    
    fskit_entry_wlock( fent );
    
-   // mark the file as deleted, so it won't show up again in any listing 
-   fent->deletion_in_progress = true;
-   
-   // detatch fent from parent
+   // detatch fent from parent (don't worry if someone raced ahead of us)
    rc = fskit_entry_detach_lowlevel( parent, fent );
-   if( rc != 0 ) {
+   if( rc != 0 && rc != -ENOENT ) {
       
       fskit_error("fskit_entry_detach_lowlevel(%p) rc = %d\n", fent, rc );
-      
-      fent->deletion_in_progress = false;
       
       fskit_entry_unlock( fent );
       fskit_entry_unlock( parent );
@@ -89,7 +85,7 @@ int fskit_unlink( struct fskit_core* core, char const* path, uint64_t owner, uin
    if( rc > 0 ) {
       
       // destroyed 
-      free( fent );
+      safe_free( fent );
       rc = 0;
    }
    else if( rc < 0 ) {
