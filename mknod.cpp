@@ -53,11 +53,22 @@ int fskit_run_user_mknod( struct fskit_core* core, char const* path, struct fski
 
 
 // make a node
-int fskit_mknod( struct fskit_core* core, char const* path, mode_t mode, dev_t dev, uint64_t user, uint64_t group ) {
+int fskit_mknod( struct fskit_core* core, char const* fs_path, mode_t mode, dev_t dev, uint64_t user, uint64_t group ) {
    
    int err = 0;
    void* inode_data = NULL;
-
+   struct fskit_entry* child = NULL;
+   
+   // sanity check
+   size_t basename_len = fskit_basename_len( fs_path );
+   if( basename_len > FSKIT_FILESYSTEM_NAMEMAX ) {
+      
+      return -ENAMETOOLONG;
+   }
+   
+   char* path = strdup( fs_path );
+   fskit_sanitize_path( path );
+   
    // get the parent directory and lock it
    char* path_dirname = fskit_dirname( path, NULL );
    struct fskit_entry* parent = fskit_entry_resolve_path( core, path_dirname, user, group, true, &err );
@@ -65,31 +76,66 @@ int fskit_mknod( struct fskit_core* core, char const* path, mode_t mode, dev_t d
    safe_free( path_dirname );
    
    if( err != 0 || parent == NULL ) {
+      
+      safe_free( path );
       return err;
    }
 
    if( !FSKIT_ENTRY_IS_DIR_READABLE( parent->mode, parent->owner, parent->group, user, group ) ) {
       // not searchable
       fskit_entry_unlock( parent );
+      safe_free( path );
       return -EACCES;
    }
 
    if( !FSKIT_ENTRY_IS_WRITEABLE( parent->mode, parent->owner, parent->group, user, group ) ) {
       // not writeable
       fskit_entry_unlock( parent );
+      safe_free( path );
       return -EACCES;
    }
 
    char* path_basename = fskit_basename( path, NULL );
-
-   // make sure it doesn't exist already (or isn't in the process of being deleted, since we might have to re-create it if deleting it fails)
-   if( fskit_entry_set_find_name( parent->children, path_basename ) != NULL ) {
-      fskit_entry_unlock( parent );
-      safe_free( path_basename );
-      return -EEXIST;
+   
+   child = fskit_entry_set_find_name( parent->children, path_basename );
+   
+   if( child != NULL ) {
+   
+      fskit_entry_wlock( child );
+      
+      // it might have been marked for garbage-collection
+      err = fskit_entry_try_garbage_collect( core, path, parent, child );
+      
+      if( err >= 0 ) {
+         
+         if( err == 0 ) {
+            // not destroyed 
+            fskit_entry_unlock( child );
+         }
+         
+         // name is free
+         child = NULL;
+      }
+      else {
+         
+         // can't garbage-collect 
+         fskit_entry_unlock( parent );
+         fskit_entry_unlock( child );
+         safe_free( path );
+         
+         if( err == -EEXIST ) {
+            return -EEXIST;
+         }
+         else {
+            
+            // shouldn't happen 
+            fskit_error("BUG: fskit_entry_try_garbage_collect(%s) rc = %d\n", path, err );
+            return -EIO;
+         }
+      }
    }
-
-   struct fskit_entry* child = CALLOC_LIST( struct fskit_entry, 1 );
+   
+   child = CALLOC_LIST( struct fskit_entry, 1 );
    
    mode_t mmode = 0;
    char const* method_name = NULL;
@@ -142,6 +188,7 @@ int fskit_mknod( struct fskit_core* core, char const* path, mode_t mode, dev_t d
       safe_free( path_basename );
       fskit_entry_destroy( core, child, false );
       safe_free( child );
+      safe_free( path );
       
       return -EINVAL;
    }
@@ -158,6 +205,7 @@ int fskit_mknod( struct fskit_core* core, char const* path, mode_t mode, dev_t d
          safe_free( path_basename );
          fskit_entry_destroy( core, child, false );
          safe_free( child );
+         safe_free( path );
          
          return -EIO;
       }
@@ -177,6 +225,7 @@ int fskit_mknod( struct fskit_core* core, char const* path, mode_t mode, dev_t d
          safe_free( path_basename );
          fskit_entry_destroy( core, child, true );
          safe_free( child );
+         safe_free( path );
          
          return err;
       }
@@ -198,6 +247,7 @@ int fskit_mknod( struct fskit_core* core, char const* path, mode_t mode, dev_t d
    fskit_entry_unlock( parent );
 
    safe_free( path_basename );
-
+   safe_free( path );
+   
    return err;
 }
