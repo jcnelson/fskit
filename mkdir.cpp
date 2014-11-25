@@ -67,6 +67,38 @@ static int fskit_mkdir_lowlevel( struct fskit_core* core, char const* path, stru
    int err = 0;
    void* app_dir_data = NULL;
    
+   if( child != NULL ) {
+      
+      fskit_entry_wlock( child );
+      
+      err = fskit_entry_try_garbage_collect( core, path, parent, child );
+      
+      if( err >= 0 ) {
+         
+         if( err == 0 ) {
+            // not destroyed 
+            fskit_entry_unlock( child );            
+         }
+         
+         // name is free 
+         child = NULL;
+      }
+      else {
+         
+         if( err == -EEXIST ) {
+            
+            // still exists; can't be garbage-collected
+            return -EEXIST;
+         }
+         else {
+            
+            // shouldn't happen 
+            fskit_error("BUG: fskit_entry_try_garbage_collect(%s) rc = %d\n", path, err );
+            return -EIO;
+         }
+      }
+   }
+   
    if( child == NULL ) {
 
       // create an fskit_entry and attach it
@@ -88,17 +120,13 @@ static int fskit_mkdir_lowlevel( struct fskit_core* core, char const* path, stru
       }
       
       // set up the directory 
-      err = fskit_entry_init_dir( child, child_inode, path_basename, user, group, mode );
+      err = fskit_entry_init_dir( child, parent, child_inode, path_basename, user, group, mode );
       if( err != 0 ) {
          fskit_error("fskit_entry_init_dir(%s) rc = %d\n", path, err );
          
          safe_free( child );
          return err;
       }
-      
-      // add . and ..
-      fskit_entry_set_insert( child->children, ".", child );
-      fskit_entry_set_insert( child->children, "..", parent );
       
       // almost done.  run the route callback for this path if needed
       err = fskit_run_user_mkdir( core, path, child, mode, &app_dir_data );
@@ -138,6 +166,12 @@ static int fskit_mkdir_lowlevel( struct fskit_core* core, char const* path, stru
 int fskit_mkdir( struct fskit_core* core, char const* path, mode_t mode, uint64_t user, uint64_t group ) {
    
    int err = 0;
+   
+   size_t basename_len = fskit_basename_len( path );
+   if( basename_len > FSKIT_FILESYSTEM_NAMEMAX ) {
+      
+      return -ENAMETOOLONG;
+   }
    
    // resolve the parent of this child (and write-lock it)
    char* fpath = strdup( path );
