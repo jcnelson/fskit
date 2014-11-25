@@ -243,20 +243,51 @@ struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path
       
       if( child != NULL ) {
          
-         // can't create--file exists
-         fskit_entry_unlock( parent );
-         safe_free( path );
-         *err = -EEXIST;
-         return NULL;
+         fskit_entry_wlock( child );
+         
+         // it might have been marked for garbage-collection
+         rc = fskit_entry_try_garbage_collect( core, path, parent, child );
+         
+         if( rc >= 0 ) {
+            
+            if( rc == 0 ) {
+               // not destroyed, but no longer present
+               fskit_entry_unlock( child );
+            }
+            
+            // safe to create
+            child = NULL;
+         }
+         else {
+            
+            // can't garbage-collect 
+            fskit_entry_unlock( parent );
+            fskit_entry_unlock( child );
+            safe_free( path );
+         
+            if( rc == -EEXIST ) {
+               
+               *err = -EEXIST;
+               return NULL;
+            }
+            else {
+               
+               // shouldn't happen 
+               fskit_error("BUG: fskit_entry_try_garbage_collect(%s) rc = %d\n", path, rc );
+            
+               *err = -EIO;
+            }
+            
+            return NULL;
+         }
       }
       
-      else {
+      if( child == NULL ) {
          
          // can create!
          rc = fskit_do_create( core, parent, path, mode, user, group, &child, &handle_data );
          if( rc != 0 ) {
             
-            // failed to create 
             fskit_entry_unlock( parent );
             safe_free( path );
             *err = rc;
