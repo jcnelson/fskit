@@ -21,9 +21,11 @@
 
 #include "common.h"
 #include "debug.h"
+#include "deferred.h"
 #include "entry.h"
 #include "path.h"
 #include "random.h"
+#include "wq.h"
 
 #include "access.h"
 #include "chmod.h"
