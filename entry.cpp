@@ -22,6 +22,7 @@
 #include "random.h"
 #include "route.h"
 #include "util.h"
+#include "wq.h"
 
 // hash a name/path
 long fskit_entry_name_hash( char const* name ) {
@@ -36,6 +37,23 @@ long fskit_entry_name_hash( char const* name ) {
       // out of memory
       return -ENOMEM;
    }
+}
+
+// allocate and initialize an empty fskit_entry_set 
+// return the set on success
+// return NULL on error (OOM)
+fskit_entry_set* fskit_entry_set_new( struct fskit_entry* node, struct fskit_entry* parent ) {
+   
+   fskit_entry_set* ret = safe_new( fskit_entry_set );
+   
+   if( ret == NULL ) {
+      return NULL;
+   }
+   
+   fskit_entry_set_insert( ret, ".", node );
+   fskit_entry_set_insert( ret, "..", parent );
+   
+   return ret;
 }
 
 // insert a child entry into an fskit_entry_set
@@ -217,8 +235,14 @@ int fskit_entry_detach_lowlevel( struct fskit_entry* parent, struct fskit_entry*
    
    child->link_count--;
    
+   // NOTE: have to check, since the app might have explicitly set the link count to 0
+   if( child->link_count < 0 ) {
+      child->link_count = 0;
+   }
+   
    return 0;
 }
+
 
 // change the number of files 
 uint64_t fskit_file_count_update( struct fskit_core* core, int change ) {
@@ -256,28 +280,58 @@ int fskit_core_init( struct fskit_core* core, void* app_fs_data ) {
       return -ENOMEM;
    }
    
-   rc = fskit_entry_init_dir( &core->root, 0, "/", 0, 0, 0755 );
+   struct fskit_wq* deferred = CALLOC_LIST( struct fskit_wq, 1 );
+   if( deferred == NULL ) {
+      safe_delete( routes );
+      return -ENOMEM;
+   }
+   
+   rc = fskit_entry_init_dir( &core->root, &core->root, 0, "/", 0, 0, 0755 );
    if( rc != 0 ) {
       fskit_error("fskit_entry_init_dir(/) rc = %d\n", rc );
       
+      safe_free( deferred );
       safe_delete( routes );
       return rc;
    }
    
-   // root is linked to itself
-   core->root.link_count = 1;
-   fskit_entry_set_insert( core->root.children, ".", &core->root );
-   fskit_entry_set_insert( core->root.children, "..", &core->root );
+   rc = fskit_wq_init( deferred );
+   if( rc != 0 ) {
+      fskit_error("fskit_wq_init() rc = %d\n", rc );
+      
+      safe_free( deferred );
+      safe_delete( routes );
+      return rc;
+   }
    
+   
+   core->root.link_count = 1;
    core->app_fs_data = app_fs_data;
    
    core->fskit_inode_alloc = fskit_default_inode_alloc;
    core->fskit_inode_free = fskit_default_inode_free;
    
    core->routes = routes;
+   core->deferred = deferred;
    
    pthread_rwlock_init( &core->lock, NULL );
    pthread_rwlock_init( &core->route_lock, NULL );
+   
+   // start taking requests
+   rc = fskit_wq_start( deferred );
+   
+   if( rc != 0 ) {
+      fskit_error("fskit_wq_start() rc = %d\n", rc );
+      
+      core->routes = NULL;
+      core->deferred = NULL;
+      
+      fskit_wq_free( deferred );
+      safe_free( deferred );
+      
+      safe_delete( routes );
+      return rc;
+   }
    
    return 0;
 }
@@ -321,7 +375,7 @@ int fskit_core_destroy( struct fskit_core* core, void** app_fs_data ) {
    fskit_entry_destroy( core, &core->root, true );
    
    fskit_route_table_free( core->routes );
-   delete core->routes;
+   safe_delete( core->routes );
    
    pthread_rwlock_unlock( &core->lock );
    pthread_rwlock_destroy( &core->lock );
@@ -331,64 +385,122 @@ int fskit_core_destroy( struct fskit_core* core, void** app_fs_data ) {
       *app_fs_data = fs_data;
    }
    
+   fskit_wq_stop( core->deferred );
+   fskit_wq_free( core->deferred );
+   
+   safe_free( core->deferred );
+   
    memset( core, 0, sizeof(struct fskit_core) );
    
    return 0;
 }
 
 
-// unlink a directory's immediate children and subsequent descendants
+// queue a child for detach
+// child must be write-locked
+int fskit_detach_queue_child( struct fskit_detach_ctx* ctx, char const* dir_path, struct fskit_entry* child ) {
+   
+   char* child_path = fskit_fullpath( dir_path, child->name, NULL );
+   if( child_path == NULL ) {
+      
+      return -ENOMEM;
+   }
+   
+   try {
+      ctx->destroy_queue->push( child );
+      ctx->destroy_paths->push( child_path );
+   }
+   catch( bad_alloc& ba ) {
+      return -ENOMEM;
+   }
+   
+   // queued!  unref from the fs
+   child->link_count--;
+   child->deletion_in_progress = true;
+   
+   // NOTE: the application might have set link_count to 0 explicitly
+   if( child->link_count < 0 ) {
+      child->link_count = 0;
+   }
+   
+   child->open_count++;   // we're referencing the child as part of deleting it 
+   
+   return 0;
+}
+
+
+// queue all children for detaching 
+// consume all but . and .. from dir_children 
+// return 0 on success
+// return -ENOMEM if out of memory
+int fskit_detach_queue_children( struct fskit_detach_ctx* ctx, char const* dir_path, fskit_entry_set* dir_children ) {
+   
+   int rc = 0;
+   
+   for( fskit_entry_set::iterator itr = dir_children->begin(); itr != dir_children->end(); ) {
+      
+      struct fskit_entry* child = fskit_entry_set_get( &itr );
+
+      if( child == NULL ) {
+         itr = dir_children->erase( itr );
+         continue;
+      }
+
+      long fent_name_hash = fskit_entry_set_get_name_hash( &itr );
+
+      if( fent_name_hash == fskit_entry_name_hash( "." ) || fent_name_hash == fskit_entry_name_hash( ".." ) ) {
+         // skip
+         itr++;
+         continue;
+      }
+      
+      fskit_entry_wlock( child );       // NOTE: don't care if this fails with EDEADLK, since that means the caller owns the lock anyway
+      
+      rc = fskit_detach_queue_child( ctx, dir_path, child );
+      
+      fskit_entry_unlock( child );
+      
+      if( rc != 0 ) {
+         // can only be out of memory 
+         return -ENOMEM;
+      }
+      
+      // consumed
+      itr = dir_children->erase( itr );
+   }
+   
+   return 0;
+}
+
+
+// unlink a directory's immediate children and subsequent descendants.
 // run any detach route callbacks.
+// destroy the contents of dir_children (besides . and ..)
 // return 0 on success
 // return -ENOMEM if out of memory
 // NOTE: the owner of dir_children should be write-locked
 // NOTE: if -ENOMEM is encountered, this method will fail fast and return.
 // This is because it will be unable to safely run user-defined routes.
 // If this occurs, free up some memory and call this method again with the same detach context, but NULL for dir_children
-int fskit_detach_all_ex( struct fskit_core* core, char const* root_path, fskit_entry_set* dir_children, struct fskit_detach_ctx* ctx ) {
+int fskit_detach_all_ex( struct fskit_core* core, char const* dir_path, fskit_entry_set* dir_children, struct fskit_detach_ctx* ctx ) {
+   
+   // NOTE: it is important that we go in breadth-first order.  This is because fskit
+   // locks the parent before the child when resolving a path.  So it must be the case
+   // here to avoid deadlock.
    
    int rc = 0;
    
    // queue immediate children for destruction
    if( dir_children != NULL ) {
-      for( fskit_entry_set::iterator itr = dir_children->begin(); itr != dir_children->end(); ) {
-         
-         struct fskit_entry* child = fskit_entry_set_get( &itr );
-
-         if( child == NULL ) {
-            itr = dir_children->erase( itr );
-            continue;
-         }
-
-         long fent_name_hash = fskit_entry_set_get_name_hash( &itr );
-
-         if( fent_name_hash == fskit_entry_name_hash( "." ) || fent_name_hash == fskit_entry_name_hash( ".." ) ) {
-            itr++;
-            continue;
-         }
-         
-         fskit_entry_wlock( child );       // NOTE: don't care if this fails with EDEADLK, since that means the caller owns the lock anyway
-         
-         char* child_path = fskit_fullpath( root_path, child->name, NULL );
-         if( child_path == NULL ) {
-            
-            fskit_entry_unlock( child );
-            return -ENOMEM;
-         }
-         
-         child->link_count--;
-         child->open_count++;   // this method references the child
-         
-         fskit_entry_unlock( child );
-         
-         ctx->destroy_queue->push( child );
-         ctx->destroy_paths->push( child_path );
-
-         itr = dir_children->erase( itr );
+      
+      rc = fskit_detach_queue_children( ctx, dir_path, dir_children );
+      if( rc != 0 ) {
+         // OOM 
+         return rc;
       }
    }
    
-   while( ctx->destroy_queue->size() > 0 ) {
+   while( ctx->destroy_queue->size() > 0 && rc == 0 ) {
       
       struct fskit_entry* fent = ctx->destroy_queue->front();
       char* fent_path = ctx->destroy_paths->front();
@@ -400,66 +512,33 @@ int fskit_detach_all_ex( struct fskit_core* core, char const* root_path, fskit_e
       
       if( fent->type == FSKIT_ENTRY_TYPE_DIR ) {
          
-         for( fskit_entry_set::iterator itr = fent->children->begin(); itr != fent->children->end(); ) {
-            
-            struct fskit_entry* child = fskit_entry_set_get( &itr );
-
-            if( child == NULL ) {
-               itr++;
-               continue;
-            }
-            
-            long fent_name_hash = fskit_entry_set_get_name_hash( &itr );
-
-            if( fent_name_hash == fskit_entry_name_hash( "." ) || fent_name_hash == fskit_entry_name_hash( ".." ) ) {
-               itr++;
-               continue;
-            }
-            
-            fskit_entry_wlock( child );         // NOTE: don't care if this fails with -EDEADLK, since that means the calling thread owns the lock anyway
-            
-            char* child_path = fskit_fullpath( fent_path, child->name, NULL );
-            if( child_path == NULL ) {
-               
-               fskit_entry_unlock( child );
-               return -ENOMEM;
-            }
-            else {
-               
-               child->link_count--;
-               child->open_count++;     // this method references the child
-               
-               fskit_entry_unlock( child );
-               
-               // queue for destruction
-               ctx->destroy_queue->push( child );
-               ctx->destroy_paths->push( child_path );
-            }
-            
-            itr = fent->children->erase( itr );
-         }
+         fskit_detach_queue_children( ctx, fent_path, fent->children );
       }
       
       fent->open_count--;
       
-      rc = fskit_entry_try_destroy( core, fent_path, fent );
-      if( rc > 0 ) {
+      rc = fskit_entry_try_destroy_and_free( core, fent_path, fent );
+      if( rc >= 0 ) {
          
-         // destroyed!
-         safe_free( fent );
-         rc = 0;
+         if( rc == 0 ) {
+            // not destroyed--still opened somewhere
+            fskit_entry_unlock( fent );
+         }
+         else {
+            // destroyed 
+            rc = 0;
+         }
       }
       else {
-         // not destroyed 
-         fskit_entry_unlock( fent );
+         // failed to destroy and free, somehow 
+         fskit_error("fskit_entry_try_destroy_and_free(%s) rc = %d\n", fent_path, rc );
       }
       
       safe_free( fent_path );
    }
    
    // if all went well, then ctx's queues will be empty
-   
-   return 0;
+   return rc;
 }
 
 
@@ -681,11 +760,11 @@ int fskit_entry_init_file( struct fskit_entry* fent, uint64_t file_id, char cons
 
 
 // high-level initializer: make a directory 
-int fskit_entry_init_dir( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode ) {
+int fskit_entry_init_dir( struct fskit_entry* fent, struct fskit_entry* parent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode ) {
    
    int rc = 0;
    
-   fskit_entry_set* children = safe_new( fskit_entry_set );
+   fskit_entry_set* children = fskit_entry_set_new( fent, parent );
    if( children == NULL ) {
       return -ENOMEM;
    }
@@ -697,7 +776,6 @@ int fskit_entry_init_dir( struct fskit_entry* fent, uint64_t file_id, char const
       return rc;
    }
    
-   // set up children 
    fent->children = children;
    return 0;
 }
@@ -830,10 +908,10 @@ int fskit_entry_destroy( struct fskit_core* core, struct fskit_entry* fent, bool
 
 // try to destroy an fskit entry, if it is unlinked and no longer open
 // return 0 if not destroyed
-// return 1 if destroyed
-// return negative on error
+// return 1 if destroyed (even if the user-given detach callback fails)
 // fent must be write-locked
-// NOTE: even if this method returns an error code, the entry will be destroyed if it is no longer linked
+// NOTE: we mask any failures in the user callback.
+// NOTE: even if this method returns an error code, the entry will be destroyed if it is no longer linked.
 int fskit_entry_try_destroy( struct fskit_core* core, char const* fs_path, struct fskit_entry* fent ) {
    
    int rc = 0;
@@ -842,7 +920,7 @@ int fskit_entry_try_destroy( struct fskit_core* core, char const* fs_path, struc
       
       rc = fskit_run_user_detach( core, fs_path, fent );
       if( rc != 0 ) {
-         fskit_error("fskit_run_user_detach(%s) rc = %d\n", fs_path, rc );
+         fskit_error("WARN: fskit_run_user_detach(%s) rc = %d\n", fs_path, rc );
       }
       
       fskit_entry_destroy( core, fent, false );
@@ -853,6 +931,80 @@ int fskit_entry_try_destroy( struct fskit_core* core, char const* fs_path, struc
    return rc;
 }
 
+
+// try to destroy an fskit_entry, if it is unlinked and no longer open.
+// Free it and decrement the number of children in the filesystem if we succeed.
+// return 0 if not destroyed
+// return 1 if destroyed (even if the user-given detach callback fails)
+int fskit_entry_try_destroy_and_free( struct fskit_core* core, char const* fs_path, struct fskit_entry* fent ) {
+   
+   int rc = 0;
+   
+   // see if we can destroy this....
+   rc = fskit_entry_try_destroy( core, fs_path, fent );
+   if( rc > 0 ) {
+      
+      // fent was unlocked and destroyed
+      safe_free( fent );
+      
+      fskit_file_count_update( core, -1 );
+   }
+   
+   return rc;
+}
+
+
+// try to garbage-collect a node.  That is, if it's deletion_in_progress field is true, try to destroy it.
+// If we destroyed it, remove it from its parent as well.
+// return 0 if detached but not destroyed 
+// return 1 if detached and destroyed (even if the user-given detach callback fails)
+// return -EEXIST if the entry can't be garbage collected
+// return -ENAMETOOLONG if the child's name is more than FSKIT_FILESYSTEM_NAMEMAX characters long
+// NOTE: parent and child must be write-locked
+int fskit_entry_try_garbage_collect( struct fskit_core* core, char const* path, struct fskit_entry* parent, struct fskit_entry* child ) {
+   
+   int rc = 0;
+   
+   char path_basename[ FSKIT_FILESYSTEM_NAMEMAX + 1 ];
+   
+   if( strlen(child->name) > FSKIT_FILESYSTEM_NAMEMAX ) {
+      // shouldn't happen, but you never know 
+      return -ENAMETOOLONG;
+   }
+   
+   // if the link count had gone to 0, it means that we can go ahead with the create.
+   // we'll race ahead and detach the child now; unlink() and rmdir() are fine with that.
+   if( child->deletion_in_progress ) {
+      
+      strcpy( path_basename, child->name );
+   
+      // it's dead--we can unref
+      rc = fskit_entry_try_destroy_and_free( core, path, child );
+      if( rc >= 0 ) {
+         
+         // success! clear its name from the parent's children 
+         fskit_entry_set_remove( parent->children, path_basename );
+         
+         uint64_t child_inode = child->file_id;
+         
+         fskit_debug( "Garbage-collected %s (%" PRIX64 ")\n", path, child_inode );
+      }
+      else {
+         
+         // should not happen
+         fskit_error( "BUG: fskit_entry_try_destroy_and_free( %s ) rc = %d\n", path, rc );
+         
+         rc = -EIO;
+      }
+   }
+   else {
+      // can't create--file exists
+      rc = -EEXIST;
+   }
+   
+   return rc;
+}  
+         
 
 // lock a file for reading
 int fskit_entry_rlock2( struct fskit_entry* fent, char const* from_str, int line_no ) {
