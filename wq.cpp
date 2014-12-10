@@ -44,10 +44,10 @@ static void* fskit_wq_main( void* cls ) {
       work = wq->work;
       
       if( wq->work == wq->work_1 ) {
-         wq->work = wq->work_1;
+         wq->work = wq->work_2;
       }
       else {
-         wq->work = wq->work_2;
+         wq->work = wq->work_1;
       }
       
       pthread_mutex_unlock( &wq->work_lock );
