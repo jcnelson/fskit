@@ -19,6 +19,7 @@
 #include "access.h"
 #include "entry.h"
 #include "path.h"
+#include "stat.h"
 
 int fskit_access( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, mode_t mode ) {
    
@@ -32,15 +33,22 @@ int fskit_access( struct fskit_core* core, char const* path, uint64_t user, uint
    }
 
    // F_OK implicitly satisfied
-
-   if( (mode & R_OK) && !FSKIT_ENTRY_IS_READABLE( fent->mode, fent->owner, fent->group, user, group ) ) {
-      err = -EACCES;
-   }
-   else if( (mode & W_OK) && !FSKIT_ENTRY_IS_WRITEABLE( fent->mode, fent->owner, fent->group, user, group ) ) {
-      err = -EACCES;
-   }
-   else if( (mode & X_OK) && !FSKIT_ENTRY_IS_EXECUTABLE( fent->mode, fent->owner, fent->group, user, group ) ) {
-      err = -EACCES;
+   // give the application a chance to process the stat buffer
+   struct stat sb;
+   
+   err = fskit_fstat( core, path, fent, &sb );
+   if( err == 0 ) {
+      
+      // check against stat buffer
+      if( (mode & R_OK) && !FSKIT_ENTRY_IS_READABLE( sb.st_mode, sb.st_uid, sb.st_gid, user, group ) ) {
+         err = -EACCES;
+      }
+      else if( (mode & W_OK) && !FSKIT_ENTRY_IS_WRITEABLE( sb.st_mode, sb.st_uid, sb.st_gid, user, group ) ) {
+         err = -EACCES;
+      }
+      else if( (mode & X_OK) && !FSKIT_ENTRY_IS_EXECUTABLE( sb.st_mode, sb.st_uid, sb.st_gid, user, group ) ) {
+         err = -EACCES;
+      }
    }
 
    fskit_entry_unlock( fent );
