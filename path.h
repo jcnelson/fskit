@@ -23,11 +23,12 @@
 #include "debug.h"
 #include "entry.h"
 
+
+extern "C" {
+
 // path utilities 
 long fskit_entry_name_hash( char const* name );
 void fskit_sanitize_path( char* path );
-
-extern "C" {
    
 // public path utilities
 char* fskit_fullpath( char const* parent, char const* child, char* output );

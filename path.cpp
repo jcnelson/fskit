@@ -79,6 +79,10 @@ char* fskit_dirname( char const* path, char* dest ) {
       }
    }
 
+   if( delim_i < 0 ) {
+      delim_i = 0;
+   }
+   
    if( delim_i == 0 && path[0] == '/' ) {
       delim_i = 1;
    }
@@ -254,6 +258,7 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
       if( eval_rc != 0 ) {
          *err = eval_rc;
          safe_free( fpath );
+         fskit_entry_unlock( cur_ent );
          return NULL;
       }
    }
@@ -347,18 +352,26 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
          if( ent_eval ) {
             int eval_rc = fskit_entry_ent_eval( prev_ent, cur_ent, ent_eval, cls );
             if( eval_rc != 0 ) {
+               
+               fskit_entry_unlock( cur_ent );
+               fskit_entry_unlock( prev_ent );
+               
                *err = eval_rc;
                safe_free( fpath );
+               
                return NULL;
             }
          }
          
          if( cur_ent->link_count == 0 || cur_ent->type == FSKIT_ENTRY_TYPE_DEAD ) {
             // just got removed
+            
+            fskit_entry_unlock( cur_ent );
+            fskit_entry_unlock( prev_ent );
+            
             *err = -ENOENT;
             safe_free( fpath );
-            fskit_entry_unlock( cur_ent );
-
+            
             return NULL;
          }
          
