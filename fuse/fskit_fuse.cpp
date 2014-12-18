@@ -894,6 +894,12 @@ int fskit_fuse_shutdown( struct fskit_fuse_state* state, void** core_state ) {
    
    free( core );
    
+   // free mountpoint
+   if( state->mountpoint != NULL ) {
+      free( state->mountpoint );
+      state->mountpoint = NULL;
+   }
+   
    return rc;
 }
 
