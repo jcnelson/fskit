@@ -100,6 +100,9 @@ struct fskit_entry {
    
    // lock governing access to xattrs
    pthread_rwlock_t xattrs_lock;
+   
+   // if this is a symlink, this is the target 
+   char* symlink_target;
 };
 
 // fskit file handle 
@@ -192,45 +195,9 @@ struct fskit_detach_ctx {
    queue<char*>* destroy_paths;
 };
 
-// core management 
-int fskit_core_init( struct fskit_core* core, void* app_data );
-int fskit_core_destroy( struct fskit_core* core, void** app_fs_data );
 
-// core callbacks 
-int fskit_core_inode_alloc_cb( struct fskit_core* core, fskit_inode_alloc_t inode_alloc );
-int fskit_core_inode_free_cb( struct fskit_core* core, fskit_inode_free_t inode_free );
-
-// core methods 
-uint64_t fskit_core_inode_alloc( struct fskit_core* core, struct fskit_entry* parent, struct fskit_entry* child );
-int fskit_core_inode_free( struct fskit_core* core, uint64_t inode );
-struct fskit_entry* fskit_core_resolve_root( struct fskit_core* core, bool writelock );
-
-void* fskit_core_get_user_data( struct fskit_core* core );
-
-// memory management 
-int fskit_entry_init_lowlevel( struct fskit_entry* fent, uint8_t type, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode );
-int fskit_entry_init_common( struct fskit_entry* fent, uint8_t type, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode );
-int fskit_entry_init_file( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode );
-int fskit_entry_init_dir( struct fskit_entry* fent, struct fskit_entry* parent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode );
-int fskit_entry_init_fifo( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode );
-int fskit_entry_init_sock( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode );
-int fskit_entry_init_chr( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode, dev_t dev );
-int fskit_entry_init_blk( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode, dev_t dev );
-
-// destruction
-int fskit_run_user_detach( struct fskit_core* core, char const* path, struct fskit_entry* fent );
-int fskit_entry_destroy( struct fskit_core* core, struct fskit_entry* fent, bool needlock );
-int fskit_entry_try_destroy_and_free( struct fskit_core* core, char const* fs_path, struct fskit_entry* fent );
-int fskit_entry_try_destroy( struct fskit_core* core, char const* fs_path, struct fskit_entry* fent );
-int fskit_entry_try_garbage_collect( struct fskit_core* core, char const* path, struct fskit_entry* parent, struct fskit_entry* child );
-int fskit_detach_all( struct fskit_core* core, char const* root_path, fskit_entry_set* dir_children );
-int fskit_detach_all_ex( struct fskit_core* core, char const* root_path, fskit_entry_set* dir_children, struct fskit_detach_ctx* ctx );
-int fskit_detach_ctx_init( struct fskit_detach_ctx* ctx );
-int fskit_detach_ctx_free( struct fskit_detach_ctx* ctx );
-
-// entry sets
+// entry sets (internal API)
 fskit_entry_set* fskit_entry_set_new( struct fskit_entry* node, struct fskit_entry* parent );
-long fskit_entry_name_hash( char const* name );
 int fskit_entry_set_insert( fskit_entry_set* set, char const* name, struct fskit_entry* child );
 int fskit_entry_set_insert_hash( fskit_entry_set* set, long hash, struct fskit_entry* child );
 struct fskit_entry* fskit_entry_set_find_name( fskit_entry_set* set, char const* name );
@@ -243,6 +210,48 @@ struct fskit_entry* fskit_entry_set_get( fskit_entry_set::iterator* itr );
 long fskit_entry_set_get_name_hash( fskit_entry_set::iterator* itr );
 long fskit_entry_set_name_hash_at( fskit_entry_set* set, uint64_t i );
 struct fskit_entry* fskit_entry_set_child_at( fskit_entry_set* set, uint64_t i );
+int fskit_detach_all( struct fskit_core* core, char const* root_path, fskit_entry_set* dir_children );
+int fskit_detach_all_ex( struct fskit_core* core, char const* root_path, fskit_entry_set* dir_children, struct fskit_detach_ctx* ctx );
+
+extern "C" {
+   
+// core management 
+int fskit_core_init( struct fskit_core* core, void* app_data );
+int fskit_core_destroy( struct fskit_core* core, void** app_fs_data );
+
+// core callbacks 
+int fskit_core_inode_alloc_cb( struct fskit_core* core, fskit_inode_alloc_t inode_alloc );
+int fskit_core_inode_free_cb( struct fskit_core* core, fskit_inode_free_t inode_free );
+
+// core methods 
+uint64_t fskit_core_inode_alloc( struct fskit_core* core, struct fskit_entry* parent, struct fskit_entry* child );
+int fskit_core_inode_free( struct fskit_core* core, uint64_t inode );
+struct fskit_entry* fskit_core_resolve_root( struct fskit_core* core, bool writelock );
+void* fskit_core_get_user_data( struct fskit_core* core );
+
+// directory methods (use instead of the entry set API)
+long fskit_entry_name_hash( char const* name );
+struct fskit_entry* fskit_dir_find_by_name( struct fskit_entry* dir, char const* name );
+
+// memory management 
+int fskit_entry_init_lowlevel( struct fskit_entry* fent, uint8_t type, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode );
+int fskit_entry_init_common( struct fskit_entry* fent, uint8_t type, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode );
+int fskit_entry_init_file( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode );
+int fskit_entry_init_dir( struct fskit_entry* fent, struct fskit_entry* parent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode );
+int fskit_entry_init_fifo( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode );
+int fskit_entry_init_sock( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode );
+int fskit_entry_init_chr( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode, dev_t dev );
+int fskit_entry_init_blk( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode, dev_t dev );
+int fskit_entry_init_symlink( struct fskit_entry* fent, uint64_t file_id, char const* name, char const* linkpath );
+
+// destruction
+int fskit_run_user_detach( struct fskit_core* core, char const* path, struct fskit_entry* fent );
+int fskit_entry_destroy( struct fskit_core* core, struct fskit_entry* fent, bool needlock );
+int fskit_entry_try_destroy_and_free( struct fskit_core* core, char const* fs_path, struct fskit_entry* fent );
+int fskit_entry_try_destroy( struct fskit_core* core, char const* fs_path, struct fskit_entry* fent );
+int fskit_entry_try_garbage_collect( struct fskit_core* core, char const* path, struct fskit_entry* parent, struct fskit_entry* child );
+int fskit_detach_ctx_init( struct fskit_detach_ctx* ctx );
+int fskit_detach_ctx_free( struct fskit_detach_ctx* ctx );
 
 // locking 
 int fskit_entry_rlock2( struct fskit_entry* fent, char const* from_str, int line_no );
@@ -294,5 +303,7 @@ int fskit_entry_set_user_data( struct fskit_entry* ent, void* app_data );
 
 // accounting 
 uint64_t fskit_file_count_update( struct fskit_core* core, int change );
+
+}
 
 #endif

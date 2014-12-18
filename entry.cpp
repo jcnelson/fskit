@@ -183,6 +183,18 @@ long fskit_entry_set_name_hash_at( fskit_entry_set* set, uint64_t i ) {
    }
 }
 
+// find a child by name.
+// dir must be at least read-locked 
+// return NULL if not found, or if not a directory
+struct fskit_entry* fskit_dir_find_by_name( struct fskit_entry* dir, char const* name ) {
+   
+   if( dir->children == NULL ) {
+      return NULL;
+   }
+   
+   return fskit_entry_set_find_name( dir->children, name );
+}
+
 // attach an entry as a child directly
 // both fskit_entry structures must be write-locked
 int fskit_entry_attach_lowlevel( struct fskit_entry* parent, struct fskit_entry* fent ) {
@@ -677,10 +689,10 @@ struct fskit_entry* fskit_core_resolve_root( struct fskit_core* core, bool write
    if( core->root.type == FSKIT_ENTRY_TYPE_DIR && !core->root.deletion_in_progress ) {
       // not dead 
       if( writelock ) {
-         fskit_entry_rlock( &core->root );
+         fskit_entry_wlock( &core->root );
       }
       else {
-         fskit_entry_wlock( &core->root );
+         fskit_entry_rlock( &core->root );
       }
       
       fskit_core_unlock( core );
@@ -840,6 +852,30 @@ int fskit_entry_init_blk( struct fskit_entry* fent, uint64_t file_id, char const
    return 0;
 }
 
+// high-level initializer; make a symlink 
+int fskit_entry_init_symlink( struct fskit_entry* fent, uint64_t file_id, char const* name, char const* linkpath ) {
+   
+   int rc = 0;
+   char* symlink_target = strdup_or_null( linkpath );
+   if( symlink_target == NULL ) {
+      return -ENOMEM;
+   }
+   
+   rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_LNK, file_id, name, 0, 0, 0777 );
+   if( rc != 0 ) {
+      fskit_error("fskit_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
+      
+      safe_free( symlink_target );
+      return rc;
+   }
+   
+   fent->symlink_target = symlink_target;
+   fent->size = strlen( symlink_target );
+   fent->link_count = 1;
+   
+   return 0;
+}
+
 // run user-supplied route callback to destroy this fent's inode data 
 int fskit_run_user_detach( struct fskit_core* core, char const* path, struct fskit_entry* fent ) {
    
@@ -875,28 +911,33 @@ int fskit_entry_destroy( struct fskit_core* core, struct fskit_entry* fent, bool
    if( needlock ) {
       fskit_entry_wlock( fent );
    }
+   
+   fent->type = FSKIT_ENTRY_TYPE_DEAD;      // next thread to hold this lock knows this is a dead entry
 
    // free common fields
-   if( fent->name ) {
+   if( fent->name != NULL ) {
       safe_free( fent->name );
       fent->name = NULL;
    }
 
-   if( fent->children ) {
+   if( fent->children != NULL ) {
       delete fent->children;
       fent->children = NULL;
    }
    
+   if( fent->symlink_target != NULL ) {
+      safe_free( fent->symlink_target );
+      fent->symlink_target = NULL;
+   }
+   
    fskit_xattr_wlock( fent );
    
-   if( fent->xattrs ) {
+   if( fent->xattrs != NULL ) {
       delete fent->xattrs;
       fent->xattrs = NULL;
    }
    
    fskit_xattr_unlock( fent );
-
-   fent->type = FSKIT_ENTRY_TYPE_DEAD;      // next thread to hold this lock knows this is a dead entry
 
    fskit_entry_unlock( fent );
    pthread_rwlock_destroy( &fent->lock );
