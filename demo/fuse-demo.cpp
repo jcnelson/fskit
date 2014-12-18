@@ -73,6 +73,11 @@ int create_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fs
 // keep the file descriptor in a demo_fd
 int open_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* fent, int flags, void** handle_data ) {
    
+   // only regular files 
+   if( fent->type != FSKIT_ENTRY_TYPE_FILE ) {
+      return 0;
+   }
+   
    char buf[17];
    char* path = NULL;
    char* storage_root = (char*)fskit_core_get_user_data( core );
@@ -102,6 +107,11 @@ int open_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fski
 // close the file $storage_dir/$inode
 // free the demo_fd
 int close_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* fent, void* handle_data ) {
+   
+   // only regular files 
+   if( fent->type != FSKIT_ENTRY_TYPE_FILE ) {
+      return 0;
+   }
    
    struct demo_fd* dfd = (struct demo_fd*)handle_data;
    int rc = 0;
