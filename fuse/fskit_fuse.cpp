@@ -69,6 +69,13 @@ int fskit_fuse_setting_disable( struct fskit_fuse_state* state, uint64_t flag ) 
    return 0;
 }
 
+// set the postmount callback 
+int fskit_fuse_postmount_callback( struct fskit_fuse_state* state, fskit_fuse_postmount_callback_t cb, void* cb_cls ) {
+   state->postmount = cb;
+   state->postmount_cls = cb_cls;
+   return 0;
+}
+
 // make a FUSE file info for a file handle
 struct fskit_fuse_file_info* fskit_fuse_make_file_handle( struct fskit_file_handle* fh ) {
    
@@ -754,14 +761,111 @@ int fskit_fuse_main( struct fskit_fuse_state* state, int argc, char** argv ) {
    int rc = 0;
    
    // set up FUSE
+   struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
    struct fuse_operations fskit_fuse = fskit_fuse_get_opers();
+   struct fuse_chan* ch = NULL;
+   struct fuse* fs = NULL;
+   int multithreaded = 1;
+   int foreground = 0;
+   char* mountpoint = NULL;
    
-   // run!
-   rc = fuse_main(argc, argv, &fskit_fuse, state );
+   // parse command-line...
+   rc = fuse_parse_cmdline( &args, &mountpoint, &multithreaded, &foreground );
+   if( rc < 0 ) {
+      
+      fskit_error("fuse_parse_cmdline rc = %d\n", rc );
+      return rc;
+   }
+   
+   state->mountpoint = strdup(mountpoint);
+   
+   // mount 
+   ch = fuse_mount( mountpoint, &args );
+   if( ch == NULL ) {
+      
+      rc = -errno;
+      fskit_error("fuse_mount failed, errno = %d\n", rc );
+      
+      fuse_opt_free_args(&args);
+      
+      if( rc == 0 ) {
+          rc = -EPERM;
+      }
+      
+      return rc;
+   }
+   
+   // create the filesystem
+   fs = fuse_new( ch, &args, &fskit_fuse, sizeof(fskit_fuse), NULL );
+   fuse_opt_free_args(&args);
+   
+   if( fs == NULL ) {
+      
+      // failed
+      rc = -errno;
+      fskit_error("fuse_new failed, errno = %d\n", rc );
+      
+      fuse_unmount( mountpoint, ch );
+      
+      if( rc == 0 ) {
+          rc = -EPERM;
+      }
+      
+      return rc;
+   }
+   
+   // daemonize if running in the background 
+   rc = fuse_daemonize( foreground );
+   if( rc != 0 ) {
+      
+      // failed 
+      fskit_error("fuse_daemonize(%d) rc = %d\n", foreground, rc );
+      
+      fuse_unmount( mountpoint, ch );
+      fuse_destroy( fs );
+      
+      return rc;
+   }
+   
+   // set up FUSE signal handlers 
+   rc = fuse_set_signal_handlers( fuse_get_session(fs) );
+   if( rc < 0 ) {
+      
+      // failed 
+      fskit_error("fuse_set_signal_handlers rc = %d\n", rc );
+      
+      fuse_unmount( mountpoint, ch );
+      fuse_destroy( fs );
+      return rc;
+   }
+   
+   // if we have a post-mount callback, call it now, since FUSE is ready to receive requests
+   if( state->postmount != NULL ) {
+      
+      rc = (*state->postmount)( state, state->postmount_cls );
+      if( rc != 0 ) {
+         
+         fskit_error("fskit postmount callback rc = %d\n", rc );
+         
+         fuse_unmount( mountpoint, ch );
+         fuse_destroy( fs );
+         
+         return rc;
+      }
+   }
+   
+   // run the filesystem--start processing requests
+   if( multithreaded ) {
+      rc = fuse_loop_mt( fs );
+   }
+   else {
+      rc = fuse_loop( fs );
+   }
+   
+   fuse_teardown( fs, mountpoint );
    
    return rc;
 }
-
 
 // shut down fskit fuse 
 int fskit_fuse_shutdown( struct fskit_fuse_state* state, void** core_state ) {

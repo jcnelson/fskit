@@ -22,6 +22,7 @@
 #include "fskit/fskit.h"
 
 #define FUSE_USE_VERSION 28
+
 #include <fuse.h>
 
 #include <map>
@@ -33,11 +34,19 @@ using namespace std;
 // allow the filesystem process to call arbitrary methods on itself externally, bypassing permissions checks
 #define FSKIT_FUSE_SET_FS_ACCESS        0x1
 
+typedef int (*fskit_fuse_postmount_callback_t)( struct fskit_fuse_state*, void* );
+
 // private fuse state
 struct fskit_fuse_state {
    
    struct fskit_core* core;
    uint64_t settings;           // bitmask of FSKIT_FUSE_SET_*
+   
+   char* mountpoint;    // mountpoint
+   
+   // post-mount callback, to be called before processing any FUSE requests
+   fskit_fuse_postmount_callback_t postmount;
+   void* postmount_cls;
 };
 
 // fskit fuse file handle
@@ -61,6 +70,8 @@ mode_t fskit_fuse_get_umask();
 
 int fskit_fuse_setting_enable( struct fskit_fuse_state* state, uint64_t flag );
 int fskit_fuse_setting_disable( struct fskit_fuse_state* state, uint64_t flag );
+
+int fskit_fuse_postmount_callback( struct fskit_fuse_state* state, fskit_fuse_postmount_callback_t cb, void* cb_cls );
 
 // fs methods
 int fuse_fskit_getattr(const char *path, struct stat *statbuf);
