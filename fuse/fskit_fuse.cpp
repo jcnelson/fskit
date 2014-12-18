@@ -108,18 +108,29 @@ int fskit_fuse_getattr(const char *path, struct stat *statbuf) {
    int rc = fskit_stat( state->core, path, uid, gid, statbuf );
    
    fskit_debug("getattr(%s, %p) rc = %d\n", path, statbuf, rc );
+   
    return rc;
 }
 
 
 int fskit_fuse_readlink(const char *path, char *link, size_t size) {
    
-   fskit_debug("readlink(%s, %s, %zu)\n", path, link, size );
+   fskit_debug("readlink(%s, %zu)\n", path, size );
    
-   // not supported by fskit
+   ssize_t rc = 0;
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   uid_t uid = fskit_fuse_get_uid( state );
+   gid_t gid = fskit_fuse_get_gid( state );
    
-   fskit_debug("readlink(%s, %s, %zu) rc = %d\n", path, link, size, -ENOSYS );
-   return -ENOSYS;
+   rc = fskit_readlink( state->core, path, uid, gid, link, size );
+   
+   if( rc >= 0 ) {
+      rc = 0;
+   }
+   
+   fskit_debug("readlink(%s, %zu) rc = %zd\n", path, size, rc );
+   
+   return (int)rc;
 }
 
 
@@ -183,13 +194,19 @@ int fskit_fuse_rmdir(const char *path) {
    return rc;
 }
 
-int fskit_fuse_symlink(const char *path, const char *link) {
+int fskit_fuse_symlink(const char *target, const char *linkpath) {
    
-   fskit_debug("symlink(%s, %s)\n", path, link );
+   fskit_debug("symlink(%s, %s)\n", target, linkpath );
    
-   // not supported by fskit
-   fskit_debug("symlink(%s, %s) rc = %d\n", path, link, -ENOSYS );
-   return -ENOSYS;
+   int rc = 0;
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   uid_t uid = fskit_fuse_get_uid( state );
+   gid_t gid = fskit_fuse_get_gid( state );
+   
+   rc = fskit_symlink( state->core, target, linkpath, uid, gid );
+   
+   fskit_debug("symlink(%s, %s) rc = %d\n", target, linkpath, rc );
+   return rc;
 }
 
 int fskit_fuse_rename(const char *path, const char *newpath) {
