@@ -34,6 +34,7 @@
 #include "closedir.h"
 #include "create.h"
 #include "getxattr.h"
+#include "link.h"
 #include "listxattr.h"
 #include "mkdir.h"
 #include "mknod.h"
