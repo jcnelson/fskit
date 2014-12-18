@@ -130,7 +130,7 @@ struct fskit_route_dispatch_args {
 };
 
 
-// populate route dispatch arguments 
+// populate route dispatch arguments (internal API)
 int fskit_route_create_args( struct fskit_route_dispatch_args* dargs, mode_t mode );
 int fskit_route_mknod_args( struct fskit_route_dispatch_args* dargs, mode_t mode, dev_t dev );
 int fskit_route_mkdir_args( struct fskit_route_dispatch_args* dargs, mode_t mode );
@@ -143,7 +143,7 @@ int fskit_route_detach_args( struct fskit_route_dispatch_args* dargs, void* inod
 int fskit_route_stat_args( struct fskit_route_dispatch_args* dargs, struct stat* sb );
 int fskit_route_sync_args( struct fskit_route_dispatch_args* args );
 
-// call user-supplied routes 
+// call user-supplied routes (internal API)
 int fskit_route_call_create( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
 int fskit_route_call_mknod( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
 int fskit_route_call_mkdir( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
@@ -157,7 +157,7 @@ int fskit_route_call_detach( struct fskit_core* core, char const* path, struct f
 int fskit_route_call_stat( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
 int fskit_route_call_sync( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
 
-// memory management 
+// memory management (internal API)
 int fskit_path_route_free( struct fskit_path_route* route );
 
 extern "C" { 

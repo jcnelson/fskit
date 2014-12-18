@@ -22,10 +22,10 @@
 #include "debug.h"
 #include "entry.h"
 
+extern "C" {
+
 int fskit_run_user_mkdir( struct fskit_core* core, char const* path, struct fskit_entry* fent, mode_t mode, void** inode_data );
 
-extern "C" {
-   
 int fskit_mkdir( struct fskit_core* core, char const* path, mode_t mode, uint64_t user, uint64_t group );
 
 }

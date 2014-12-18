@@ -23,7 +23,11 @@
 
 #define FSKIT_RANDOM_DEVICE_PATH "/dev/urandom"
 
+extern "C" {
+   
 int fskit_random_init();
 uint32_t fskit_random32();
+
+}
 
 #endif 
