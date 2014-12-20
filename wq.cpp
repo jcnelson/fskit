@@ -160,12 +160,14 @@ int fskit_wq_stop( struct fskit_wq* wq ) {
 // free a work request queue 
 static int fskit_wq_queue_free( fskit_wq_queue_t* wqueue ) {
    
-   while( wqueue->size() > 0 ) {
-      
-      struct fskit_wreq wreq = wqueue->front();
-      wqueue->pop();
-      
-      fskit_wreq_free( &wreq );
+   if( wqueue != NULL ) {
+      while( wqueue->size() > 0 ) {
+         
+         struct fskit_wreq wreq = wqueue->front();
+         wqueue->pop();
+         
+         fskit_wreq_free( &wreq );
+      }
    }
    
    return 0;
