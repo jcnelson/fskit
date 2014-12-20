@@ -774,10 +774,13 @@ int fskit_fuse_main( struct fskit_fuse_state* state, int argc, char** argv ) {
    if( rc < 0 ) {
       
       fskit_error("fuse_parse_cmdline rc = %d\n", rc );
+      fuse_opt_free_args(&args);
+      
       return rc;
    }
    
-   state->mountpoint = strdup(mountpoint);
+   // state takes ownership of mountpoint
+   state->mountpoint = mountpoint;
    
    // mount 
    ch = fuse_mount( mountpoint, &args );
@@ -796,7 +799,7 @@ int fskit_fuse_main( struct fskit_fuse_state* state, int argc, char** argv ) {
    }
    
    // create the filesystem
-   fs = fuse_new( ch, &args, &fskit_fuse, sizeof(fskit_fuse), NULL );
+   fs = fuse_new( ch, &args, &fskit_fuse, sizeof(fskit_fuse), state );
    fuse_opt_free_args(&args);
    
    if( fs == NULL ) {
