@@ -779,8 +779,7 @@ int fskit_fuse_main( struct fskit_fuse_state* state, int argc, char** argv ) {
       return rc;
    }
    
-   // state takes ownership of mountpoint
-   state->mountpoint = mountpoint;
+   state->mountpoint = strdup( mountpoint );
    
    // mount 
    ch = fuse_mount( mountpoint, &args );
