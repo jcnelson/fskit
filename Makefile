@@ -1,6 +1,6 @@
 CPP    := g++ -Wall -g -fPIC
 LIB   := -lpthread -lrt
-INC   := -I/usr/include -I/usr/local/include -I.
+INC   := -I.
 C_SRCS:= $(wildcard *.c)
 CXSRCS:= $(wildcard *.cpp)
 HEADERS := $(wildcard *.h)
@@ -11,8 +11,9 @@ LIBFSKIT := libfskit.so
 LIBFSKIT_SO := libfskit.so.1
 LIBFSKIT_LIB := libfskit.so.1.0.1
 
-DESTDIR := /usr/local/lib
-INCDIR  := /usr/local/include/fskit
+PREFIX		?= /usr
+LIBDIR		?= $(PREFIX)/lib
+INCLUDEDIR	?= $(PREFIX)/include/fskit
 
 all: fskit
 
@@ -22,9 +23,9 @@ fskit: $(OBJ)
 	$(SHELL) -c "if ! test -L $(LIBFSKIT); then /bin/ln -s $(LIBFSKIT_SO) $(LIBFSKIT); fi"
 
 install: fskit
-	/bin/cp -a $(LIBFSKIT) $(LIBFSKIT_SO) $(LIBFSKIT_LIB) $(DESTDIR)
-	/bin/mkdir -p $(INCDIR)
-	/bin/cp -a $(HEADERS) $(INCDIR)
+	mkdir -p $(DESTDIR)/$(LIBDIR) $(DESTDIR)/$(INCLUDEDIR)
+	cp -a $(LIBFSKIT) $(LIBFSKIT_SO) $(LIBFSKIT_LIB) $(DESTDIR)/$(LIBDIR)
+	cp -a $(HEADERS) $(DESTDIR)/$(INCLUDEDIR)
 
 %.o : %.c
 	$(CPP) -o $@ $(INC) -c $< $(DEFS)
