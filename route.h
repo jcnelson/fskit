@@ -3,22 +3,21 @@
    Copyright (C) 2014  Jude Nelson
 
    This program is dual-licensed: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License version 3 or later as 
-   published by the Free Software Foundation. For the terms of this 
+   it under the terms of the GNU Lesser General Public License version 3 or later as
+   published by the Free Software Foundation. For the terms of this
    license, see LICENSE.LGPLv3+ or <http://www.gnu.org/licenses/>.
 
    You are free to use this program under the terms of the GNU Lesser General
-   Public License, but WITHOUT ANY WARRANTY; without even the implied 
+   Public License, but WITHOUT ANY WARRANTY; without even the implied
    warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
    See the GNU Lesser General Public License for more details.
 
-   Alternatively, you are free to use this program under the terms of the 
+   Alternatively, you are free to use this program under the terms of the
    Internet Software Consortium License, but WITHOUT ANY WARRANTY; without
    even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-   For the terms of this license, see LICENSE.ISC or 
+   For the terms of this license, see LICENSE.ISC or
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
-
 
 #ifndef _FSKIT_ROUTE_H_
 #define _FSKIT_ROUTE_H_
@@ -28,11 +27,11 @@
 #include "common.h"
 #include "fskit.h"
 
-// prototypes 
+// prototypes
 struct fskit_core;
 struct fskit_dir_entry;
 
-// route match methods 
+// route match methods
 #define FSKIT_ROUTE_MATCH_CREATE                0
 #define FSKIT_ROUTE_MATCH_MKDIR                 1
 #define FSKIT_ROUTE_MATCH_MKNOD                 2
@@ -52,7 +51,7 @@ struct fskit_dir_entry;
 #define FSKIT_CONCURRENT        2       // route method calls will be concurrent
 #define FSKIT_INODE_SEQUENTIAL  3       // route method calls on the same inode will be serialized
 
-// common routes 
+// common routes
 #define FSKIT_ROUTE_ANY         "/([^/]+[/]*)*"
 
 
@@ -64,7 +63,7 @@ struct fskit_match_group {
    char** argv;                 // each matched string in the path regex
 };
 
-// method callback signatures to match on path route 
+// method callback signatures to match on path route
 typedef int (*fskit_entry_route_create_callback_t)( struct fskit_core*, struct fskit_match_group*, struct fskit_entry*, mode_t, void**, void** );
 typedef int (*fskit_entry_route_mknod_callback_t)( struct fskit_core*, struct fskit_match_group*, struct fskit_entry*, mode_t, dev_t, void** );
 typedef int (*fskit_entry_route_mkdir_callback_t)( struct fskit_core*, struct fskit_match_group*, struct fskit_entry*, mode_t, void** );
@@ -92,18 +91,18 @@ union fskit_route_method {
    fskit_entry_route_detach_callback_t       detach_cb;
 };
 
-// a path route 
+// a path route
 struct fskit_path_route {
-   
+
    char* path_regex_str;                // string-ified regex
    int num_expected_matches;            // number of expected match groups (upper bound)
    regex_t path_regex;                  // compiled regular expression
-   
+
    int consistency_discipline;          // concurrent or sequential call?
-   
+
    int route_type;                      // one of FSKIT_ROUTE_MATCH_*
    fskit_route_method method;           // which method to call
-   
+
    pthread_rwlock_t lock;               // lock used to enforce the consistency discipline
 };
 
@@ -111,25 +110,25 @@ struct fskit_path_route {
 // I/O continuation for successful read/write/trunc (i.e. to be called with the route's consistency discipline enforced)
 typedef int (*fskit_route_io_continuation)( struct fskit_core*, struct fskit_entry*, off_t, ssize_t );
 
-// dispatch arguments 
+// dispatch arguments
 struct fskit_route_dispatch_args {
-   
-   int flags;           // open() only 
-   
+
+   int flags;           // open() only
+
    mode_t mode;         // create(), mknod() only
    dev_t dev;           // mknod() only
-   
+
    void* inode_data;    // create(), mkdir(), unlink(), rmdir() only.  In create() and mkdir(), this is an output value.
    void* handle_data;   // create(), open(), opendir(), close() only.  In open() and opendir(), this is an output value.
-   
+
    char* iobuf;         // read(), write() only.  In read(), this is an output value.
-   size_t iolen;        // read(), write() only 
+   size_t iolen;        // read(), write() only
    off_t iooff;         // read(), write(), trunc() only
    fskit_route_io_continuation io_cont;  // read(), write(), trunc() only
-   
+
    struct fskit_dir_entry** dents;        // readdir() only
    uint64_t num_dents;
-   
+
    struct stat* sb;      // stat() only
 };
 
@@ -164,9 +163,9 @@ int fskit_route_call_sync( struct fskit_core* core, char const* path, struct fsk
 // memory management (internal API)
 int fskit_path_route_free( struct fskit_path_route* route );
 
-extern "C" { 
-   
-// define various types of routes 
+extern "C" {
+
+// define various types of routes
 int fskit_route_create( struct fskit_core* core, char const* route_regex, fskit_entry_route_create_callback_t create_cb, int consistency_discipline );
 int fskit_route_mknod( struct fskit_core* core, char const* route_regex, fskit_entry_route_mknod_callback_t create_cb, int consistency_discipline );
 int fskit_route_mkdir( struct fskit_core* core, char const* route_regex, fskit_entry_route_mkdir_callback_t mkdir_cb, int consistency_discipline );
@@ -180,7 +179,7 @@ int fskit_route_detach( struct fskit_core* core, char const* route_regex, fskit_
 int fskit_route_stat( struct fskit_core* core, char const* route_regex, fskit_entry_route_stat_callback_t stat_cb, int consistency_discipline );
 int fskit_route_sync( struct fskit_core* core, char const* route_regex, fskit_entry_route_sync_callback_t sync_cb, int consistency_discipline );
 
-// undefine various types of routes 
+// undefine various types of routes
 int fskit_unroute_create( struct fskit_core* core, int route_handle );
 int fskit_unroute_mknod( struct fskit_core* core, int route_handle );
 int fskit_unroute_mkdir( struct fskit_core* core, int route_handle );

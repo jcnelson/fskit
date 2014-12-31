@@ -3,19 +3,19 @@
    Copyright (C) 2014  Jude Nelson
 
    This program is dual-licensed: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License version 3 or later as 
-   published by the Free Software Foundation. For the terms of this 
+   it under the terms of the GNU Lesser General Public License version 3 or later as
+   published by the Free Software Foundation. For the terms of this
    license, see LICENSE.LGPLv3+ or <http://www.gnu.org/licenses/>.
 
    You are free to use this program under the terms of the GNU Lesser General
-   Public License, but WITHOUT ANY WARRANTY; without even the implied 
+   Public License, but WITHOUT ANY WARRANTY; without even the implied
    warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
    See the GNU Lesser General Public License for more details.
 
-   Alternatively, you are free to use this program under the terms of the 
+   Alternatively, you are free to use this program under the terms of the
    Internet Software Consortium License, but WITHOUT ANY WARRANTY; without
    even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-   For the terms of this license, see LICENSE.ISC or 
+   For the terms of this license, see LICENSE.ISC or
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
@@ -28,9 +28,9 @@ char* fskit_fullpath( char const* root, char const* path, char* dest ) {
 
    char delim = 0;
    int path_off = 0;
-   
+
    int len = strlen(path) + strlen(root) + 2;
-   
+
    if( strlen(root) > 0 ) {
       size_t root_delim_off = strlen(root) - 1;
       if( root[root_delim_off] != '/' && path[0] != '/' ) {
@@ -45,15 +45,15 @@ char* fskit_fullpath( char const* root, char const* path, char* dest ) {
    if( dest == NULL ) {
       dest = CALLOC_LIST( char, len );
    }
-   
+
    memset(dest, 0, len);
-   
+
    strcpy( dest, root );
    if( delim != 0 ) {
       dest[strlen(dest)] = '/';
    }
    strcat( dest, path + path_off );
-   
+
    return dest;
 }
 
@@ -85,7 +85,7 @@ char* fskit_dirname( char const* path, char* dest ) {
    if( delim_i < 0 ) {
       delim_i = 0;
    }
-   
+
    if( delim_i == 0 && path[0] == '/' ) {
       delim_i = 1;
    }
@@ -95,7 +95,7 @@ char* fskit_dirname( char const* path, char* dest ) {
    return dest;
 }
 
-// determine how long the basename of a path is 
+// determine how long the basename of a path is
 size_t fskit_basename_len( char const* path ) {
    int delim_i = strlen(path) - 1;
    if( delim_i <= 0 ) {
@@ -113,7 +113,7 @@ size_t fskit_basename_len( char const* path ) {
       }
    }
    delim_i++;
-   
+
    return strlen(path) - delim_i;
 }
 
@@ -122,7 +122,7 @@ size_t fskit_basename_len( char const* path ) {
 // put it into dest, if dest is not null.
 // otherwise, allocate a buffer with it and return the buffer
 char* fskit_basename( char const* path, char* dest ) {
-   
+
    size_t len = fskit_basename_len( path );
 
    if( dest == NULL ) {
@@ -131,7 +131,7 @@ char* fskit_basename( char const* path, char* dest ) {
    else {
       memset( dest, 0, len + 1 );
    }
-   
+
    strncpy( dest, path + strlen(path) - len, len );
    return dest;
 }
@@ -144,22 +144,22 @@ char* fskit_basename( char const* path, char* dest ) {
 // the paths must be normalized (no //), and not include ..
 int fskit_depth( char const* path ) {
    int i = strlen(path) - 1;
-   
+
    if( i <= 0 ) {
       return 0;
    }
-   
+
    if( path[i] == '/' ) {
       i--;
    }
-   
+
    int depth = 0;
    for( ; i >= 0; i-- ) {
       if( path[i] == '/' ) {
          depth++;
       }
    }
-   
+
    return depth;
 }
 
@@ -184,12 +184,12 @@ void fskit_sanitize_path( char* path ) {
 static int fskit_entry_ent_eval( struct fskit_entry* prev_ent, struct fskit_entry* cur_ent, int (*ent_eval)( struct fskit_entry*, void* ), void* cls ) {
    long name_hash = fskit_entry_name_hash( cur_ent->name );
    char* name_dup = strdup( cur_ent->name );
-   
+
    int eval_rc = (*ent_eval)( cur_ent, cls );
    if( eval_rc != 0 ) {
-      
+
       fskit_debug("ent_eval(%" PRIX64 " (%s)) rc = %d\n", cur_ent->file_id, name_dup, eval_rc );
-      
+
       // cur_ent might not even exist anymore....
       if( cur_ent->type != FSKIT_ENTRY_TYPE_DEAD ) {
          fskit_entry_unlock( cur_ent );
@@ -199,7 +199,7 @@ static int fskit_entry_ent_eval( struct fskit_entry* prev_ent, struct fskit_entr
       }
       else {
          safe_free( cur_ent );
-         
+
          if( prev_ent ) {
             fskit_debug("Remove %s from %s\n", name_dup, prev_ent->name );
             fskit_entry_set_remove_hash( prev_ent->children, name_hash );
@@ -207,16 +207,16 @@ static int fskit_entry_ent_eval( struct fskit_entry* prev_ent, struct fskit_entr
          }
       }
    }
-   
+
    safe_free( name_dup );
-   
+
    return eval_rc;
 }
 
 // resolve an absolute path, running a given function on each entry as the path is walked
 // returns the locked fskit_entry at the end of the path on success
 struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, bool writelock, int* err, int (*ent_eval)( struct fskit_entry*, void* ), void* cls ) {
-   
+
    // if this path ends in '/', then append a '.'
    char* fpath = NULL;
    if( strlen(path) == 0 ) {
@@ -229,7 +229,7 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
    }
    else {
       fpath = strdup( path );
-      
+
       if( fpath == NULL ) {
          *err = -ENOMEM;
          return NULL;
@@ -246,7 +246,7 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
    // if name == NULL, then root was requested.
    struct fskit_entry* cur_ent = fskit_core_resolve_root( core, (writelock && name == NULL) );
    struct fskit_entry* prev_ent = NULL;
-   
+
    if( cur_ent->link_count == 0 || cur_ent->type == FSKIT_ENTRY_TYPE_DEAD ) {
       // filesystem was nuked
       safe_free( fpath );
@@ -265,9 +265,9 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
          return NULL;
       }
    }
-   
+
    do {
-       
+
        // if this isn't a directory, then invalid path
        if( name != NULL && cur_ent->type != FSKIT_ENTRY_TYPE_DIR ) {
          if( cur_ent->type != FSKIT_ENTRY_TYPE_DEAD ) {
@@ -285,10 +285,10 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
 
       // do we have permission to search this directory?
       if( cur_ent->type == FSKIT_ENTRY_TYPE_DIR && !FSKIT_ENTRY_IS_DIR_READABLE( cur_ent->mode, cur_ent->owner, cur_ent->group, user, group ) ) {
-         
+
          fskit_error("User %" PRIu64 " of group %" PRIu64 " cannot read directory %" PRIX64 " owned by %" PRIu64 " in group %" PRIu64 "\n",
                 user, group, cur_ent->file_id, cur_ent->owner, cur_ent->group );
-         
+
          // the appropriate read flag is not set
          *err = -EACCES;
          safe_free( fpath );
@@ -296,23 +296,23 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
 
          return NULL;
       }
-      
+
       // NOTE: check this here, since we might just be resolving root
       if( name == NULL ) {
          break;
       }
-      
+
       // resolve next name
       prev_ent = cur_ent;
       if( name != NULL ) {
-         
+
          if( prev_ent->type != FSKIT_ENTRY_TYPE_DIR ) {
-            
-            // not a directory 
+
+            // not a directory
             *err = -ENOTDIR;
             safe_free( fpath );
             fskit_entry_unlock( prev_ent );
-            
+
             return NULL;
          }
          else {
@@ -323,25 +323,25 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
          // out of path
          break;
       }
-      
+
       // NOTE: we can safely check deletion_in_progress, since it only gets written once (and while the parent is write-locked)
       if( cur_ent == NULL || cur_ent->deletion_in_progress ) {
-         
+
          // not found
          *err = -ENOENT;
          safe_free( fpath );
          fskit_entry_unlock( prev_ent );
-         
+
          return NULL;
       }
       else {
-         
+
          // next path name
          name = strtok_r( NULL, "/", &tmp );
          while( name != NULL && strcmp(name, ".") == 0 ) {
             name = strtok_r( NULL, "/", &tmp );
          }
-         
+
          // If this is the last step of the path,
          // do a write lock if requested
          if( name == NULL && writelock ) {
@@ -350,54 +350,54 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
          else {
             fskit_entry_rlock( cur_ent );
          }
-         
+
          // before unlocking the previous ent, run our evaluator (if we have one)
          if( ent_eval ) {
             int eval_rc = fskit_entry_ent_eval( prev_ent, cur_ent, ent_eval, cls );
             if( eval_rc != 0 ) {
-               
+
                fskit_entry_unlock( cur_ent );
                fskit_entry_unlock( prev_ent );
-               
+
                *err = eval_rc;
                safe_free( fpath );
-               
+
                return NULL;
             }
          }
-         
+
          if( cur_ent->link_count == 0 || cur_ent->type == FSKIT_ENTRY_TYPE_DEAD ) {
             // just got removed
-            
+
             fskit_entry_unlock( cur_ent );
             fskit_entry_unlock( prev_ent );
-            
+
             *err = -ENOENT;
             safe_free( fpath );
-            
+
             return NULL;
          }
-         
+
          fskit_entry_unlock( prev_ent );
       }
    } while( true );
-   
+
    safe_free( fpath );
    if( name == NULL ) {
       // ran out of path
       *err = 0;
-      
+
       // check readability
       if( !FSKIT_ENTRY_IS_READABLE( cur_ent->mode, cur_ent->owner, cur_ent->group, user, group ) ) {
-         
+
          fskit_error("User %" PRIu64 " of group %" PRIu64 " cannot read file %" PRIX64 " owned by %" PRIu64 " in group %" PRIu64 "\n",
                 user, group, cur_ent->file_id, cur_ent->owner, cur_ent->group );
-         
+
          *err = -EACCES;
          fskit_entry_unlock( cur_ent );
          return NULL;
       }
-      
+
       return cur_ent;
    }
    else {

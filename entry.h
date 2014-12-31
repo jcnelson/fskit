@@ -3,22 +3,21 @@
    Copyright (C) 2014  Jude Nelson
 
    This program is dual-licensed: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License version 3 or later as 
-   published by the Free Software Foundation. For the terms of this 
+   it under the terms of the GNU Lesser General Public License version 3 or later as
+   published by the Free Software Foundation. For the terms of this
    license, see LICENSE.LGPLv3+ or <http://www.gnu.org/licenses/>.
 
    You are free to use this program under the terms of the GNU Lesser General
-   Public License, but WITHOUT ANY WARRANTY; without even the implied 
+   Public License, but WITHOUT ANY WARRANTY; without even the implied
    warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
    See the GNU Lesser General Public License for more details.
 
-   Alternatively, you are free to use this program under the terms of the 
+   Alternatively, you are free to use this program under the terms of the
    Internet Software Consortium License, but WITHOUT ANY WARRANTY; without
    even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-   For the terms of this license, see LICENSE.ISC or 
+   For the terms of this license, see LICENSE.ISC or
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
-
 
 #ifndef _FSKIT_ENTRY_H_
 #define _FSKIT_ENTRY_H_
@@ -65,82 +64,82 @@ struct fskit_entry {
    uint64_t file_id;             // inode number
    uint8_t type;                 // type of inode
    char* name;
-   
+
    uint64_t owner;
    uint64_t group;
-   
+
    mode_t mode;
-   
+
    int64_t ctime_sec;
    int32_t ctime_nsec;
-   
+
    int64_t mtime_sec;
    int32_t mtime_nsec;
-   
+
    int64_t atime_sec;
    int32_t atime_nsec;
-   
+
    int32_t open_count;
    int32_t link_count;
-   
+
    off_t size;          // number of bytes in this file
-   
-   bool deletion_in_progress;   // set to true if this node is in the process of being removed 
-   
-   // if this is a directory, this is allocated and points to a fskit_entry_set 
+
+   bool deletion_in_progress;   // set to true if this node is in the process of being removed
+
+   // if this is a directory, this is allocated and points to a fskit_entry_set
    fskit_entry_set* children;
-   
-   // application-defined entry data 
+
+   // application-defined entry data
    void* app_data;
-   
-   // if this is a special file, this is the device major/minor number 
+
+   // if this is a special file, this is the device major/minor number
    dev_t dev;
-   
+
    // lock governing access to the above structure fields
    pthread_rwlock_t lock;
-   
-   // extended attributes 
+
+   // extended attributes
    fskit_xattr_set* xattrs;
-   
+
    // lock governing access to xattrs
    pthread_rwlock_t xattrs_lock;
-   
-   // if this is a symlink, this is the target 
+
+   // if this is a symlink, this is the target
    char* symlink_target;
 };
 
-// fskit file handle 
+// fskit file handle
 struct fskit_file_handle {
-   
+
    struct fskit_entry* fent;
-   
+
    char* path;
    int flags;
    uint64_t file_id;
 
    // lock governing access to this structure
    pthread_rwlock_t lock;
-   
-   // application-defined data 
+
+   // application-defined data
    void* app_data;
 };
 
-// fskit directory handle 
+// fskit directory handle
 struct fskit_dir_handle {
-   
+
    struct fskit_entry* dent;
-      
+
    char* path;
    uint64_t file_id;
-   
+
    // lock governing access to this structure
    pthread_rwlock_t lock;
-   
-   // application-defined data 
+
+   // application-defined data
    void* app_data;
 };
 
-// fskit dir entry 
+// fskit dir entry
 struct fskit_dir_entry {
    uint8_t type;        // type of file
    uint64_t file_id;    // file ID
@@ -151,50 +150,50 @@ struct fskit_dir_entry {
 typedef uint64_t (*fskit_inode_alloc_t)( struct fskit_entry*, struct fskit_entry*, void* );
 typedef int (*fskit_inode_free_t)( uint64_t, void* );
 
-// prototype structs 
+// prototype structs
 struct fskit_path_route;
 struct fskit_wq;
 
 typedef vector< struct fskit_path_route > fskit_route_list_t;           // list of routes to try
 typedef map< int, fskit_route_list_t > fskit_route_table_t;             // map route types to route lists
 
-// fskit core structure 
+// fskit core structure
 struct fskit_core {
-   
+
    // root inode
    struct fskit_entry root;
-   
-   // functions to allocate/deallocate inodes 
+
+   // functions to allocate/deallocate inodes
    fskit_inode_alloc_t fskit_inode_alloc;
    fskit_inode_free_t fskit_inode_free;
-   
+
    // application-defined fs-wide data
    void* app_fs_data;
-   
-   // number of files and directories that exist 
+
+   // number of files and directories that exist
    uint64_t num_files;
-   
+
    // lock governing access to the above fields of this structure
    pthread_rwlock_t lock;
-   
+
    /////////////////////////////////////////////////
-   
+
    // path routes, indexed by FSKIT_ROUTE_MATCH_*
    fskit_route_table_t* routes;
-   
+
    // lock governing access to the above fields of this structure
    pthread_rwlock_t route_lock;
-   
+
    /////////////////////////////////////////////////
-   
-   // deferred work queue 
+
+   // deferred work queue
    struct fskit_wq* deferred;
-   
+
 };
 
-// fskit detach context 
+// fskit detach context
 struct fskit_detach_ctx {
-   
+
    queue<struct fskit_entry*>* destroy_queue;
    queue<char*>* destroy_paths;
 };
@@ -218,16 +217,16 @@ int fskit_detach_all( struct fskit_core* core, char const* root_path, fskit_entr
 int fskit_detach_all_ex( struct fskit_core* core, char const* root_path, fskit_entry_set* dir_children, struct fskit_detach_ctx* ctx );
 
 extern "C" {
-   
-// core management 
+
+// core management
 int fskit_core_init( struct fskit_core* core, void* app_data );
 int fskit_core_destroy( struct fskit_core* core, void** app_fs_data );
 
-// core callbacks 
+// core callbacks
 int fskit_core_inode_alloc_cb( struct fskit_core* core, fskit_inode_alloc_t inode_alloc );
 int fskit_core_inode_free_cb( struct fskit_core* core, fskit_inode_free_t inode_free );
 
-// core methods 
+// core methods
 uint64_t fskit_core_inode_alloc( struct fskit_core* core, struct fskit_entry* parent, struct fskit_entry* child );
 int fskit_core_inode_free( struct fskit_core* core, uint64_t inode );
 struct fskit_entry* fskit_core_resolve_root( struct fskit_core* core, bool writelock );
@@ -237,7 +236,7 @@ void* fskit_core_get_user_data( struct fskit_core* core );
 long fskit_entry_name_hash( char const* name );
 struct fskit_entry* fskit_dir_find_by_name( struct fskit_entry* dir, char const* name );
 
-// memory management 
+// memory management
 int fskit_entry_init_lowlevel( struct fskit_entry* fent, uint8_t type, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode );
 int fskit_entry_init_common( struct fskit_entry* fent, uint8_t type, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode );
 int fskit_entry_init_file( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode );
@@ -257,7 +256,7 @@ int fskit_entry_try_garbage_collect( struct fskit_core* core, char const* path, 
 int fskit_detach_ctx_init( struct fskit_detach_ctx* ctx );
 int fskit_detach_ctx_free( struct fskit_detach_ctx* ctx );
 
-// locking 
+// locking
 int fskit_entry_rlock2( struct fskit_entry* fent, char const* from_str, int line_no );
 int fskit_entry_wlock2( struct fskit_entry* fent, char const* from_str, int line_no );
 int fskit_entry_unlock2( struct fskit_entry* fent, char const* from_str, int line_no );
@@ -286,11 +285,11 @@ int fskit_xattr_rlock( struct fskit_entry* fent );
 int fskit_xattr_wlock( struct fskit_entry* fent );
 int fskit_xattr_unlock( struct fskit_entry* fent );
 
-// low-level linking and unlinking 
+// low-level linking and unlinking
 int fskit_entry_attach_lowlevel( struct fskit_entry* parent, struct fskit_entry* child );
 int fskit_entry_detach_lowlevel( struct fskit_entry* parent, struct fskit_entry* child );
 
-// getters 
+// getters
 uint64_t fskit_entry_get_file_id( struct fskit_entry* ent );
 void* fskit_entry_get_user_data( struct fskit_entry* ent );
 
@@ -302,10 +301,10 @@ char* fskit_dir_handle_get_path( struct fskit_file_handle* fh );
 struct fskit_entry* fskit_dir_handle_get_entry( struct fskit_file_handle* fh );
 void* fskit_dir_handle_get_user_data( struct fskit_file_handle* fh );
 
-// setters 
+// setters
 int fskit_entry_set_user_data( struct fskit_entry* ent, void* app_data );
 
-// accounting 
+// accounting
 uint64_t fskit_file_count_update( struct fskit_core* core, int change );
 
 }

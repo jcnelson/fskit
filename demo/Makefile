@@ -9,8 +9,8 @@ LIBINC	:= -L../
 
 FUSE_DEMO = fuse-demo
 
-fuse-demo: $(OBJ) 
-	$(CPP) -o $(FUSE_DEMO) $(OBJ) $(LIBINC) $(LIB) 
+fuse-demo: $(OBJ)
+	$(CPP) -o $(FUSE_DEMO) $(OBJ) $(LIBINC) $(LIB)
 
 %.o : %.c
 	$(CPP) -o $@ $(INC) -c $< $(DEFS)

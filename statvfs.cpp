@@ -3,22 +3,21 @@
    Copyright (C) 2014  Jude Nelson
 
    This program is dual-licensed: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License version 3 or later as 
-   published by the Free Software Foundation. For the terms of this 
+   it under the terms of the GNU Lesser General Public License version 3 or later as
+   published by the Free Software Foundation. For the terms of this
    license, see LICENSE.LGPLv3+ or <http://www.gnu.org/licenses/>.
 
    You are free to use this program under the terms of the GNU Lesser General
-   Public License, but WITHOUT ANY WARRANTY; without even the implied 
+   Public License, but WITHOUT ANY WARRANTY; without even the implied
    warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
    See the GNU Lesser General Public License for more details.
 
-   Alternatively, you are free to use this program under the terms of the 
+   Alternatively, you are free to use this program under the terms of the
    Internet Software Consortium License, but WITHOUT ANY WARRANTY; without
    even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-   For the terms of this license, see LICENSE.ISC or 
+   For the terms of this license, see LICENSE.ISC or
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
-
 
 #include "statvfs.h"
 #include "fskit.h"
@@ -32,10 +31,10 @@
 // return 0 and fill in the statvfs buffer on success.
 // return the usual path resolution errors.
 int fskit_statvfs( struct fskit_core* core, char const* fs_path, uint64_t user, uint64_t group, struct statvfs* vfs ) {
-   
+
    int err = 0;
    int rc = 0;
-   
+
    // get the fent
    struct fskit_entry* fent = fskit_entry_resolve_path( core, fs_path, user, group, false, &err );
    if( fent == NULL || err != 0 ) {
@@ -44,7 +43,7 @@ int fskit_statvfs( struct fskit_core* core, char const* fs_path, uint64_t user, 
 
    // stat the filesystem
    rc = fskit_fstatvfs( core, fent, vfs );
-   
+
    fskit_entry_unlock( fent );
    return rc;
 }
@@ -52,9 +51,9 @@ int fskit_statvfs( struct fskit_core* core, char const* fs_path, uint64_t user, 
 // stat the filesystem from an inode
 // fill in the statvfs buffer (always succeeds)
 int fskit_fstatvfs( struct fskit_core* core, struct fskit_entry* fent, struct statvfs* vfs ) {
-   
+
    uint64_t num_files = fskit_file_count_update( core, 0 );
-   
+
    vfs->f_bsize = 0;
    vfs->f_frsize = 0;
    vfs->f_blocks = 0;
@@ -66,6 +65,6 @@ int fskit_fstatvfs( struct fskit_core* core, struct fskit_entry* fent, struct st
    vfs->f_fsid = FSKIT_FILESYSTEM_TYPE;
    vfs->f_flag = 0;
    vfs->f_namemax = FSKIT_FILESYSTEM_NAMEMAX;
-   
+
    return 0;
 }
