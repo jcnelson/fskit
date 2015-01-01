@@ -9,4 +9,4 @@ Version: @VERSION_MAJOR@.@VERSION_MINOR@.@VERSION_PATCH@
 
 Requires:
 Libs:  -lfskit_fuse @LIBS@
-Cflags: -I${includedir}/fskit
+Cflags: -I${includedir}

@@ -33,7 +33,7 @@ $(PC_FILE):	$(PC_FILE).in
 		sed -e 's~@PREFIX@~$(PREFIX)~g;' | \
 		sed -e 's~@INCLUDEDIR@~$(INCLUDEDIR)~g;' | \
 		sed -e 's~@VERSION@~$(VERSION)~g; ' | \
-		sed -e 's~@LIBS@~$(LIBS)~g; ' | \
+		sed -e 's~@LIBS@~$(LIB)~g; ' | \
 		sed -e 's~@LIBDIR@~$(LIBDIR)~g; ' | \
 	   sed -e 's~@VERSION_MAJOR@~$(VERSION_MAJOR)~g; ' | \
 	   sed -e 's~@VERSION_MINOR@~$(VERSION_MINOR)~g; ' | \
