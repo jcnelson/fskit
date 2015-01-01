@@ -7,6 +7,6 @@ Name: fskit_fuse
 Description: Fileserver utility library, FUSE bindings
 Version: @VERSION_MAJOR@.@VERSION_MINOR@.@VERSION_PATCH@
 
-Requires:
-Libs:  -lfskit_fuse @LIBS@
+Requires: fskit fuse
+Libs:  -lfskit_fuse
 Cflags: -I${includedir}
