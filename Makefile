@@ -24,7 +24,7 @@ LIBDIR		?= $(PREFIX)/lib
 INCLUDEDIR	?= $(PREFIX)/include/fskit
 PKGCONFIGDIR	?= $(LIBDIR)/pkgconfig
 
-all: fskit $(PC_FILE)
+all: libfskit $(PC_FILE)
 
 $(PC_FILE):	$(PC_FILE).in
 	@cat $< | \
@@ -37,16 +37,21 @@ $(PC_FILE):	$(PC_FILE).in
 	   sed -e 's~@VERSION_MINOR@~$(VERSION_MINOR)~g; ' | \
 	   sed -e 's~@VERSION_PATCH@~$(VERSION_PATCH)~g; '	> $@
 
-fskit: $(OBJ)
+libfskit: $(OBJ)
 	$(CPP) -shared -Wl,-soname,$(LIBFSKIT_SO) -o $(LIBFSKIT_LIB) $(OBJ) $(LIBINC) $(LIBS)
 	$(SHELL) -c "if ! test -L $(LIBFSKIT_SO); then /bin/ln -s $(LIBFSKIT_LIB) $(LIBFSKIT_SO); fi"
 	$(SHELL) -c "if ! test -L $(LIBFSKIT); then /bin/ln -s $(LIBFSKIT_SO) $(LIBFSKIT); fi"
 
-install: fskit $(PC_FILE)
-	mkdir -p $(LIBDIR) $(INCLUDEDIR) $(PKGCONFIGDIR)
+libfskit-install: libfskit $(PC_FILE)
+	mkdir -p $(LIBDIR) $(PKGCONFIGDIR)
 	cp -a $(LIBFSKIT) $(LIBFSKIT_SO) $(LIBFSKIT_LIB) $(LIBDIR)
-	cp -a $(HEADERS) $(INCLUDEDIR)
 	cp -a $(PC_FILE) $(PKGCONFIGDIR)
+
+libfskit-dev-install: libfskit
+	mkdir -p $(INCLUDEDIR)
+	cp -a $(HEADERS) $(INCLUDEDIR)
+
+install: libfskit-install libfskit-dev-install $(PC_FILE)
 
 %.o : %.c
 	$(CPP) -o $@ $(INC) -c $< $(DEFS)
