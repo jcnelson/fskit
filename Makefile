@@ -63,3 +63,6 @@ install: libfskit-install libfskit-dev-install $(PC_FILE)
 
 clean:
 	rm -f $(OBJ) $(LIBFSKIT_LIB) $(LIBFSKIT_SO) $(LIBFSKIT) $(PC_FILE)
+	$(MAKE) -C fuse clean
+	$(MAKE) -C demo clean
+	$(MAKE) -C test clean
