@@ -21,7 +21,7 @@ LIBFSKIT_FUSE_LIB = libfskit_fuse.so.$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION
 
 PC_FILE := fskit_fuse.pc
 
-PREFIX ?= /usr/local
+PREFIX ?= /usr
 LIBDIR ?= $(PREFIX)/lib
 INCLUDEDIR ?= $(PREFIX)/include/fskit/fuse
 PKGCONFIGDIR ?= $(LIBDIR)/pkgconfig
@@ -45,13 +45,13 @@ libfskit_fuse: $(OBJ)
 	$(SHELL) -c "if ! test -L $(LIBFSKIT_FUSE); then /bin/ln -s $(LIBFSKIT_FUSE_SO) $(LIBFSKIT_FUSE); fi"
 
 libfskit_fuse-install: libfskit_fuse $(PC_FILE)
-	mkdir -p $(LIBDIR) $(PKGCONFIGDIR)
-	cp -a $(LIBFSKIT_FUSE) $(LIBFSKIT_FUSE_SO) $(LIBFSKIT_FUSE_LIB) $(LIBDIR)
-	cp -a $(PC_FILE) $(PKGCONFIGDIR)
+	mkdir -p $(DESTDIR)/$(LIBDIR) $(DESTDIR)/$(PKGCONFIGDIR)
+	cp -a $(LIBFSKIT_FUSE) $(LIBFSKIT_FUSE_SO) $(LIBFSKIT_FUSE_LIB) $(DESTDIR)/$(LIBDIR)
+	cp -a $(PC_FILE) $(DESTDIR)/$(PKGCONFIGDIR)
 
 libfskit_fuse-dev-install: libfskit_fuse
-	mkdir -p $(INCLUDEDIR)
-	cp -a $(HEADERS) $(INCLUDEDIR)
+	mkdir -p $(DESTDIR)/$(INCLUDEDIR)
+	cp -a $(HEADERS) $(DESTDIR)/$(INCLUDEDIR)
 
 %.o : %.c
 	$(CPP) -o $@ $(INC) -c $< $(DEFS)

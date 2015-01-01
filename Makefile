@@ -43,13 +43,13 @@ libfskit: $(OBJ)
 	$(SHELL) -c "if ! test -L $(LIBFSKIT); then /bin/ln -s $(LIBFSKIT_SO) $(LIBFSKIT); fi"
 
 libfskit-install: libfskit $(PC_FILE)
-	mkdir -p $(LIBDIR) $(PKGCONFIGDIR)
-	cp -a $(LIBFSKIT) $(LIBFSKIT_SO) $(LIBFSKIT_LIB) $(LIBDIR)
-	cp -a $(PC_FILE) $(PKGCONFIGDIR)
+	mkdir -p $(DESTDIR)/$(LIBDIR) $(DESTDIR)/$(PKGCONFIGDIR)
+	cp -a $(LIBFSKIT) $(LIBFSKIT_SO) $(LIBFSKIT_LIB) $(DESTDIR)/$(LIBDIR)
+	cp -a $(PC_FILE) $(DESTDIR)/$(PKGCONFIGDIR)
 
 libfskit-dev-install: libfskit
-	mkdir -p $(INCLUDEDIR)
-	cp -a $(HEADERS) $(INCLUDEDIR)
+	mkdir -p $(DESTDIR)/$(INCLUDEDIR)
+	cp -a $(HEADERS) $(DESTDIR)/$(INCLUDEDIR)
 
 install: libfskit-install libfskit-dev-install $(PC_FILE)
 
