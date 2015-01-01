@@ -1,15 +1,13 @@
 
 include ../buildconf.mk
 
-CPP   := g++ -Wall -g -fPIC
-LIB   := $(PTHREAD_LIBS) $(FUSE_LIBS) -lfskit
+LIB   := $(PTHREAD_LIBS) $(FUSE_LIBS) -L../ -lfskit
 INC   := $(PTHREAD_CFLAGS) $(FUSE_CFLAGS) -I../include -I.
 C_SRCS:= $(wildcard *.c)
 CXSRCS:= $(wildcard *.cpp)
 HEADERS := $(wildcard *.h)
 OBJ   := $(patsubst %.c,%.o,$(C_SRCS)) $(patsubst %.cpp,%.o,$(CXSRCS))
 DEFS  := -D_REENTRANT -D_THREAD_SAFE -D__STDC_FORMAT_MACROS -D_FILE_OFFSET_BITS=64
-LIBINC	:= -L../
 INCDIR		?= $(INCLUDEDIR)/fskit/fuse
 
 FUSE_DEMO = fuse-demo
@@ -34,7 +32,7 @@ $(PC_FILE):	$(PC_FILE).in
 	   sed -e 's~@VERSION_PATCH@~$(VERSION_PATCH)~g; '	> $@
 
 libfskit_fuse: $(OBJ)
-	$(CPP) -shared -Wl,-soname,$(LIBFSKIT_FUSE_SO) -o $(LIBFSKIT_FUSE_LIB) $(OBJ) $(LIBINC) $(LIB)
+	$(CXX) $(CXXFLAGS) -shared -Wl,-soname,$(LIBFSKIT_FUSE_SO) -o $(LIBFSKIT_FUSE_LIB) $(OBJ) $(LIB)
 	$(LN_SF) $(LIBFSKIT_FUSE_LIB) $(LIBFSKIT_FUSE_SO)
 	$(LN_SF) $(LIBFSKIT_FUSE_SO) $(LIBFSKIT_FUSE)
 
@@ -48,10 +46,10 @@ libfskit_fuse-dev-install: libfskit_fuse
 	$(CP_A) $(HEADERS) $(DESTDIR)/$(INCDIR)
 
 %.o : %.c
-	$(CPP) -o $@ $(INC) -c $< $(DEFS)
+	$(CXX) $(CXXFLAGS) -o $@ $(INC) -c $< $(DEFS)
 
 %.o : %.cpp
-	$(CPP) -o $@ $(INC) -c $< $(DEFS)
+	$(CXX) $(CXXFLAGS) -o $@ $(INC) -c $< $(DEFS)
 
 .PHONY: install
 install: libfskit_fuse-install libfskit_fuse-dev-install

@@ -1,7 +1,6 @@
 
 include ./buildconf.mk
 
-CPP    := g++ -Wall -g -fPIC
 INC   := $(PTHREAD_CFLAGS) -Iinclude
 C_SRCS:= $(wildcard *.c)
 CXSRCS:= $(wildcard *.cpp)
@@ -32,7 +31,7 @@ $(PC_FILE):	$(PC_FILE).in
 	   sed -e 's~@VERSION_PATCH@~$(VERSION_PATCH)~g; '	> $@
 
 libfskit: $(OBJ)
-	$(CPP) -shared -Wl,-soname,$(LIBFSKIT_SO) -o $(LIBFSKIT_LIB) $(OBJ) $(LIBINC) $(LIBS)
+	$(CXX) $(CXXFLAGS) -shared -Wl,-soname,$(LIBFSKIT_SO) -o $(LIBFSKIT_LIB) $(OBJ) $(LIBINC) $(LIBS)
 	$(LN_SF) $(LIBFSKIT_LIB) $(LIBFSKIT_SO)
 	$(LN_SF) $(LIBFSKIT_SO) $(LIBFSKIT)
 
@@ -48,10 +47,10 @@ libfskit-dev-install: libfskit
 install: libfskit-install libfskit-dev-install $(PC_FILE)
 
 %.o : %.c
-	$(CPP) -o $@ $(INC) -c $< $(DEFS)
+	$(CXX) $(CXXFLAGS) -o $@ $(INC) -c $< $(DEFS)
 
 %.o : %.cpp
-	$(CPP) -o $@ $(INC) -c $< $(DEFS)
+	$(CXX) $(CXXFLAGS) -o $@ $(INC) -c $< $(DEFS)
 
 .PHONY: clean
 
