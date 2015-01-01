@@ -1,0 +1,12 @@
+prefix=@PREFIX@
+exec_prefix=${prefix}
+libdir=@LIBDIR@
+includedir=@INCLUDEDIR@
+
+Name: fskit_fuse
+Description: Fileserver utility library, FUSE bindings
+Version: @VERSION_MAJOR@.@VERSION_MINOR@.@VERSION_PATCH@
+
+Requires:
+Libs:  -lfskit_fuse @LIBS@
+Cflags: -I${includedir}/fskit
