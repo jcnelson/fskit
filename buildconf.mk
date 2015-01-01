@@ -30,3 +30,6 @@ LIBDIR		?= $(PREFIX)/lib
 DATADIR		?= $(PREFIX)/share
 INCLUDEDIR	?= $(PREFIX)/include
 PKGCONFIGDIR	?= $(LIBDIR)/pkgconfig
+
+# override via env to disable FUSE
+ENABLE_FUSE	?= 1

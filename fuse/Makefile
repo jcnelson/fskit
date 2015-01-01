@@ -1,7 +1,7 @@
 
 include ../buildconf.mk
 
-LIB   := $(PTHREAD_LIBS) $(FUSE_LIBS) -L../ -lfskit
+LIB   := $(PTHREAD_LIBS) $(FUSE_LIBS) -L../libfskit -lfskit
 INC   := $(PTHREAD_CFLAGS) $(FUSE_CFLAGS) -I../include -I.
 C_SRCS:= $(wildcard *.c)
 CXSRCS:= $(wildcard *.cpp)
