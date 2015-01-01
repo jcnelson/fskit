@@ -40,18 +40,18 @@ Building
 The build process is intentionally simple.  To build:
 
     $ make
-  
+
 Installing
 ----------
 
 To install libfskit to /usr/local/lib and headers to /usr/local/include/fskit:
 
     $ sudo make install
-  
+
 To build libfskit_fuse, a helper library that wraps fskit into FUSE bindings:
 
     $ make -C fuse/
-  
+
 To install libfskit_fuse to /usr/local/lib and headers to /usr/local/include/fskit/fuse:
 
     $ sudo make -C fuse/ install

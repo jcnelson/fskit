@@ -3,19 +3,19 @@
    Copyright (C) 2014  Jude Nelson
 
    This program is dual-licensed: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License version 3 or later as 
-   published by the Free Software Foundation. For the terms of this 
+   it under the terms of the GNU Lesser General Public License version 3 or later as
+   published by the Free Software Foundation. For the terms of this
    license, see LICENSE.LGPLv3+ or <http://www.gnu.org/licenses/>.
 
    You are free to use this program under the terms of the GNU Lesser General
-   Public License, but WITHOUT ANY WARRANTY; without even the implied 
+   Public License, but WITHOUT ANY WARRANTY; without even the implied
    warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
    See the GNU Lesser General Public License for more details.
 
-   Alternatively, you are free to use this program under the terms of the 
+   Alternatively, you are free to use this program under the terms of the
    Internet Software Consortium License, but WITHOUT ANY WARRANTY; without
    even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-   For the terms of this license, see LICENSE.ISC or 
+   For the terms of this license, see LICENSE.ISC or
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
@@ -42,34 +42,34 @@ int fskit_random_init() {
       close( rfd );
       return -ENODATA;
    }
-   
+
    close( rfd );
    return 0;
 }
 
 // Mersenne Twister for unsigned 32-bit numbers
 uint32_t fskit_random32() {
-   
+
    pthread_mutex_lock( &CMWC4096_lock );
-   
+
    uint64_t t, a=18782LL;
    static uint32_t i=4095;
    uint32_t x,r=0xfffffffe;
-   
+
    i=(i+1)&4095;
    t=a*Q[i]+c;
    c=(t>>32);
    x=t+c;
-   
+
    if( x < c ) {
       x++;
       c++;
    }
-   
+
    Q[i]=r-x;
-   
+
    uint32_t ret = Q[i];
-   
+
    pthread_mutex_unlock( &CMWC4096_lock );
    return ret;
 }

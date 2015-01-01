@@ -1,2 +1,5 @@
 *~
-*.pyc
+*.o
+fskit.pc
+libfskit.so
+libfskit.so.*

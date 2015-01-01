@@ -3,19 +3,19 @@
    Copyright (C) 2014  Jude Nelson
 
    This program is dual-licensed: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License version 3 or later as 
-   published by the Free Software Foundation. For the terms of this 
+   it under the terms of the GNU Lesser General Public License version 3 or later as
+   published by the Free Software Foundation. For the terms of this
    license, see LICENSE.LGPLv3+ or <http://www.gnu.org/licenses/>.
 
    You are free to use this program under the terms of the GNU Lesser General
-   Public License, but WITHOUT ANY WARRANTY; without even the implied 
+   Public License, but WITHOUT ANY WARRANTY; without even the implied
    warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
    See the GNU Lesser General Public License for more details.
 
-   Alternatively, you are free to use this program under the terms of the 
+   Alternatively, you are free to use this program under the terms of the
    Internet Software Consortium License, but WITHOUT ANY WARRANTY; without
    even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-   For the terms of this license, see LICENSE.ISC or 
+   For the terms of this license, see LICENSE.ISC or
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
@@ -41,12 +41,12 @@ typedef int (*fskit_fuse_postmount_callback_t)( struct fskit_fuse_state*, void* 
 
 // private fuse state
 struct fskit_fuse_state {
-   
+
    struct fskit_core* core;
    uint64_t settings;           // bitmask of FSKIT_FUSE_SET_*
-   
+
    char* mountpoint;    // mountpoint
-   
+
    // post-mount callback, to be called before processing any FUSE requests
    fskit_fuse_postmount_callback_t postmount;
    void* postmount_cls;
@@ -54,7 +54,7 @@ struct fskit_fuse_state {
 
 // fskit fuse file handle
 struct fskit_fuse_file_info {
-   
+
    int type;
    union {
       struct fskit_file_handle* fh;
@@ -63,7 +63,7 @@ struct fskit_fuse_file_info {
 };
 
 extern "C" {
-   
+
 // access to state
 struct fskit_fuse_state* fskit_fuse_get_state();
 uid_t fskit_fuse_get_uid( struct fskit_fuse_state* state );
@@ -121,7 +121,7 @@ int fskit_fuse_main( struct fskit_fuse_state* state, int argc, char** argv );
 int fskit_fuse_shutdown( struct fskit_fuse_state* state, void** user_state );
 
 struct fskit_core* fskit_fuse_get_core( struct fskit_fuse_state* state );
-   
+
 }
 
 #endif
