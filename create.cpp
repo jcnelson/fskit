@@ -19,11 +19,11 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "fskit.h"
-#include "create.h"
-#include "open.h"
-#include "route.h"
-#include "util.h"
+#include <fskit/fskit.h>
+#include <fskit/create.h>
+#include <fskit/open.h>
+#include <fskit/route.h>
+#include <fskit/util.h>
 
 // get the user-supplied inode and handle data for creating a file
 int fskit_run_user_create( struct fskit_core* core, char const* path, struct fskit_entry* fent, mode_t mode, void** inode_data, void** handle_data ) {

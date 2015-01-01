@@ -19,8 +19,8 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "chown.h"
-#include "path.h"
+#include <fskit/chown.h>
+#include <fskit/path.h>
 
 // change the owner of a path.
 // the file must be owned by the given user.

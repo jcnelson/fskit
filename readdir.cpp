@@ -19,9 +19,9 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "readdir.h"
-#include "route.h"
-#include "util.h"
+#include <fskit/readdir.h>
+#include <fskit/route.h>
+#include <fskit/util.h>
 
 // initialize a directory entry from an fskit_entry
 // return the new entry on success

@@ -19,9 +19,9 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "trunc.h"
-#include "route.h"
-#include "util.h"
+#include <fskit/trunc.h>
+#include <fskit/route.h>
+#include <fskit/util.h>
 
 // i/o continuation, called with the same locks held as the trunc()
 static int fskit_trunc_cont( struct fskit_core* core, struct fskit_entry* fent, off_t new_size, ssize_t trunc_rc ) {

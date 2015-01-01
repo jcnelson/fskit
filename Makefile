@@ -1,8 +1,7 @@
 CPP    := g++ -Wall -g -fPIC
-INC   := -I.
+INC   := -Iinclude
 C_SRCS:= $(wildcard *.c)
 CXSRCS:= $(wildcard *.cpp)
-HEADERS := $(wildcard *.h)
 OBJ   := $(patsubst %.c,%.o,$(C_SRCS)) $(patsubst %.cpp,%.o,$(CXSRCS))
 DEFS  := -D_REENTRANT -D_THREAD_SAFE
 
@@ -49,7 +48,7 @@ libfskit-install: libfskit $(PC_FILE)
 
 libfskit-dev-install: libfskit
 	mkdir -p $(DESTDIR)/$(INCLUDEDIR)
-	cp -a $(HEADERS) $(DESTDIR)/$(INCLUDEDIR)
+	cp -a include/fskit/*.h $(DESTDIR)/$(INCLUDEDIR)
 
 install: libfskit-install libfskit-dev-install $(PC_FILE)
 

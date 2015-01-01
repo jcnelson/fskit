@@ -19,7 +19,7 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "random.h"
+#include <fskit/random.h>
 
 static uint32_t Q[4096], c=362436;     /* choose random initial c<809430660 and */
                                        /* 4096 random 32-bit integers for Q[]   */

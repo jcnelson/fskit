@@ -19,9 +19,9 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "unlink.h"
-#include "path.h"
-#include "util.h"
+#include <fskit/unlink.h>
+#include <fskit/path.h>
+#include <fskit/util.h>
 
 // unlink a file from the filesystem
 // return the usual path resolution errors

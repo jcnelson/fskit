@@ -22,7 +22,7 @@
 #ifndef _FUSE_DEMO_H_
 #define _FUSE_DEMO_H_
 
-#include "fskit/fskit.h"
-#include "fskit/fuse/fskit_fuse.h"
+#include <fskit/fskit.h>
+#include "fuse/fskit_fuse.h"
 
 #endif

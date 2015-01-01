@@ -19,11 +19,11 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "mkdir.h"
-#include "path.h"
-#include "open.h"
-#include "route.h"
-#include "util.h"
+#include <fskit/mkdir.h>
+#include <fskit/path.h>
+#include <fskit/open.h>
+#include <fskit/route.h>
+#include <fskit/util.h>
 
 // get the user-supplied inode data for creating a directory
 int fskit_run_user_mkdir( struct fskit_core* core, char const* path, struct fskit_entry* fent, mode_t mode, void** inode_data ) {

@@ -19,8 +19,8 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "getxattr.h"
-#include "path.h"
+#include <fskit/getxattr.h>
+#include <fskit/path.h>
 
 // wrapper around fgetxattr, which resolves the path to the fskit entry
 // returns whatever fgetxattr returns, plus any errors in path resolution

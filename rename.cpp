@@ -19,9 +19,9 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "rename.h"
-#include "path.h"
-#include "util.h"
+#include <fskit/rename.h>
+#include <fskit/path.h>
+#include <fskit/util.h>
 
 // check that we aren't trying to move a directory into itself
 static int fskit_entry_verify_no_loop( struct fskit_entry* fent, void* cls ) {

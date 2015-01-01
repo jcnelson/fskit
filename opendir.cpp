@@ -19,10 +19,10 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "opendir.h"
-#include "path.h"
-#include "open.h"
-#include "util.h"
+#include <fskit/opendir.h>
+#include <fskit/path.h>
+#include <fskit/open.h>
+#include <fskit/util.h>
 
 // create a directory handle from an fskit_entry
 static struct fskit_dir_handle* fskit_dir_handle_create( struct fskit_entry* dir, char const* path, void* app_handle_data ) {

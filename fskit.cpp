@@ -19,7 +19,7 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "fskit.h"
+#include <fskit/fskit.h>
 
 // initialize the library
 int fskit_library_init() {

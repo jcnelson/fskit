@@ -19,9 +19,9 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "utime.h"
-#include "path.h"
-#include "entry.h"
+#include <fskit/utime.h>
+#include <fskit/path.h>
+#include <fskit/entry.h>
 
 // set access time to the given time as "now"
 // if now is NULL, get the time from CLOCK_REALTIME and use that for "now"

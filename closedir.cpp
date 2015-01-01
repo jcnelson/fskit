@@ -19,9 +19,9 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "closedir.h"
-#include "close.h"
-#include "util.h"
+#include <fskit/closedir.h>
+#include <fskit/close.h>
+#include <fskit/util.h>
 
 // free a directory handle
 static void fskit_dir_handle_destroy( struct fskit_dir_handle* dirh ) {

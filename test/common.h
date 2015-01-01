@@ -22,7 +22,7 @@
 #ifndef _TEST_COMMON_H_
 #define _TEST_COMMON_H_
 
-#include "fskit.h"
+#include <fskit/fskit.h>
 
 void fskit_type_to_string( int type, char type_buf[10] );
 

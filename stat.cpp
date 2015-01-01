@@ -19,8 +19,8 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "stat.h"
-#include "route.h"
+#include <fskit/stat.h>
+#include <fskit/route.h>
 
 int fskit_do_user_stat( struct fskit_core* core, char const* fs_path, struct fskit_entry* fent, struct stat* sb ) {
 

@@ -19,8 +19,8 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "readlink.h"
-#include "path.h"
+#include <fskit/readlink.h>
+#include <fskit/path.h>
 
 // read the target in a symlink (including the null character at the end)
 // return the number of bytes read on success (up to MIN(buflen, linkpath size))

@@ -19,10 +19,10 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "access.h"
-#include "entry.h"
-#include "path.h"
-#include "stat.h"
+#include <fskit/access.h>
+#include <fskit/entry.h>
+#include <fskit/path.h>
+#include <fskit/stat.h>
 
 int fskit_access( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, mode_t mode ) {
 

@@ -19,9 +19,9 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "close.h"
-#include "route.h"
-#include "util.h"
+#include <fskit/close.h>
+#include <fskit/route.h>
+#include <fskit/util.h>
 
 // destroy a file handle
 // the file handle must be write-locked

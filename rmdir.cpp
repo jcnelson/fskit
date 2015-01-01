@@ -19,8 +19,8 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "rmdir.h"
-#include "path.h"
+#include <fskit/rmdir.h>
+#include <fskit/path.h>
 
 // remove a directory, if it is empty.
 // return 0 on success

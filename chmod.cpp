@@ -19,8 +19,8 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "chmod.h"
-#include "path.h"
+#include <fskit/chmod.h>
+#include <fskit/path.h>
 
 // change the mode of the file.  All bits (including suid, sgid, and sticky) are supported
 // only the owner can change the file's mode.

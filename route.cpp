@@ -19,9 +19,9 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "entry.h"
-#include "route.h"
-#include "util.h"
+#include <fskit/entry.h>
+#include <fskit/route.h>
+#include <fskit/util.h>
 
 // initialize a match group.
 // the match group becomes the owner of matches

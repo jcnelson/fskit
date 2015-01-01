@@ -1,6 +1,6 @@
 CPP   := g++ -Wall -g -fPIC
 LIB   := -lpthread -lrt -lfuse -lfskit
-INC   := -I/usr/include -I. -I../
+INC   := -I../include -I.
 C_SRCS:= $(wildcard *.c)
 CXSRCS:= $(wildcard *.cpp)
 HEADERS := $(wildcard *.h)

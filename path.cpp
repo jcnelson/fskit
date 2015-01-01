@@ -19,8 +19,8 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "path.h"
-#include "util.h"
+#include <fskit/path.h>
+#include <fskit/util.h>
 
 // join two paths, writing the result to dest if dest is not NULL.
 // otherwise, allocate and return a buffer containing the joined paths.

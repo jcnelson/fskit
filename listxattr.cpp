@@ -19,8 +19,8 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "listxattr.h"
-#include "path.h"
+#include <fskit/listxattr.h>
+#include <fskit/path.h>
 
 int fskit_listxattr( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, char* list, size_t size ) {
 

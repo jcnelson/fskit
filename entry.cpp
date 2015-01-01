@@ -19,13 +19,13 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "debug.h"
-#include "entry.h"
-#include "path.h"
-#include "random.h"
-#include "route.h"
-#include "util.h"
-#include "wq.h"
+#include <fskit/debug.h>
+#include <fskit/entry.h>
+#include <fskit/path.h>
+#include <fskit/random.h>
+#include <fskit/route.h>
+#include <fskit/util.h>
+#include <fskit/wq.h>
 
 // hash a name/path
 long fskit_entry_name_hash( char const* name ) {

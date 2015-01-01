@@ -19,7 +19,7 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "debug.h"
+#include <fskit/debug.h>
 
 int FSKIT_GLOBAL_DEBUG_LOCKS = 1;
 int FSKIT_GLOBAL_DEBUG_MESSAGES = 1;

@@ -19,10 +19,10 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "link.h"
-#include "path.h"
-#include "fskit.h"
-#include "util.h"
+#include <fskit/link.h>
+#include <fskit/path.h>
+#include <fskit/fskit.h>
+#include <fskit/util.h>
 
 // link the inode at "from" to the location "to".  Increment its link count on success.
 // return 0 on success.

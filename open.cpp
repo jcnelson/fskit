@@ -19,13 +19,13 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "fskit.h"
-#include "open.h"
-#include "path.h"
-#include "utime.h"
-#include "route.h"
-#include "create.h"
-#include "util.h"
+#include <fskit/fskit.h>
+#include <fskit/open.h>
+#include <fskit/path.h>
+#include <fskit/utime.h>
+#include <fskit/route.h>
+#include <fskit/create.h>
+#include <fskit/util.h>
 
 // create a file handle from a fskit_entry
 // ent must be read-locked

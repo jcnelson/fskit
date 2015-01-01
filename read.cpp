@@ -19,8 +19,8 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "read.h"
-#include "route.h"
+#include <fskit/read.h>
+#include <fskit/route.h>
 
 // run the user-given read route callback
 // return the number of bytes read on success

@@ -1,11 +1,11 @@
 CPP   := g++ -Wall -g -fPIC
 LIB   := -lpthread -lrt -lfuse -lfskit -lfskit_fuse
-INC   := -I/usr/include -I. -I../
+INC   := -I../include -I. -I..
 C_SRCS:= $(wildcard *.c)
 CXSRCS:= $(wildcard *.cpp)
 OBJ   := $(patsubst %.c,%.o,$(C_SRCS)) $(patsubst %.cpp,%.o,$(CXSRCS))
 DEFS  := -D_REENTRANT -D_THREAD_SAFE -D__STDC_FORMAT_MACROS -D_FILE_OFFSET_BITS=64
-LIBINC	:= -L../
+LIBINC	:= -L../ -L../fuse
 
 FUSE_DEMO = fuse-demo
 

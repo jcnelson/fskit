@@ -19,8 +19,8 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "removexattr.h"
-#include "path.h"
+#include <fskit/removexattr.h>
+#include <fskit/path.h>
 
 // remove an xattr.
 // returns whatever fremovexattr returns, plus whatever error codes path resolution can return

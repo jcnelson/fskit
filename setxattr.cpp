@@ -19,8 +19,8 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "setxattr.h"
-#include "path.h"
+#include <fskit/setxattr.h>
+#include <fskit/path.h>
 
 // set an xattr by path.
 // returns whatever fsetxattr returns, plus any errors that can result from path resolution.

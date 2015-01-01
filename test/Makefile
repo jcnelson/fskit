@@ -1,6 +1,6 @@
 CPP   := g++ -Wall -g -fPIC
-LIB   := -lpthread -lrt -lfskit
-INC   := -I/usr/include -I. -I../
+LIB   := -lpthread -lrt -L../ -lfskit
+INC   := -I../include -I.
 C_SRCS:= $(wildcard *.c)
 CXSRCS:= $(wildcard *.cpp)
 OBJ   := $(patsubst %.c,%.o,$(C_SRCS)) $(patsubst %.cpp,%.o,$(CXSRCS))

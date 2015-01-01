@@ -23,6 +23,6 @@
 #define _TEST_ROUTE_H_
 
 #include "common.h"
-#include "route.h"
+#include <fskit/route.h>
 
 #endif

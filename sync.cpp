@@ -19,8 +19,8 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "sync.h"
-#include "route.h"
+#include <fskit/sync.h>
+#include <fskit/route.h>
 
 static int fskit_do_user_sync( struct fskit_core* core, char const* path, struct fskit_entry* fent ) {
 

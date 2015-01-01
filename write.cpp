@@ -19,9 +19,9 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "write.h"
-#include "utime.h"
-#include "route.h"
+#include <fskit/write.h>
+#include <fskit/utime.h>
+#include <fskit/route.h>
 
 // continuation for successful write
 // fent must be write-locked

@@ -19,9 +19,9 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "wq.h"
-#include "util.h"
-#include "common.h"
+#include <fskit/wq.h>
+#include <fskit/util.h>
+#include <fskit/common.h>
 
 // work queue main method
 static void* fskit_wq_main( void* cls ) {

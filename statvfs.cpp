@@ -19,8 +19,8 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "statvfs.h"
-#include "fskit.h"
+#include <fskit/statvfs.h>
+#include <fskit/fskit.h>
 
 // stat the filesystem that holds the path.
 // the following fields are filled in:

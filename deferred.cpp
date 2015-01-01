@@ -19,10 +19,10 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "deferred.h"
-#include "path.h"
-#include "wq.h"
-#include "util.h"
+#include <fskit/deferred.h>
+#include <fskit/path.h>
+#include <fskit/wq.h>
+#include <fskit/util.h>
 
 // fskit remove_all context
 struct fskit_deferred_remove_all_ctx {

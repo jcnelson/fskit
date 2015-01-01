@@ -19,10 +19,10 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "symlink.h"
-#include "path.h"
-#include "fskit.h"
-#include "util.h"
+#include <fskit/symlink.h>
+#include <fskit/path.h>
+#include <fskit/fskit.h>
+#include <fskit/util.h>
 
 // symlink to 'target' from 'linkpath'.  The caller must have write permission in 'linkpath's directory.
 // return 0 on success
