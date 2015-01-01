@@ -2,8 +2,8 @@
 include ../buildconf.mk
 
 CPP   := g++ -Wall -g -fPIC
-LIB   := -lpthread -lrt -lfuse -lfskit
-INC   := -I../include -I.
+LIB   := $(PTHREAD_LIBS) -lfuse -lfskit
+INC   := $(PTHREAD_CFLAGS) -I../include -I.
 C_SRCS:= $(wildcard *.c)
 CXSRCS:= $(wildcard *.cpp)
 HEADERS := $(wildcard *.h)

@@ -2,13 +2,13 @@
 include ./buildconf.mk
 
 CPP    := g++ -Wall -g -fPIC
-INC   := -Iinclude
+INC   := $(PTHREAD_CFLAGS) -Iinclude
 C_SRCS:= $(wildcard *.c)
 CXSRCS:= $(wildcard *.cpp)
 OBJ   := $(patsubst %.c,%.o,$(C_SRCS)) $(patsubst %.cpp,%.o,$(CXSRCS))
 DEFS  := -D_REENTRANT -D_THREAD_SAFE
 
-LIBS		:= -lpthread -lrt
+LIBS		:= $(PTHREAD_LIBS)
 
 PC_FILE		:= fskit.pc
 
