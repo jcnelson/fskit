@@ -13,6 +13,7 @@ build_package() {
    local install_prefix=$5
 
    local install_dir=$BUILD/$target
+   rm -rf $install_dir
    mkdir $install_dir
 
    if [ -n $build_target ]; then
