@@ -11,3 +11,12 @@ PTHREAD_CFLAGS	?=
 
 FUSE_LIBS	?= `$(PKG_CONFIG) --libs fuse`
 FUSE_CFLAGS	?= `$(PKG_CONFIG) --cflags fuse`
+
+LN		?= ln
+LN_SF		?= $(LN) -sf
+RM		?= rm
+RM_RF		?= $(RM) -Rf
+MKDIR		?= mkdir
+MKDIR_P		?= $(MKDIR) -p
+CP		?= cp
+CP_A		?= $(CP) -a

@@ -36,17 +36,17 @@ $(PC_FILE):	$(PC_FILE).in
 
 libfskit: $(OBJ)
 	$(CPP) -shared -Wl,-soname,$(LIBFSKIT_SO) -o $(LIBFSKIT_LIB) $(OBJ) $(LIBINC) $(LIBS)
-	$(SHELL) -c "if ! test -L $(LIBFSKIT_SO); then /bin/ln -s $(LIBFSKIT_LIB) $(LIBFSKIT_SO); fi"
-	$(SHELL) -c "if ! test -L $(LIBFSKIT); then /bin/ln -s $(LIBFSKIT_SO) $(LIBFSKIT); fi"
+	$(LN_SF) $(LIBFSKIT_LIB) $(LIBFSKIT_SO)
+	$(LN_SF) $(LIBFSKIT_SO) $(LIBFSKIT)
 
 libfskit-install: libfskit $(PC_FILE)
-	mkdir -p $(DESTDIR)/$(LIBDIR) $(DESTDIR)/$(PKGCONFIGDIR)
-	cp -a $(LIBFSKIT) $(LIBFSKIT_SO) $(LIBFSKIT_LIB) $(DESTDIR)/$(LIBDIR)
-	cp -a $(PC_FILE) $(DESTDIR)/$(PKGCONFIGDIR)
+	$(MKDIR_P) $(DESTDIR)/$(LIBDIR) $(DESTDIR)/$(PKGCONFIGDIR)
+	$(CP_A) $(LIBFSKIT) $(LIBFSKIT_SO) $(LIBFSKIT_LIB) $(DESTDIR)/$(LIBDIR)
+	$(CP_A) $(PC_FILE) $(DESTDIR)/$(PKGCONFIGDIR)
 
 libfskit-dev-install: libfskit
-	mkdir -p $(DESTDIR)/$(INCLUDEDIR)
-	cp -a include/fskit/*.h $(DESTDIR)/$(INCLUDEDIR)
+	$(MKDIR_P) $(DESTDIR)/$(INCLUDEDIR)
+	$(CP_A) include/fskit/*.h $(DESTDIR)/$(INCLUDEDIR)
 
 install: libfskit-install libfskit-dev-install $(PC_FILE)
 
@@ -59,7 +59,7 @@ install: libfskit-install libfskit-dev-install $(PC_FILE)
 .PHONY: clean
 
 clean:
-	rm -f $(OBJ) $(LIBFSKIT_LIB) $(LIBFSKIT_SO) $(LIBFSKIT) $(PC_FILE)
+	$(RM_RF) $(OBJ) $(LIBFSKIT_LIB) $(LIBFSKIT_SO) $(LIBFSKIT) $(PC_FILE)
 	$(MAKE) -C fuse clean
 	$(MAKE) -C demo clean
 	$(MAKE) -C test clean

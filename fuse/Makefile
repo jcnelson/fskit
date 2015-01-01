@@ -39,17 +39,17 @@ $(PC_FILE):	$(PC_FILE).in
 
 libfskit_fuse: $(OBJ)
 	$(CPP) -shared -Wl,-soname,$(LIBFSKIT_FUSE_SO) -o $(LIBFSKIT_FUSE_LIB) $(OBJ) $(LIBINC) $(LIB)
-	$(SHELL) -c "if ! test -L $(LIBFSKIT_FUSE_SO); then /bin/ln -s $(LIBFSKIT_FUSE_LIB) $(LIBFSKIT_FUSE_SO); fi"
-	$(SHELL) -c "if ! test -L $(LIBFSKIT_FUSE); then /bin/ln -s $(LIBFSKIT_FUSE_SO) $(LIBFSKIT_FUSE); fi"
+	$(LN_SF) $(LIBFSKIT_FUSE_LIB) $(LIBFSKIT_FUSE_SO)
+	$(LN_SF) $(LIBFSKIT_FUSE_SO) $(LIBFSKIT_FUSE)
 
 libfskit_fuse-install: libfskit_fuse $(PC_FILE)
-	mkdir -p $(DESTDIR)/$(LIBDIR) $(DESTDIR)/$(PKGCONFIGDIR)
-	cp -a $(LIBFSKIT_FUSE) $(LIBFSKIT_FUSE_SO) $(LIBFSKIT_FUSE_LIB) $(DESTDIR)/$(LIBDIR)
-	cp -a $(PC_FILE) $(DESTDIR)/$(PKGCONFIGDIR)
+	$(MKDIR_P) $(DESTDIR)/$(LIBDIR) $(DESTDIR)/$(PKGCONFIGDIR)
+	$(CP_A) $(LIBFSKIT_FUSE) $(LIBFSKIT_FUSE_SO) $(LIBFSKIT_FUSE_LIB) $(DESTDIR)/$(LIBDIR)
+	$(CP_A) $(PC_FILE) $(DESTDIR)/$(PKGCONFIGDIR)
 
 libfskit_fuse-dev-install: libfskit_fuse
-	mkdir -p $(DESTDIR)/$(INCLUDEDIR)
-	cp -a $(HEADERS) $(DESTDIR)/$(INCLUDEDIR)
+	$(MKDIR_P) $(DESTDIR)/$(INCLUDEDIR)
+	$(CP_A) $(HEADERS) $(DESTDIR)/$(INCLUDEDIR)
 
 %.o : %.c
 	$(CPP) -o $@ $(INC) -c $< $(DEFS)
@@ -62,4 +62,4 @@ install: libfskit_fuse-install libfskit_fuse-dev-install
 
 .PHONY: clean
 clean:
-	/bin/rm -f $(OBJ) $(LIBFSKIT_FUSE_LIB) $(LIBFSKIT_FUSE_SO) $(LIBFSKIT_FUSE) $(PC_FILE)
+	$(RM_RF) $(OBJ) $(LIBFSKIT_FUSE_LIB) $(LIBFSKIT_FUSE_SO) $(LIBFSKIT_FUSE) $(PC_FILE)

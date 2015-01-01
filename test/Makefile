@@ -28,4 +28,4 @@ test-% : test-%.o $(COMMON_O)
 
 .PHONY: clean
 clean:
-	/bin/rm -f $(OBJ) $(TESTS)
+	$(RM_RF) $(OBJ) $(TESTS)

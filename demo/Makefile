@@ -23,4 +23,4 @@ fuse-demo: $(OBJ)
 
 .PHONY: clean
 clean:
-	/bin/rm -f $(OBJ) $(FUSE_DEMO)
+	$(RM_RF) $(OBJ) $(FUSE_DEMO)
