@@ -1,14 +1,12 @@
+
+include ./buildconf.mk
+
 CPP    := g++ -Wall -g -fPIC
 INC   := -Iinclude
 C_SRCS:= $(wildcard *.c)
 CXSRCS:= $(wildcard *.cpp)
 OBJ   := $(patsubst %.c,%.o,$(C_SRCS)) $(patsubst %.cpp,%.o,$(CXSRCS))
 DEFS  := -D_REENTRANT -D_THREAD_SAFE
-
-VERSION_MAJOR	:= 1
-VERSION_MINOR	:= 0
-VERSION_PATCH	:= 1
-VERSION		:= $(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)
 
 LIBS		:= -lpthread -lrt
 

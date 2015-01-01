@@ -1,3 +1,6 @@
+
+include ../buildconf.mk
+
 CPP   := g++ -Wall -g -fPIC
 LIB   := -lpthread -lrt -lfuse -lfskit
 INC   := -I../include -I.
@@ -9,11 +12,6 @@ DEFS  := -D_REENTRANT -D_THREAD_SAFE -D__STDC_FORMAT_MACROS -D_FILE_OFFSET_BITS=
 LIBINC	:= -L../
 
 FUSE_DEMO = fuse-demo
-
-VERSION_MAJOR	:= 1
-VERSION_MINOR	:= 0
-VERSION_PATCH	:= 1
-VERSION		:= $(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)
 
 LIBFSKIT_FUSE = libfskit_fuse.so
 LIBFSKIT_FUSE_SO = libfskit_fuse.so.$(VERSION_MAJOR)

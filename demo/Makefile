@@ -1,3 +1,6 @@
+
+include ../buildconf.mk
+
 CPP   := g++ -Wall -g -fPIC
 LIB   := -lpthread -lrt -lfuse -lfskit -lfskit_fuse
 INC   := -I../include -I. -I..
