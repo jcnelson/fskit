@@ -2,8 +2,8 @@
 include ../buildconf.mk
 
 CPP   := g++ -Wall -g -fPIC
-LIB   := $(PTHREAD_LIBS) -lfuse -lfskit -lfskit_fuse
-INC   := $(PTHREAD_CFLAGS) -I../include -I. -I..
+LIB   := $(PTHREAD_LIBS) $(FUSE_LIBS) -lfskit -lfskit_fuse
+INC   := $(PTHREAD_CFLAGS) $(FUSE_CFLAGS) -I../include -I. -I..
 C_SRCS:= $(wildcard *.c)
 CXSRCS:= $(wildcard *.cpp)
 OBJ   := $(patsubst %.c,%.o,$(C_SRCS)) $(patsubst %.cpp,%.o,$(CXSRCS))
