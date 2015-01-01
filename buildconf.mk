@@ -20,3 +20,9 @@ MKDIR		?= mkdir
 MKDIR_P		?= $(MKDIR) -p
 CP		?= cp
 CP_A		?= $(CP) -a
+
+PREFIX		?= /usr
+LIBDIR		?= $(PREFIX)/lib
+DATADIR		?= $(PREFIX)/share
+INCLUDEDIR	?= $(PREFIX)/include
+PKGCONFIGDIR	?= $(LIBDIR)/pkgconfig

@@ -10,6 +10,7 @@ HEADERS := $(wildcard *.h)
 OBJ   := $(patsubst %.c,%.o,$(C_SRCS)) $(patsubst %.cpp,%.o,$(CXSRCS))
 DEFS  := -D_REENTRANT -D_THREAD_SAFE -D__STDC_FORMAT_MACROS -D_FILE_OFFSET_BITS=64
 LIBINC	:= -L../
+INCDIR		?= $(INCLUDEDIR)/fskit/fuse
 
 FUSE_DEMO = fuse-demo
 
@@ -19,17 +20,12 @@ LIBFSKIT_FUSE_LIB = libfskit_fuse.so.$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION
 
 PC_FILE := fskit_fuse.pc
 
-PREFIX ?= /usr
-LIBDIR ?= $(PREFIX)/lib
-INCLUDEDIR ?= $(PREFIX)/include/fskit/fuse
-PKGCONFIGDIR ?= $(LIBDIR)/pkgconfig
-
 all: libfskit_fuse $(PC_FILE)
 
 $(PC_FILE):	$(PC_FILE).in
 	@cat $< | \
 		sed -e 's~@PREFIX@~$(PREFIX)~g;' | \
-		sed -e 's~@INCLUDEDIR@~$(INCLUDEDIR)~g;' | \
+		sed -e 's~@INCLUDEDIR@~$(INCDIR)~g;' | \
 		sed -e 's~@VERSION@~$(VERSION)~g; ' | \
 		sed -e 's~@LIBS@~$(LIB)~g; ' | \
 		sed -e 's~@LIBDIR@~$(LIBDIR)~g; ' | \
@@ -48,8 +44,8 @@ libfskit_fuse-install: libfskit_fuse $(PC_FILE)
 	$(CP_A) $(PC_FILE) $(DESTDIR)/$(PKGCONFIGDIR)
 
 libfskit_fuse-dev-install: libfskit_fuse
-	$(MKDIR_P) $(DESTDIR)/$(INCLUDEDIR)
-	$(CP_A) $(HEADERS) $(DESTDIR)/$(INCLUDEDIR)
+	$(MKDIR_P) $(DESTDIR)/$(INCDIR)
+	$(CP_A) $(HEADERS) $(DESTDIR)/$(INCDIR)
 
 %.o : %.c
 	$(CPP) -o $@ $(INC) -c $< $(DEFS)

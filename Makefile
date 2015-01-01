@@ -16,17 +16,14 @@ LIBFSKIT := libfskit.so
 LIBFSKIT_SO := libfskit.so.$(VERSION_MAJOR)
 LIBFSKIT_LIB := libfskit.so.$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)
 
-PREFIX		?= /usr
-LIBDIR		?= $(PREFIX)/lib
-INCLUDEDIR	?= $(PREFIX)/include/fskit
-PKGCONFIGDIR	?= $(LIBDIR)/pkgconfig
+INCDIR		?= $(INCLUDEDIR)/fskit
 
 all: libfskit $(PC_FILE)
 
 $(PC_FILE):	$(PC_FILE).in
 	@cat $< | \
 		sed -e 's~@PREFIX@~$(PREFIX)~g;' | \
-		sed -e 's~@INCLUDEDIR@~$(INCLUDEDIR)~g;' | \
+		sed -e 's~@INCLUDEDIR@~$(INCDIR)~g;' | \
 		sed -e 's~@VERSION@~$(VERSION)~g; ' | \
 		sed -e 's~@LIBS@~$(LIBS)~g; ' | \
 		sed -e 's~@LIBDIR@~$(LIBDIR)~g; ' | \
@@ -45,8 +42,8 @@ libfskit-install: libfskit $(PC_FILE)
 	$(CP_A) $(PC_FILE) $(DESTDIR)/$(PKGCONFIGDIR)
 
 libfskit-dev-install: libfskit
-	$(MKDIR_P) $(DESTDIR)/$(INCLUDEDIR)
-	$(CP_A) include/fskit/*.h $(DESTDIR)/$(INCLUDEDIR)
+	$(MKDIR_P) $(DESTDIR)/$(INCDIR)
+	$(CP_A) include/fskit/*.h $(DESTDIR)/$(INCDIR)
 
 install: libfskit-install libfskit-dev-install $(PC_FILE)
 
