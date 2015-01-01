@@ -15,7 +15,7 @@ TESTS := $(patsubst test-%.o,test-%,$(OBJ))
 all: $(TESTS)
 
 test-% : test-%.o $(COMMON_O)
-	$(CPP) -o $@ $(INC) $(LIB) $(LIBINC) $(COMMON_O) $<
+	$(CPP) -o $@ $(COMMON_O) $< $(LIBINC) $(LIB)
 
 %.o : %.c
 	$(CPP) -o $@ $(INC) -c $< $(DEFS)
