@@ -32,7 +32,10 @@ $(PC_FILE):	$(PC_FILE).in
 		sed -e 's~@INCLUDEDIR@~$(INCLUDEDIR)~g;' | \
 		sed -e 's~@VERSION@~$(VERSION)~g; ' | \
 		sed -e 's~@LIBS@~$(LIBS)~g; ' | \
-		sed -e 's~@LIBDIR@~$(LIBDIR)~g; ' > $@
+		sed -e 's~@LIBDIR@~$(LIBDIR)~g; ' | \
+	   sed -e 's~@VERSION_MAJOR@~$(VERSION_MAJOR)~g; ' | \
+	   sed -e 's~@VERSION_MINOR@~$(VERSION_MINOR)~g; ' | \
+	   sed -e 's~@VERSION_PATCH@~$(VERSION_PATCH)~g; '	> $@
 
 fskit: $(OBJ)
 	$(CPP) -shared -Wl,-soname,$(LIBFSKIT_SO) -o $(LIBFSKIT_LIB) $(OBJ) $(LIBINC) $(LIBS)
@@ -40,10 +43,10 @@ fskit: $(OBJ)
 	$(SHELL) -c "if ! test -L $(LIBFSKIT); then /bin/ln -s $(LIBFSKIT_SO) $(LIBFSKIT); fi"
 
 install: fskit $(PC_FILE)
-	mkdir -p $(DESTDIR)/$(LIBDIR) $(DESTDIR)/$(INCLUDEDIR) $(DESTDIR)/$(PKGCONFIGDIR)
-	cp -a $(LIBFSKIT) $(LIBFSKIT_SO) $(LIBFSKIT_LIB) $(DESTDIR)/$(LIBDIR)
-	cp -a $(HEADERS) $(DESTDIR)/$(INCLUDEDIR)
-	cp -a $(PC_FILE) $(DESTDIR)/$(PKGCONFIGDIR)
+	mkdir -p $(LIBDIR) $(INCLUDEDIR) $(PKGCONFIGDIR)
+	cp -a $(LIBFSKIT) $(LIBFSKIT_SO) $(LIBFSKIT_LIB) $(LIBDIR)
+	cp -a $(HEADERS) $(INCLUDEDIR)
+	cp -a $(PC_FILE) $(PKGCONFIGDIR)
 
 %.o : %.c
 	$(CPP) -o $@ $(INC) -c $< $(DEFS)

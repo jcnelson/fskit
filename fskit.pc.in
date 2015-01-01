@@ -5,7 +5,7 @@ includedir=@INCLUDEDIR@
 
 Name: fskit
 Description: Fileserver utility library
-Version: $(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)
+Version: @VERSION_MAJOR@.@VERSION_MINOR@.@VERSION_PATCH@
 
 Requires:
 Libs:  -lfskit @LIBS@
