@@ -22,6 +22,8 @@
 #ifndef _FSKIT_COMMON_H_
 #define _FSKIT_COMMON_H_
 
+#define __STDC_LIMIT_MACROS
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
