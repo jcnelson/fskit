@@ -318,6 +318,8 @@ struct fskit_dir_entry** fskit_readdir( struct fskit_core* core, struct fskit_di
    struct fskit_dir_entry** dents = fskit_readdir_lowlevel( core, dirh->path, dirh->dent, child_offset, num_children, num_read, err );
 
    if( dents != NULL ) {
+      
+      // run the user's readdir
       rc = fskit_run_user_readdir( core, dirh->path, dirh->dent, dents, *num_read );
       if( rc != 0 ) {
 
@@ -326,7 +328,7 @@ struct fskit_dir_entry** fskit_readdir( struct fskit_core* core, struct fskit_di
          *err = rc;
       }
 
-      // compactify results
+      // compactify the results--the user callback may have omitted some 
       uint64_t new_num_read = 0;
       rc = fskit_readdir_compactify_list( &dents, *num_read, &new_num_read );
 
