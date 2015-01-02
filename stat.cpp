@@ -62,37 +62,47 @@ int fskit_stat( struct fskit_core* core, char const* fs_path, uint64_t user, uin
    return rc;
 }
 
+// generate a full mode from the entry's type and permission bits 
+mode_t fskit_fullmode( int fskit_type, mode_t mode ) {
+   
+   int type = 0;
+   
+   if( fskit_type == FSKIT_ENTRY_TYPE_FILE ) {
+      type = S_IFREG;
+   }
+   else if( fskit_type == FSKIT_ENTRY_TYPE_DIR ) {
+      type = S_IFDIR;
+   }
+   else if( fskit_type == FSKIT_ENTRY_TYPE_FIFO ) {
+      type = S_IFIFO;
+   }
+   else if( fskit_type == FSKIT_ENTRY_TYPE_SOCK ) {
+      type = S_IFSOCK;
+   }
+   else if( fskit_type == FSKIT_ENTRY_TYPE_BLK ) {
+      type = S_IFBLK;
+   }
+   else if( fskit_type == FSKIT_ENTRY_TYPE_CHR ) {
+      type = S_IFCHR;
+   }
+   else if( fskit_type == FSKIT_ENTRY_TYPE_LNK ) {
+      type = S_IFLNK;
+   }
+   else {
+      return -EINVAL;
+   }
+   
+   return type | mode;
+}
+
 // stat an inode directly
 // fill in the stat buffer
 int fskit_fstat( struct fskit_core* core, char const* fs_path, struct fskit_entry* fent, struct stat* sb ) {
-
-   int type = 0;
-   if( fent->type == FSKIT_ENTRY_TYPE_FILE ) {
-      type = S_IFREG;
-   }
-   else if( fent->type == FSKIT_ENTRY_TYPE_DIR ) {
-      type = S_IFDIR;
-   }
-   else if( fent->type == FSKIT_ENTRY_TYPE_FIFO ) {
-      type = S_IFIFO;
-   }
-   else if( fent->type == FSKIT_ENTRY_TYPE_SOCK ) {
-      type = S_IFSOCK;
-   }
-   else if( fent->type == FSKIT_ENTRY_TYPE_BLK ) {
-      type = S_IFBLK;
-   }
-   else if( fent->type == FSKIT_ENTRY_TYPE_CHR ) {
-      type = S_IFCHR;
-   }
-   else if( fent->type == FSKIT_ENTRY_TYPE_LNK ) {
-      type = S_IFLNK;
-   }
-
+   
    // fill in defaults
    sb->st_dev = 0;
    sb->st_ino = fent->file_id;
-   sb->st_mode = type | fent->mode;
+   sb->st_mode = fskit_fullmode( fent->type, fent->mode );
    sb->st_nlink = fent->link_count;
    sb->st_uid = fent->owner;
    sb->st_gid = fent->group;
