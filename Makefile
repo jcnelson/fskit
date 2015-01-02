@@ -4,7 +4,7 @@ C_SRCS:= $(wildcard *.c)
 CXSRCS:= $(wildcard *.cpp)
 HEADERS := $(wildcard *.h)
 OBJ   := $(patsubst %.c,%.o,$(C_SRCS)) $(patsubst %.cpp,%.o,$(CXSRCS))
-DEFS  := -D_REENTRANT -D_THREAD_SAFE -D__STDC_FORMAT_MACROS
+DEFS  := -D_REENTRANT -D_THREAD_SAFE
 
 VERSION_MAJOR	:= 1
 VERSION_MINOR	:= 0
