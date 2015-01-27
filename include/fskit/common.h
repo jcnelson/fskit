@@ -23,6 +23,7 @@
 #define _FSKIT_COMMON_H_
 
 #define __STDC_LIMIT_MACROS
+#define __STDC_FORMAT_MACROS
 
 #include <stdio.h>
 #include <stdlib.h>
