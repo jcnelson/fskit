@@ -1,0 +1,36 @@
+Source: fskit
+Section: libs
+Priority: extra
+Maintainer: Enrico Weigelt, metux IT service <weigelt@metux.de>
+Standards-Version: 3.9.3
+Build-Depends: debhelper (>= 7), libattr1-dev, libfuse-dev, pkg-config
+
+Package: libfskit
+Architecture: any
+Pre-Depends: ${misc:PreDepends}
+Depends:  ${shlibs:Depends},
+          ${misc:Depends}
+Description: Helper library for writing synthentic filesystems
+
+Package: libfskit-dev
+Architecture: any
+Pre-Depends: ${misc:PreDepends}
+Depends:  ${shlibs:Depends},
+          ${misc:Depends}
+Description: Helper library for writing synthentic filesystems
+
+Package: libfskit-fuse
+Architecture: any
+Pre-Depends: ${misc:PreDepends}
+Depends:  ${shlibs:Depends},
+          ${misc:Depends},
+          libfskit
+Description: Helper library for writing synthentic filesystems - FUSE backend
+
+Package: libfskit-fuse-dev
+Architecture: any
+Pre-Depends: ${misc:PreDepends}
+Depends:  ${shlibs:Depends},
+          ${misc:Depends},
+          libfskit-dev
+Description: Helper library for writing synthentic filesystems - FUSE backend
