@@ -22,8 +22,13 @@
 #ifndef _FSKIT_COMMON_H_
 #define _FSKIT_COMMON_H_
 
+#ifndef __STDC_LIMIT_MACROS
 #define __STDC_LIMIT_MACROS
+#endif
+
+#ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
