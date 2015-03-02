@@ -194,8 +194,7 @@ static int fskit_route_enter( struct fskit_path_route* route, struct fskit_entry
 
    if( rc != 0 ) {
       // indicates deadlock
-      rc = -errno;
-      fskit_error("BUG: locking route %s errno = %d\n", route->path_regex_str, rc );
+      fskit_error("BUG: locking route %s with discipline %d rc = %d\n", route->path_regex_str, route->consistency_discipline, rc );
       return rc;
    }
 
