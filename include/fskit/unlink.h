@@ -28,6 +28,7 @@
 extern "C" {
 
 int fskit_unlink( struct fskit_core* core, char const* path, uint64_t owner, uint64_t group );
+int fskit_unlink_nolock( struct fskit_core* core, char const* path, uint64_t owner, uint64_t group );
 
 }
 

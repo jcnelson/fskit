@@ -25,7 +25,8 @@
 
 // unlink a file from the filesystem
 // return the usual path resolution errors
-int fskit_unlink( struct fskit_core* core, char const* path, uint64_t owner, uint64_t group ) {
+// return 1 if the file inode data was completely destroyed
+static int fskit_unlink_ex( struct fskit_core* core, char const* path, uint64_t owner, uint64_t group, bool writelock_child ) {
 
    // get some info about this file first
    int rc = 0;
@@ -34,6 +35,14 @@ int fskit_unlink( struct fskit_core* core, char const* path, uint64_t owner, uin
    // look up the parent and write-lock it
    char* path_dirname = fskit_dirname( path, NULL );
    char* path_basename = fskit_basename( path, NULL );
+   
+   if( path_basename == NULL || path_dirname == NULL ) {
+      
+      safe_free( path_basename );
+      safe_free( path_dirname );
+      
+      return -ENOMEM;
+   }
 
    struct fskit_entry* parent = fskit_entry_resolve_path( core, path_dirname, owner, group, true, &err );
 
@@ -69,8 +78,10 @@ int fskit_unlink( struct fskit_core* core, char const* path, uint64_t owner, uin
 
       return -ENOENT;
    }
-
-   fskit_entry_wlock( fent );
+   
+   if( writelock_child ) {
+      fskit_entry_wlock( fent );
+   }
 
    // detatch fent from parent (don't worry if someone raced ahead of us)
    rc = fskit_entry_detach_lowlevel( parent, fent );
@@ -78,7 +89,10 @@ int fskit_unlink( struct fskit_core* core, char const* path, uint64_t owner, uin
 
       fskit_error("fskit_entry_detach_lowlevel(%p) rc = %d\n", fent, rc );
 
-      fskit_entry_unlock( fent );
+      if( writelock_child ) {
+         fskit_entry_unlock( fent );
+      }
+      
       fskit_entry_unlock( parent );
       return rc;
    }
@@ -89,18 +103,23 @@ int fskit_unlink( struct fskit_core* core, char const* path, uint64_t owner, uin
 
       // destroyed
       safe_free( fent );
-      rc = 0;
+      
+      // update number of files
+      fskit_file_count_update( core, -1 );
    }
    else if( rc < 0 ) {
 
       // some error occurred
       fskit_error("fskit_entry_try_destroy(%p) rc = %d\n", fent, rc );
 
-      fskit_entry_unlock( fent );
+      if( writelock_child ) {
+         fskit_entry_unlock( fent );
+      }
+      
       fskit_entry_unlock( parent );
       return rc;
    }
-   else {
+   else if( writelock_child ) {
 
       // done with this entry
       fskit_entry_unlock( fent );
@@ -108,10 +127,24 @@ int fskit_unlink( struct fskit_core* core, char const* path, uint64_t owner, uin
 
    fskit_entry_unlock( parent );
 
-   if( rc == 0 ) {
-      // update number of files
-      fskit_file_count_update( core, -1 );
-   }
-
    return rc;
 }
+
+// unlink a file from the filesystem 
+// return path resolution errors, and -ENOENT if unlinking fails for some reason 
+int fskit_unlink( struct fskit_core* core, char const* path, uint64_t owner, uint64_t group ) {
+    int rc = fskit_unlink_ex( core, path, owner, group, true );
+    if( rc == 1 ) {
+       rc = 0;
+    }
+    
+    return rc;
+}
+
+// unlink a file from the filessytem, but don't lock the child to unlink 
+// return path resolution errors, and -ENOENT if unlinking fails for some reason 
+// return 1 if th file inode data was completely destroyed
+int fskit_unlink_nolock( struct fskit_core* core, char const* path, uint64_t owner, uint64_t group ) {
+   return fskit_unlink_ex( core, path, owner, group, false );
+}
+   
