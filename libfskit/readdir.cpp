@@ -145,6 +145,10 @@ static struct fskit_dir_entry** fskit_readdir_lowlevel( struct fskit_core* core,
       if( fent == NULL ) {
          continue;
       }
+      
+      if( fent->deletion_in_progress || fent->type == FSKIT_ENTRY_TYPE_DEAD ) {
+         continue;
+      }
 
       // next directory entry
       struct fskit_dir_entry* dir_ent = NULL;
@@ -192,12 +196,7 @@ static struct fskit_dir_entry** fskit_readdir_lowlevel( struct fskit_core* core,
             *err = rc;
             return NULL;
          }
-
-         // skip over entries that are being deleted
-         if( fent->deletion_in_progress || fent->type == FSKIT_ENTRY_TYPE_DEAD || fent->name == NULL ) {
-            continue;
-         }
-
+         
          // snapshot this entry
          dir_ent = fskit_make_dir_entry( fent, fent->name );
 
