@@ -325,7 +325,7 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
       }
 
       // NOTE: we can safely check deletion_in_progress, since it only gets written once (and while the parent is write-locked)
-      if( cur_ent == NULL || cur_ent->deletion_in_progress ) {
+      if( cur_ent == NULL || cur_ent->deletion_in_progress || cur_ent->type == FSKIT_ENTRY_TYPE_DEAD ) {
 
          // not found
          *err = -ENOENT;
