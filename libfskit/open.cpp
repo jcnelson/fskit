@@ -28,7 +28,7 @@
 #include <fskit/util.h>
 
 // create a file handle from a fskit_entry
-// ent must be read-locked
+// ent must be read-locked, or otherwise un-writable
 static struct fskit_file_handle* fskit_file_handle_create( struct fskit_core* core, struct fskit_entry* ent, char const* opened_path, int flags, void* handle_data ) {
 
    struct fskit_file_handle* fh = CALLOC_LIST( struct fskit_file_handle, 1 );
@@ -49,6 +49,7 @@ static struct fskit_file_handle* fskit_file_handle_create( struct fskit_core* co
 }
 
 // get the user-supplied handle data for opening a file
+// fent *cannot* be locked
 int fskit_run_user_open( struct fskit_core* core, char const* path, struct fskit_entry* fent, int flags, void** handle_data ) {
 
    int rc = 0;
@@ -155,9 +156,10 @@ int fskit_do_open( struct fskit_core* core, char const* path, struct fskit_entry
       // can't open
       return rc;
    }
-
+   
    // open will succeed according to fskit.  invoke the user callback to generate handle data
    rc = fskit_run_user_open( core, path, child, flags, handle_data );
+   
    if( rc != 0 ) {
       fskit_error("fskit_run_user_open(%s) rc = %d\n", path, rc );
 
@@ -312,11 +314,8 @@ struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path
    }
 
    // now child exists.
-
-   // safe to lock it so we can release the parent
-   fskit_entry_wlock( child );
-   fskit_entry_unlock( parent );
-
+   // don't lock it, though, since we have to pass it to truncate or open 
+   
    // do we have to truncate?
    if( (flags & O_TRUNC) && (flags & (O_RDWR | O_WRONLY)) ) {
 
@@ -325,7 +324,7 @@ struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path
       if( rc != 0 ) {
 
          // truncate failed
-         fskit_entry_unlock( child );
+         fskit_entry_unlock( parent );
          safe_free( path );
          *err = rc;
          return NULL;
@@ -339,7 +338,7 @@ struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path
       if( rc != 0 ) {
 
          // open failed
-         fskit_entry_unlock( child );
+         fskit_entry_unlock( parent );
          safe_free( path );
          *err = rc;
          return NULL;
@@ -350,7 +349,7 @@ struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path
    fskit_entry_set_atime( child, NULL );
    ret = fskit_file_handle_create( core, child, path, flags, handle_data );
 
-   fskit_entry_unlock( child );
+   fskit_entry_unlock( parent );
 
    safe_free( path );
 
