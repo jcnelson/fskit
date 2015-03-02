@@ -100,6 +100,13 @@ struct fskit_entry* fskit_entry_set_find_name( fskit_entry_set* set, char const*
 struct fskit_entry* fskit_entry_set_find_hash( fskit_entry_set* set, long nh ) {
    for( unsigned int i = 0; i < set->size(); i++ ) {
       if( set->at(i).first == nh ) {
+         
+         if( set->at(i).second == NULL || set->at(i).second->type == FSKIT_ENTRY_TYPE_DEAD ) {
+            
+            // garbage
+            return NULL;
+         }
+         
          return set->at(i).second;
       }
    }
@@ -123,7 +130,6 @@ bool fskit_entry_set_remove_hash( fskit_entry_set* set, long nh ) {
          set->at(i).second = NULL;
          set->at(i).first = 0;
          removed = true;
-         break;
       }
    }
 
@@ -216,6 +222,7 @@ int fskit_entry_attach_lowlevel( struct fskit_entry* parent, struct fskit_entry*
 // detach an entry from a parent.
 // both entries must be write-locked.
 // child's link count will be decremented
+// parent must be write-locked, so it won't matter if the child is not.
 // the child will not be destroyed even if its link count reaches zero; the caller must take care of that.
 int fskit_entry_detach_lowlevel( struct fskit_entry* parent, struct fskit_entry* child ) {
 
@@ -231,6 +238,8 @@ int fskit_entry_detach_lowlevel( struct fskit_entry* parent, struct fskit_entry*
 
    if( child->link_count == 0 ) {
       // child is invalid
+      
+      fskit_error("child->link_count == %d\n", 0 );
       return -ENOENT;
    }
 
@@ -241,7 +250,12 @@ int fskit_entry_detach_lowlevel( struct fskit_entry* parent, struct fskit_entry*
    }
 
    // unlink
-   fskit_entry_set_remove( parent->children, child->name );
+   bool rc = fskit_entry_set_remove( parent->children, child->name );
+   if( !rc ) {
+      
+      fskit_error("fskit_entry_set_remove('%s', '%s') rc = false\n", parent->name, child->name );
+      return -ENOENT;
+   }
 
    struct timespec ts;
    clock_gettime( CLOCK_REALTIME, &ts );
@@ -457,6 +471,11 @@ int fskit_detach_queue_children( struct fskit_detach_ctx* ctx, char const* dir_p
       struct fskit_entry* child = fskit_entry_set_get( &itr );
 
       if( child == NULL ) {
+         itr = dir_children->erase( itr );
+         continue;
+      }
+      
+      if( child->type == FSKIT_ENTRY_TYPE_DEAD ) {
          itr = dir_children->erase( itr );
          continue;
       }
@@ -960,7 +979,7 @@ int fskit_entry_try_destroy( struct fskit_core* core, char const* fs_path, struc
 
    int rc = 0;
 
-   if( fent->link_count <= 0 && fent->open_count <= 0 ) {
+   if( (fent->deletion_in_progress || fent->link_count <= 0) && fent->open_count <= 0 ) {
 
       rc = fskit_run_user_detach( core, fs_path, fent );
       if( rc != 0 ) {
