@@ -22,6 +22,7 @@
 #include <fskit/deferred.h>
 #include <fskit/path.h>
 #include <fskit/wq.h>
+#include <fskit/unlink.h>
 #include <fskit/util.h>
 
 // fskit remove_all context
@@ -71,24 +72,27 @@ static int fskit_deferred_remove_cb( struct fskit_wreq* wreq, void* cls ) {
    fskit_entry_wlock( ctx->child );
 
    ctx->child->open_count--;
-
-   rc = fskit_entry_try_destroy_and_free( ctx->core, ctx->fs_path, ctx->child );
-   if( rc >= 0 ) {
-
-      // success!
-      if( rc == 0 ) {
-         // not destroyed
-         fskit_entry_unlock( ctx->child );
-      }
-      else {
-         // destroyed
-         rc = 0;
-      }
+   
+   rc = fskit_unlink_nolock( ctx->core, ctx->fs_path, 0, 0 );
+   if( rc < 0 ) {
+      
+      fskit_error("fskit_unlink(%s) rc = %d\n", ctx->fs_path, rc);
+      fskit_entry_unlock( ctx->child );
+   }
+   if( rc == 0 ) {
+      
+      // not destroyed 
+      fskit_entry_unlock( ctx->child );
    }
    else {
-      fskit_error("LEAK: fskit_entry_try_destroy_and_free(%s) rc = %d\n", ctx->fs_path, rc );
+      
+      // destroyed 
+      rc = 0;
    }
-
+   
+   safe_free( ctx->fs_path );
+   safe_free( ctx );
+   
    return 0;
 }
 
@@ -126,7 +130,6 @@ int fskit_deferred_remove( struct fskit_core* core, char const* child_path, stru
    }
 
    // mark the child as dead--it won't be resolvable again
-   child->link_count = 0;
    child->deletion_in_progress = true;
 
    // reference the child--don't want it to disappear on us
