@@ -292,6 +292,15 @@ int fskit_entry_detach_lowlevel( struct fskit_entry* parent, struct fskit_entry*
 // getters
 uint64_t fskit_entry_get_file_id( struct fskit_entry* ent );
 void* fskit_entry_get_user_data( struct fskit_entry* ent );
+uint8_t fskit_entry_get_type( struct fskit_entry* ent );
+char* fskit_entry_get_name( struct fskit_entry* ent );
+uint64_t fskit_entry_get_owner( struct fskit_entry* ent );
+uint64_t fskit_entry_get_group( struct fskit_entry* ent );
+void fskit_entry_get_atime( struct fskit_entry* ent, int64_t* atime_sec, int32_t* atime_nsec );
+void fskit_entry_get_mtime( struct fskit_entry* ent, int64_t* mtime_sec, int32_t* mtime_nsec );
+void fskit_entry_get_ctime( struct fskit_entry* ent, int64_t* ctime_sec, int32_t* ctime_nsec );
+off_t fskit_entry_get_size( struct fskit_entry* ent ); 
+dev_t fskit_entry_get_rdev( struct fskit_entry* ent );
 
 char* fskit_file_handle_get_path( struct fskit_file_handle* fh );
 struct fskit_entry* fskit_file_handle_get_entry( struct fskit_file_handle* fh );

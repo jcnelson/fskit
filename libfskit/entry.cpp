@@ -1249,3 +1249,51 @@ void* fskit_dir_handle_get_user_data( struct fskit_dir_handle* dh ) {
 void* fskit_core_get_user_data( struct fskit_core* core ) {
    return core->app_fs_data;
 }
+
+// get type (ent must be read-locked)
+uint8_t fskit_entry_get_type( struct fskit_entry* ent ) {
+   return ent->type;
+}
+
+// get duplicate of name (ent must be read-locked)
+char* fskit_entry_get_name( struct fskit_entry* ent ) {
+   return strdup( ent->name );
+}
+
+// get owner (ent must be read-locked)
+uint64_t fskit_entry_get_owner( struct fskit_entry* ent ) {
+   return ent->owner;
+}
+
+// get group (ent must be read-locked)
+uint64_t fskit_entry_get_group( struct fskit_entry* ent ) {
+   return ent->group;
+}
+ 
+// get atime (ent must be read-locked)
+void fskit_entry_get_atime( struct fskit_entry* ent, int64_t* atime_sec, int32_t* atime_nsec ) {
+   *atime_sec = ent->atime_sec;
+   *atime_nsec = ent->atime_nsec;
+}
+ 
+// get mtime (ent must be read-locked)
+void fskit_entry_get_mtime( struct fskit_entry* ent, int64_t* mtime_sec, int32_t* mtime_nsec ) {
+   *mtime_sec = ent->mtime_sec;
+   *mtime_nsec = ent->mtime_nsec;
+}
+
+// get ctime (ent must be read-locked)
+void fskit_entry_get_ctime( struct fskit_entry* ent, int64_t* ctime_sec, int32_t* ctime_nsec ) {
+   *ctime_sec = ent->ctime_sec;
+   *ctime_nsec = ent->ctime_nsec;
+}
+
+// get size (ent must be read-locked)
+off_t fskit_entry_get_size( struct fskit_entry* ent ) {
+   return ent->size;
+}
+
+// get device major/minor, if this is a special file (ent must be read-lodked)
+dev_t fskit_entry_get_rdev( struct fskit_entry* ent ) {
+   return ent->dev;
+}
