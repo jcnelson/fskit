@@ -97,6 +97,7 @@ mode_t fskit_fullmode( int fskit_type, mode_t mode ) {
 
 // stat an inode directly
 // fill in the stat buffer
+// NOTE: fent must be read-locked
 int fskit_fstat( struct fskit_core* core, char const* fs_path, struct fskit_entry* fent, struct stat* sb ) {
    
    // fill in defaults
