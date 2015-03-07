@@ -325,20 +325,24 @@ struct fskit_dir_entry** fskit_readdir( struct fskit_core* core, struct fskit_di
          fskit_dir_entry_free_list( dents );
          *num_read = 0;
          *err = rc;
-      }
-
-      // compactify the results--the user callback may have omitted some 
-      uint64_t new_num_read = 0;
-      rc = fskit_readdir_compactify_list( &dents, *num_read, &new_num_read );
-
-      if( rc != 0 ) {
-
-         fskit_dir_entry_free_list( dents );
-         *num_read = 0;
-         *err = rc;
+         
+         dents = NULL;
       }
       else {
-         *num_read = new_num_read;
+         
+         // compactify the results--the user callback may have omitted some 
+         uint64_t new_num_read = 0;
+         rc = fskit_readdir_compactify_list( &dents, *num_read, &new_num_read );
+
+         if( rc != 0 ) {
+
+            fskit_dir_entry_free_list( dents );
+            *num_read = 0;
+            *err = rc;
+         }
+         else {
+            *num_read = new_num_read;
+         }
       }
    }
 
