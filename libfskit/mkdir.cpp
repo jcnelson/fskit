@@ -117,7 +117,7 @@ static int fskit_mkdir_lowlevel( struct fskit_core* core, char const* path, stru
          // error in allocation
          fskit_error("fskit_core_inode_alloc(%s) failed\n", path );
 
-         safe_free( child );
+         fskit_safe_free( child );
 
          return -EIO;
       }
@@ -127,7 +127,7 @@ static int fskit_mkdir_lowlevel( struct fskit_core* core, char const* path, stru
       if( err != 0 ) {
          fskit_error("fskit_entry_init_dir(%s) rc = %d\n", path, err );
 
-         safe_free( child );
+         fskit_safe_free( child );
          return err;
       }
 
@@ -139,7 +139,7 @@ static int fskit_mkdir_lowlevel( struct fskit_core* core, char const* path, stru
          fskit_error("fskit_run_user_mkdir(%s) rc = %d\n", path, err );
 
          fskit_entry_destroy( core, child, false );
-         safe_free( child );
+         fskit_safe_free( child );
       }
       else {
 
@@ -185,15 +185,15 @@ int fskit_mkdir( struct fskit_core* core, char const* path, mode_t mode, uint64_
 
    fskit_sanitize_path( path_dirname );
 
-   safe_free( fpath );
+   fskit_safe_free( fpath );
 
    struct fskit_entry* parent = fskit_entry_resolve_path( core, path_dirname, user, group, true, &err );
 
    if( parent == NULL || err ) {
 
       // parent not found
-      safe_free( path_basename );
-      safe_free( path_dirname );
+      fskit_safe_free( path_basename );
+      fskit_safe_free( path_dirname );
 
       // err is set appropriately
       return err;
@@ -203,8 +203,8 @@ int fskit_mkdir( struct fskit_core* core, char const* path, mode_t mode, uint64_
 
       // parent is not a directory
       fskit_entry_unlock( parent );
-      safe_free( path_basename );
-      safe_free( path_dirname );
+      fskit_safe_free( path_basename );
+      fskit_safe_free( path_dirname );
 
       return -ENOTDIR;
    }
@@ -215,8 +215,8 @@ int fskit_mkdir( struct fskit_core* core, char const* path, mode_t mode, uint64_
       fskit_error( "%s is not writable by %" PRIu64 " (%o, %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ")\n", path_dirname, user, parent->mode, parent->owner, parent->group, user, group );
 
       fskit_entry_unlock( parent );
-      safe_free( path_basename );
-      safe_free( path_dirname );
+      fskit_safe_free( path_basename );
+      fskit_safe_free( path_dirname );
 
       return -EACCES;
    }
@@ -229,8 +229,8 @@ int fskit_mkdir( struct fskit_core* core, char const* path, mode_t mode, uint64_
 
    // clean up
    fskit_entry_unlock( parent );
-   safe_free( path_basename );
-   safe_free( path_dirname );
+   fskit_safe_free( path_basename );
+   fskit_safe_free( path_dirname );
 
    return err;
 }

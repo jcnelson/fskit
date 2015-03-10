@@ -108,7 +108,7 @@ static int fskit_do_parent_check( struct fskit_entry* parent, int flags, uint64_
    }
 
    // can parent be searched?
-   else if( !FSKIT_ENTRY_IS_DIR_READABLE( parent->mode, parent->owner, parent->group, user, group ) ) {
+   else if( !FSKIT_ENTRY_IS_DIR_SEARCHABLE( parent->mode, parent->owner, parent->group, user, group ) ) {
 
       rc = -EACCES;
    }
@@ -221,21 +221,21 @@ struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path
 
    if( parent == NULL ) {
 
-      safe_free( path_dirname );
-      safe_free( path );
+      fskit_safe_free( path_dirname );
+      fskit_safe_free( path );
 
       // err is set appropriately
       return NULL;
    }
 
-   safe_free( path_dirname );
+   fskit_safe_free( path_dirname );
 
    rc = fskit_do_parent_check( parent, flags, user, group );
    if( rc != 0 ) {
 
       // can't perform this operation
       fskit_entry_unlock( parent );
-      safe_free( path );
+      fskit_safe_free( path );
       *err = rc;
       return NULL;
    }
@@ -268,7 +268,7 @@ struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path
             // can't garbage-collect
             fskit_entry_unlock( parent );
             fskit_entry_unlock( child );
-            safe_free( path );
+            fskit_safe_free( path );
 
             if( rc == -EEXIST ) {
 
@@ -294,7 +294,7 @@ struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path
          if( rc != 0 ) {
 
             fskit_entry_unlock( parent );
-            safe_free( path );
+            fskit_safe_free( path );
             *err = rc;
             return NULL;
          }
@@ -308,7 +308,7 @@ struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path
 
       // not found
       fskit_entry_unlock( parent );
-      safe_free( path );
+      fskit_safe_free( path );
       *err = -ENOENT;
       return NULL;
    }
@@ -325,7 +325,7 @@ struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path
 
          // truncate failed
          fskit_entry_unlock( parent );
-         safe_free( path );
+         fskit_safe_free( path );
          *err = rc;
          return NULL;
       }
@@ -339,7 +339,7 @@ struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path
 
          // open failed
          fskit_entry_unlock( parent );
-         safe_free( path );
+         fskit_safe_free( path );
          *err = rc;
          return NULL;
       }
@@ -351,7 +351,7 @@ struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path
 
    fskit_entry_unlock( parent );
 
-   safe_free( path );
+   fskit_safe_free( path );
 
    if( ret == NULL ) {
       // only possible if we're out of memory!

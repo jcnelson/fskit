@@ -38,8 +38,8 @@ static int fskit_unlink_ex( struct fskit_core* core, char const* path, uint64_t 
    
    if( path_basename == NULL || path_dirname == NULL ) {
       
-      safe_free( path_basename );
-      safe_free( path_dirname );
+      fskit_safe_free( path_basename );
+      fskit_safe_free( path_dirname );
       
       return -ENOMEM;
    }
@@ -102,7 +102,7 @@ static int fskit_unlink_ex( struct fskit_core* core, char const* path, uint64_t 
    if( rc > 0 ) {
 
       // destroyed
-      safe_free( fent );
+      fskit_safe_free( fent );
       
       // update number of files
       fskit_file_count_update( core, -1 );

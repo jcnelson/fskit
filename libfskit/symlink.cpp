@@ -88,7 +88,7 @@ int fskit_symlink( struct fskit_core* core, char const* target, char const* link
    if( file_id == 0 ) {
 
       fskit_entry_unlock( parent );
-      safe_free( child );
+      fskit_safe_free( child );
       return -EIO;
    }
 
@@ -97,7 +97,7 @@ int fskit_symlink( struct fskit_core* core, char const* target, char const* link
    if( rc != 0 ) {
 
       fskit_entry_destroy( core, child, true );
-      safe_free( child );
+      fskit_safe_free( child );
 
       fskit_entry_unlock( parent );
       return -EIO;
@@ -108,7 +108,7 @@ int fskit_symlink( struct fskit_core* core, char const* target, char const* link
    if( rc != 0 ) {
 
       fskit_entry_destroy( core, child, true );
-      safe_free( child );
+      fskit_safe_free( child );
 
       fskit_entry_unlock( parent );
       return -EIO;

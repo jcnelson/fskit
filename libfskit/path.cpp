@@ -198,7 +198,7 @@ static int fskit_entry_ent_eval( struct fskit_entry* prev_ent, struct fskit_entr
          }
       }
       else {
-         safe_free( cur_ent );
+         fskit_safe_free( cur_ent );
 
          if( prev_ent ) {
             fskit_debug("Remove %s from %s\n", name_dup, prev_ent->name );
@@ -208,7 +208,7 @@ static int fskit_entry_ent_eval( struct fskit_entry* prev_ent, struct fskit_entr
       }
    }
 
-   safe_free( name_dup );
+   fskit_safe_free( name_dup );
 
    return eval_rc;
 }
@@ -249,7 +249,7 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
 
    if( cur_ent->link_count == 0 || cur_ent->type == FSKIT_ENTRY_TYPE_DEAD ) {
       // filesystem was nuked
-      safe_free( fpath );
+      fskit_safe_free( fpath );
       fskit_entry_unlock( cur_ent );
       *err = -ENOENT;
       return NULL;
@@ -260,7 +260,7 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
       int eval_rc = fskit_entry_ent_eval( prev_ent, cur_ent, ent_eval, cls );
       if( eval_rc != 0 ) {
          *err = eval_rc;
-         safe_free( fpath );
+         fskit_safe_free( fpath );
          fskit_entry_unlock( cur_ent );
          return NULL;
       }
@@ -277,21 +277,21 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
             *err = -ENOENT;
          }
 
-         safe_free( fpath );
+         fskit_safe_free( fpath );
          fskit_entry_unlock( cur_ent );
 
          return NULL;
       }
 
       // do we have permission to search this directory?
-      if( cur_ent->type == FSKIT_ENTRY_TYPE_DIR && !FSKIT_ENTRY_IS_DIR_READABLE( cur_ent->mode, cur_ent->owner, cur_ent->group, user, group ) ) {
+      if( cur_ent->type == FSKIT_ENTRY_TYPE_DIR && !FSKIT_ENTRY_IS_DIR_SEARCHABLE( cur_ent->mode, cur_ent->owner, cur_ent->group, user, group ) ) {
 
          fskit_error("User %" PRIu64 " of group %" PRIu64 " cannot read directory %" PRIX64 " owned by %" PRIu64 " in group %" PRIu64 "\n",
                 user, group, cur_ent->file_id, cur_ent->owner, cur_ent->group );
 
          // the appropriate read flag is not set
          *err = -EACCES;
-         safe_free( fpath );
+         fskit_safe_free( fpath );
          fskit_entry_unlock( cur_ent );
 
          return NULL;
@@ -310,7 +310,7 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
 
             // not a directory
             *err = -ENOTDIR;
-            safe_free( fpath );
+            fskit_safe_free( fpath );
             fskit_entry_unlock( prev_ent );
 
             return NULL;
@@ -329,7 +329,7 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
 
          // not found
          *err = -ENOENT;
-         safe_free( fpath );
+         fskit_safe_free( fpath );
          fskit_entry_unlock( prev_ent );
 
          return NULL;
@@ -360,7 +360,7 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
                fskit_entry_unlock( prev_ent );
 
                *err = eval_rc;
-               safe_free( fpath );
+               fskit_safe_free( fpath );
 
                return NULL;
             }
@@ -373,7 +373,7 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
             fskit_entry_unlock( prev_ent );
 
             *err = -ENOENT;
-            safe_free( fpath );
+            fskit_safe_free( fpath );
 
             return NULL;
          }
@@ -382,11 +382,12 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
       }
    } while( true );
 
-   safe_free( fpath );
+   fskit_safe_free( fpath );
    if( name == NULL ) {
       // ran out of path
       *err = 0;
 
+      /*
       // check readability
       if( !FSKIT_ENTRY_IS_READABLE( cur_ent->mode, cur_ent->owner, cur_ent->group, user, group ) ) {
 
@@ -397,7 +398,8 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
          fskit_entry_unlock( cur_ent );
          return NULL;
       }
-
+      */
+      
       return cur_ent;
    }
    else {

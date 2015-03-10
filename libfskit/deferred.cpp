@@ -50,9 +50,9 @@ static int fskit_deferred_remove_all_cb( struct fskit_wreq* wreq, void* cls ) {
       fskit_error("LEAK: fskit_detach_all(%s) rc = %d\n", ctx->fs_path, rc );
    }
 
-   safe_free( ctx->fs_path );
+   fskit_safe_free( ctx->fs_path );
    safe_delete( ctx->children );
-   safe_free( ctx );
+   fskit_safe_free( ctx );
 
    return 0;
 }
@@ -90,8 +90,8 @@ static int fskit_deferred_remove_cb( struct fskit_wreq* wreq, void* cls ) {
       rc = 0;
    }
    
-   safe_free( ctx->fs_path );
-   safe_free( ctx );
+   fskit_safe_free( ctx->fs_path );
+   fskit_safe_free( ctx );
    
    return 0;
 }
@@ -125,7 +125,7 @@ int fskit_deferred_remove( struct fskit_core* core, char const* child_path, stru
    ctx->child = child;
 
    if( ctx->fs_path == NULL ) {
-      safe_free( ctx );
+      fskit_safe_free( ctx );
       return -ENOMEM;
    }
 
@@ -183,7 +183,7 @@ int fskit_deferred_remove_all( struct fskit_core* core, char const* child_path, 
    ctx->children = child->children;
 
    if( ctx->fs_path == NULL ) {
-      safe_free( ctx );
+      fskit_safe_free( ctx );
       return -ENOMEM;
    }
 
@@ -191,8 +191,8 @@ int fskit_deferred_remove_all( struct fskit_core* core, char const* child_path, 
    child->children = fskit_entry_set_new( child, parent );
 
    if( child->children == NULL ) {
-      safe_free( ctx->fs_path );
-      safe_free( ctx );
+      fskit_safe_free( ctx->fs_path );
+      fskit_safe_free( ctx );
       return -ENOMEM;
    }
 

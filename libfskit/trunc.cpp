@@ -114,7 +114,7 @@ int fskit_trunc( struct fskit_core* core, char const* path, uint64_t user, uint6
    if( rc > 0 ) {
 
       // fent was unlocked and destroyed
-      safe_free( fent );
+      fskit_safe_free( fent );
       rc = 0;
 
       fskit_file_count_update( core, -1 );

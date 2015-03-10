@@ -88,7 +88,7 @@ int fskit_do_create( struct fskit_core* core, struct fskit_entry* parent, char c
       fskit_error("fskit_entry_init_file(%s) rc = %d\n", path, rc );
 
       fskit_entry_destroy( core, child, false );
-      safe_free( child );
+      fskit_safe_free( child );
 
       return rc;
    }
@@ -101,7 +101,7 @@ int fskit_do_create( struct fskit_core* core, struct fskit_entry* parent, char c
          fskit_error("fskit_core_inode_alloc(%s) failed\n", path );
 
          fskit_entry_destroy( core, child, false );
-         safe_free( child );
+         fskit_safe_free( child );
 
          return -EIO;
       }
@@ -117,7 +117,7 @@ int fskit_do_create( struct fskit_core* core, struct fskit_entry* parent, char c
          fskit_error("fskit_run_user_create(%s) rc = %d\n", path, rc );
 
          fskit_entry_destroy( core, child, false );
-         safe_free( child );
+         fskit_safe_free( child );
 
          return rc;
       }

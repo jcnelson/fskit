@@ -40,7 +40,7 @@ static struct fskit_dir_entry* fskit_make_dir_entry( struct fskit_entry* dent, c
 
    if( dir_ent->name == NULL ) {
       // out of memory
-      safe_free( dir_ent );
+      fskit_safe_free( dir_ent );
       return NULL;
    }
 
@@ -56,11 +56,11 @@ void fskit_dir_entry_free( struct fskit_dir_entry* dir_ent ) {
    }
 
    if( dir_ent->name != NULL ) {
-      safe_free( dir_ent->name );
+      fskit_safe_free( dir_ent->name );
       dir_ent->name = NULL;
    }
 
-   safe_free( dir_ent );
+   fskit_safe_free( dir_ent );
 }
 
 // free a list of dir entries
@@ -73,7 +73,7 @@ void fskit_dir_entry_free_list( struct fskit_dir_entry** dir_ents ) {
       }
    }
 
-   safe_free( dir_ents );
+   fskit_safe_free( dir_ents );
 }
 
 

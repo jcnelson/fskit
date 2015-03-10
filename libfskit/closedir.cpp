@@ -29,7 +29,7 @@ static void fskit_dir_handle_destroy( struct fskit_dir_handle* dirh ) {
    dirh->dent = NULL;
 
    if( dirh->path != NULL ) {
-      safe_free( dirh->path );
+      fskit_safe_free( dirh->path );
       dirh->path = NULL;
    }
 
@@ -37,7 +37,7 @@ static void fskit_dir_handle_destroy( struct fskit_dir_handle* dirh ) {
 
    memset( dirh, 0, sizeof(struct fskit_dir_handle) );
 
-   safe_free( dirh );
+   fskit_safe_free( dirh );
 }
 
 
@@ -94,7 +94,7 @@ int fskit_closedir( struct fskit_core* core, struct fskit_dir_handle* dirh ) {
    if( rc > 0 ) {
 
       // dent was unlocked and destroyed
-      safe_free( dirh->dent );
+      fskit_safe_free( dirh->dent );
       rc = 0;
    }
    else if( rc < 0 ) {

@@ -32,7 +32,7 @@ static int fskit_file_handle_destroy( struct fskit_file_handle* fh ) {
    fh->fent = NULL;
 
    if( fh->path ) {
-      safe_free( fh->path );
+      fskit_safe_free( fh->path );
       fh->path = NULL;
    }
 
@@ -40,7 +40,7 @@ static int fskit_file_handle_destroy( struct fskit_file_handle* fh ) {
 
    memset( fh, 0, sizeof(struct fskit_file_handle) );
 
-   safe_free( fh );
+   fskit_safe_free( fh );
 
    return 0;
 }

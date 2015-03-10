@@ -30,7 +30,7 @@
 #define FREE_LIST(list) do { if( (list) != NULL ) { for(unsigned int __i = 0; (list)[__i] != NULL; ++ __i) { if( (list)[__i] != NULL ) { free( (list)[__i] ); (list)[__i] = NULL; }} free( (list) ); } } while(0)
 
 #define strdup_or_null( str )  (str) != NULL ? strdup(str) : NULL
-#define safe_free( ptr ) do { if( (ptr) != NULL ) { free( ptr ); (ptr) = NULL; } } while(0)
+#define fskit_safe_free( ptr ) do { if( (ptr) != NULL ) { free( ptr ); (ptr) = NULL; } } while(0)
 #define safe_delete( ptr ) do { if( (ptr) != NULL ) { delete (ptr); (ptr) = NULL; } } while(0)
 #define safe_new( cls ) new (nothrow) cls()
 

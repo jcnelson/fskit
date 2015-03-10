@@ -95,8 +95,8 @@ int fskit_rename( struct fskit_core* core, char const* old_path, char const* new
       }
    }
 
-   safe_free( old_path_dirname );
-   safe_free( new_path_dirname );
+   fskit_safe_free( old_path_dirname );
+   fskit_safe_free( new_path_dirname );
 
    if( err_new ) {
       fskit_entry_rename_unlock( fent_common_parent, fent_old_parent, fent_new_parent );
@@ -109,13 +109,13 @@ int fskit_rename( struct fskit_core* core, char const* old_path, char const* new
    }
 
    // check permission errors...
-   if( (fent_new_parent != NULL && (!FSKIT_ENTRY_IS_DIR_READABLE( fent_new_parent->mode, fent_new_parent->owner, fent_new_parent->group, user, group ) ||
+   if( (fent_new_parent != NULL && (!FSKIT_ENTRY_IS_DIR_SEARCHABLE( fent_new_parent->mode, fent_new_parent->owner, fent_new_parent->group, user, group ) ||
                                     !FSKIT_ENTRY_IS_WRITEABLE( fent_new_parent->mode, fent_new_parent->owner, fent_new_parent->group, user, group ))) ||
 
-       (fent_old_parent != NULL && (!FSKIT_ENTRY_IS_DIR_READABLE( fent_old_parent->mode, fent_old_parent->owner, fent_old_parent->group, user, group )
+       (fent_old_parent != NULL && (!FSKIT_ENTRY_IS_DIR_SEARCHABLE( fent_old_parent->mode, fent_old_parent->owner, fent_old_parent->group, user, group )
                                  || !FSKIT_ENTRY_IS_WRITEABLE( fent_old_parent->mode, fent_old_parent->owner, fent_old_parent->group, user, group ))) ||
 
-       (fent_common_parent != NULL && (!FSKIT_ENTRY_IS_DIR_READABLE( fent_common_parent->mode, fent_common_parent->owner, fent_common_parent->group, user, group )
+       (fent_common_parent != NULL && (!FSKIT_ENTRY_IS_DIR_SEARCHABLE( fent_common_parent->mode, fent_common_parent->owner, fent_common_parent->group, user, group )
                                     || !FSKIT_ENTRY_IS_WRITEABLE( fent_common_parent->mode, fent_common_parent->owner, fent_common_parent->group, user, group ))) ) {
 
       fskit_entry_rename_unlock( fent_common_parent, fent_old_parent, fent_new_parent );
@@ -138,7 +138,7 @@ int fskit_rename( struct fskit_core* core, char const* old_path, char const* new
       fent_old = fskit_entry_set_find_name( fent_old_parent->children, old_path_basename );
    }
 
-   safe_free( old_path_basename );
+   fskit_safe_free( old_path_basename );
 
    // old must exist...
    err = 0;
@@ -149,7 +149,7 @@ int fskit_rename( struct fskit_core* core, char const* old_path, char const* new
    // if we rename a file into itself, then it's okay (i.e. we're done)
    if( err != 0 || fent_old == fent_new ) {
       fskit_entry_rename_unlock( fent_common_parent, fent_old_parent, fent_new_parent );
-      safe_free( new_path_basename );
+      fskit_safe_free( new_path_basename );
 
       return err;
    }
@@ -176,7 +176,7 @@ int fskit_rename( struct fskit_core* core, char const* old_path, char const* new
 
       // directory mismatch
       fskit_entry_rename_unlock( fent_common_parent, fent_old_parent, fent_new_parent );
-      safe_free( new_path_basename );
+      fskit_safe_free( new_path_basename );
 
       return err;
    }
@@ -192,7 +192,7 @@ int fskit_rename( struct fskit_core* core, char const* old_path, char const* new
       fskit_entry_set_remove( fent_common_parent->children, fent_old->name );
 
       // rename this fskit_entry
-      safe_free( fent_old->name );
+      fskit_safe_free( fent_old->name );
       fent_old->name = new_path_basename;
 
       if( fent_new != NULL ) {
@@ -209,7 +209,7 @@ int fskit_rename( struct fskit_core* core, char const* old_path, char const* new
       fskit_entry_set_remove( fent_old_parent->children, fent_old->name );
 
       // rename this fskit_entry
-      safe_free( fent_old->name );
+      fskit_safe_free( fent_old->name );
       fent_old->name = new_path_basename;
 
       if( fent_new != NULL ) {
@@ -239,7 +239,7 @@ int fskit_rename( struct fskit_core* core, char const* old_path, char const* new
 
    if( err != 0 ) {
       // NOTE: passed into fent_old on success, so we need to consider the error code
-      safe_free( new_path_basename );
+      fskit_safe_free( new_path_basename );
    }
 
    return err;

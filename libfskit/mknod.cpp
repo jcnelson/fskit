@@ -76,25 +76,25 @@ int fskit_mknod( struct fskit_core* core, char const* fs_path, mode_t mode, dev_
    char* path_dirname = fskit_dirname( path, NULL );
    struct fskit_entry* parent = fskit_entry_resolve_path( core, path_dirname, user, group, true, &err );
 
-   safe_free( path_dirname );
+   fskit_safe_free( path_dirname );
 
    if( err != 0 || parent == NULL ) {
 
-      safe_free( path );
+      fskit_safe_free( path );
       return err;
    }
 
-   if( !FSKIT_ENTRY_IS_DIR_READABLE( parent->mode, parent->owner, parent->group, user, group ) ) {
+   if( !FSKIT_ENTRY_IS_DIR_SEARCHABLE( parent->mode, parent->owner, parent->group, user, group ) ) {
       // not searchable
       fskit_entry_unlock( parent );
-      safe_free( path );
+      fskit_safe_free( path );
       return -EACCES;
    }
 
    if( !FSKIT_ENTRY_IS_WRITEABLE( parent->mode, parent->owner, parent->group, user, group ) ) {
       // not writeable
       fskit_entry_unlock( parent );
-      safe_free( path );
+      fskit_safe_free( path );
       return -EACCES;
    }
 
@@ -124,7 +124,7 @@ int fskit_mknod( struct fskit_core* core, char const* fs_path, mode_t mode, dev_
          // can't garbage-collect
          fskit_entry_unlock( parent );
          fskit_entry_unlock( child );
-         safe_free( path );
+         fskit_safe_free( path );
 
          if( err == -EEXIST ) {
             return -EEXIST;
@@ -188,10 +188,10 @@ int fskit_mknod( struct fskit_core* core, char const* fs_path, mode_t mode, dev_
       fskit_error("Invalid/unsupported mode %o\n", mode );
 
       fskit_entry_unlock( parent );
-      safe_free( path_basename );
+      fskit_safe_free( path_basename );
       fskit_entry_destroy( core, child, false );
-      safe_free( child );
-      safe_free( path );
+      fskit_safe_free( child );
+      fskit_safe_free( path );
 
       return -EINVAL;
    }
@@ -205,10 +205,10 @@ int fskit_mknod( struct fskit_core* core, char const* fs_path, mode_t mode, dev_
          fskit_error("fskit_core_inode_alloc(%s) failed\n", path );
 
          fskit_entry_unlock( parent );
-         safe_free( path_basename );
+         fskit_safe_free( path_basename );
          fskit_entry_destroy( core, child, false );
-         safe_free( child );
-         safe_free( path );
+         fskit_safe_free( child );
+         fskit_safe_free( path );
 
          return -EIO;
       }
@@ -225,10 +225,10 @@ int fskit_mknod( struct fskit_core* core, char const* fs_path, mode_t mode, dev_
          fskit_error("fskit_run_user_mknod(%s) rc = %d\n", path, err );
 
          fskit_entry_unlock( parent );
-         safe_free( path_basename );
+         fskit_safe_free( path_basename );
          fskit_entry_destroy( core, child, true );
-         safe_free( child );
-         safe_free( path );
+         fskit_safe_free( child );
+         fskit_safe_free( path );
 
          return err;
       }
@@ -244,13 +244,13 @@ int fskit_mknod( struct fskit_core* core, char const* fs_path, mode_t mode, dev_
    else {
       fskit_error("%s(%s) rc = %d\n", method_name, path, err );
       fskit_entry_destroy( core, child, false );
-      safe_free( child );
+      fskit_safe_free( child );
    }
 
    fskit_entry_unlock( parent );
 
-   safe_free( path_basename );
-   safe_free( path );
+   fskit_safe_free( path_basename );
+   fskit_safe_free( path );
 
    return err;
 }

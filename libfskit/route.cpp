@@ -60,7 +60,7 @@ static int fskit_match_group_free( struct fskit_match_group* match_group ) {
 
    if( match_group->path != NULL ) {
 
-      safe_free( match_group->path );
+      fskit_safe_free( match_group->path );
       match_group->path = NULL;
    }
 
@@ -108,14 +108,14 @@ static int fskit_match_regex( struct fskit_match_group* match_group, struct fski
 
    if( rc != 0 ) {
       // no matches
-      safe_free( m );
+      fskit_safe_free( m );
       return -ENOENT;
    }
 
    // sanity check
    if( m[0].rm_so < 0 || m[0].rm_eo < 0 ) {
       // no match
-      safe_free( m );
+      fskit_safe_free( m );
       return -ENOENT;
    }
 
@@ -123,14 +123,14 @@ static int fskit_match_regex( struct fskit_match_group* match_group, struct fski
    if( (signed)path_len != m[0].rm_eo - m[0].rm_so ) {
       // didn't match the whole path
       fskit_debug("Matched only %d:%d of 0:%zu\n", m[0].rm_so, m[0].rm_eo, path_len );
-      safe_free( m );
+      fskit_safe_free( m );
       return -ENOENT;
    }
 
    char** argv = CALLOC_LIST( char*, route->num_expected_matches + 1 );
    if( argv == NULL ) {
 
-      safe_free( m );
+      fskit_safe_free( m );
       return -ENOMEM;
    }
 
@@ -138,7 +138,7 @@ static int fskit_match_regex( struct fskit_match_group* match_group, struct fski
    if( path_dup == NULL ) {
 
       FREE_LIST( argv );
-      safe_free( m );
+      fskit_safe_free( m );
       return -ENOMEM;
    }
 
@@ -150,8 +150,8 @@ static int fskit_match_regex( struct fskit_match_group* match_group, struct fski
       if( next_match == NULL ) {
 
          FREE_LIST( argv );
-         safe_free( argv );
-         safe_free( m );
+         fskit_safe_free( argv );
+         fskit_safe_free( m );
          return -ENOMEM;
       }
 
@@ -163,7 +163,7 @@ static int fskit_match_regex( struct fskit_match_group* match_group, struct fski
    // i is the number of args
    fskit_match_group_init( match_group, path_dup, i, argv );
 
-   safe_free( m );
+   fskit_safe_free( m );
    return 0;
 }
 
@@ -532,7 +532,7 @@ static int fskit_path_route_init( struct fskit_path_route* route, char const* re
 int fskit_path_route_free( struct fskit_path_route* route ) {
 
    if( route->path_regex_str != NULL ) {
-      safe_free( route->path_regex_str );
+      fskit_safe_free( route->path_regex_str );
       route->path_regex_str = NULL;
 
       // NOTE: the regex is only set if the string is set

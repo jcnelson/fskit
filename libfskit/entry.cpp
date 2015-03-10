@@ -329,7 +329,7 @@ int fskit_core_init( struct fskit_core* core, void* app_fs_data ) {
    if( rc != 0 ) {
       fskit_error("fskit_entry_init_dir(/) rc = %d\n", rc );
 
-      safe_free( deferred );
+      fskit_safe_free( deferred );
       safe_delete( routes );
       return rc;
    }
@@ -338,7 +338,7 @@ int fskit_core_init( struct fskit_core* core, void* app_fs_data ) {
    if( rc != 0 ) {
       fskit_error("fskit_wq_init() rc = %d\n", rc );
 
-      safe_free( deferred );
+      fskit_safe_free( deferred );
       safe_delete( routes );
       return rc;
    }
@@ -366,7 +366,7 @@ int fskit_core_init( struct fskit_core* core, void* app_fs_data ) {
       core->deferred = NULL;
 
       fskit_wq_free( deferred );
-      safe_free( deferred );
+      fskit_safe_free( deferred );
 
       safe_delete( routes );
       return rc;
@@ -427,7 +427,7 @@ int fskit_core_destroy( struct fskit_core* core, void** app_fs_data ) {
    fskit_wq_stop( core->deferred );
    fskit_wq_free( core->deferred );
 
-   safe_free( core->deferred );
+   fskit_safe_free( core->deferred );
 
    memset( core, 0, sizeof(struct fskit_core) );
 
@@ -578,7 +578,7 @@ int fskit_detach_all_ex( struct fskit_core* core, char const* dir_path, fskit_en
          fskit_error("fskit_entry_try_destroy_and_free(%s) rc = %d\n", fent_path, rc );
       }
 
-      safe_free( fent_path );
+      fskit_safe_free( fent_path );
    }
 
    // if all went well, then ctx's queues will be empty
@@ -897,7 +897,7 @@ int fskit_entry_init_symlink( struct fskit_entry* fent, uint64_t file_id, char c
    if( rc != 0 ) {
       fskit_error("fskit_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
 
-      safe_free( symlink_target );
+      fskit_safe_free( symlink_target );
       return rc;
    }
 
@@ -948,7 +948,7 @@ int fskit_entry_destroy( struct fskit_core* core, struct fskit_entry* fent, bool
 
    // free common fields
    if( fent->name != NULL ) {
-      safe_free( fent->name );
+      fskit_safe_free( fent->name );
       fent->name = NULL;
    }
 
@@ -958,7 +958,7 @@ int fskit_entry_destroy( struct fskit_core* core, struct fskit_entry* fent, bool
    }
 
    if( fent->symlink_target != NULL ) {
-      safe_free( fent->symlink_target );
+      fskit_safe_free( fent->symlink_target );
       fent->symlink_target = NULL;
    }
 
@@ -1019,7 +1019,7 @@ int fskit_entry_try_destroy_and_free( struct fskit_core* core, char const* fs_pa
    if( rc > 0 ) {
       
       // fent was unlocked and destroyed
-      safe_free( fent );
+      fskit_safe_free( fent );
 
       fskit_file_count_update( core, -1 );
    }
