@@ -50,6 +50,7 @@ gid_t fskit_fuse_get_gid( struct fskit_fuse_state* state ) {
    }
 }
 
+
 // get caller PID
 pid_t fskit_fuse_get_pid() {
    return fuse_get_context()->pid;
@@ -565,9 +566,7 @@ int fskit_fuse_releasedir(const char *path, struct fuse_file_info *fi) {
 
    rc = fskit_closedir( state->core, ffi->handle.dh );
 
-   if( rc == 0 ) {
-      free( ffi );
-   }
+   free( ffi );
 
    fskit_debug("releasedir(%s, %p) rc = %d\n", path, fi, rc );
 
@@ -868,7 +867,7 @@ int fskit_fuse_main( struct fskit_fuse_state* state, int argc, char** argv ) {
    }
 
    fuse_teardown( fs, mountpoint );
-
+   
    return rc;
 }
 
