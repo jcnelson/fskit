@@ -47,14 +47,22 @@ long fskit_entry_name_hash( char const* name ) {
 // return NULL on error (OOM)
 fskit_entry_set* fskit_entry_set_new( struct fskit_entry* node, struct fskit_entry* parent ) {
 
+   int rc = 0;
    fskit_entry_set* ret = safe_new( fskit_entry_set );
 
    if( ret == NULL ) {
       return NULL;
    }
 
-   fskit_entry_set_insert( ret, ".", node );
-   fskit_entry_set_insert( ret, "..", parent );
+   rc = fskit_entry_set_insert( ret, ".", node );
+   if( rc != 0 ) {
+      return NULL;
+   }
+   
+   rc = fskit_entry_set_insert( ret, "..", parent );
+   if( rc != 0 ) {
+      return NULL;
+   }
 
    return ret;
 }
@@ -154,8 +162,9 @@ bool fskit_entry_set_replace( fskit_entry_set* set, char const* name, struct fsk
 unsigned int fskit_entry_set_count( fskit_entry_set* set ) {
    unsigned int ret = 0;
    for( unsigned int i = 0; i < set->size(); i++ ) {
-      if( set->at(i).second != NULL )
+      if( set->at(i).second != NULL ) {
          ret++;
+      }
    }
    return ret;
 }
@@ -206,6 +215,8 @@ struct fskit_entry* fskit_dir_find_by_name( struct fskit_entry* dir, char const*
 
 // attach an entry as a child directly
 // both fskit_entry structures must be write-locked
+// return 0 on success 
+// return -ENOMEM on OOM
 int fskit_entry_attach_lowlevel( struct fskit_entry* parent, struct fskit_entry* fent ) {
 
    fent->link_count++;
@@ -215,8 +226,7 @@ int fskit_entry_attach_lowlevel( struct fskit_entry* parent, struct fskit_entry*
    parent->mtime_sec = ts.tv_sec;
    parent->mtime_nsec = ts.tv_nsec;
 
-   fskit_entry_set_insert( parent->children, fent->name, fent );
-   return 0;
+   return fskit_entry_set_insert( parent->children, fent->name, fent );
 }
 
 // detach an entry from a parent.
@@ -470,6 +480,14 @@ int fskit_detach_queue_children( struct fskit_detach_ctx* ctx, char const* dir_p
 
       struct fskit_entry* child = fskit_entry_set_get( &itr );
 
+      long fent_name_hash = fskit_entry_set_get_name_hash( &itr );
+
+      if( fent_name_hash == fskit_entry_name_hash( "." ) || fent_name_hash == fskit_entry_name_hash( ".." ) ) {
+         // skip
+         itr++;
+         continue;
+      }
+      
       if( child == NULL ) {
          itr = dir_children->erase( itr );
          continue;
@@ -477,14 +495,6 @@ int fskit_detach_queue_children( struct fskit_detach_ctx* ctx, char const* dir_p
       
       if( child->type == FSKIT_ENTRY_TYPE_DEAD ) {
          itr = dir_children->erase( itr );
-         continue;
-      }
-
-      long fent_name_hash = fskit_entry_set_get_name_hash( &itr );
-
-      if( fent_name_hash == fskit_entry_name_hash( "." ) || fent_name_hash == fskit_entry_name_hash( ".." ) ) {
-         // skip
-         itr++;
          continue;
       }
 
@@ -539,10 +549,10 @@ int fskit_detach_all_ex( struct fskit_core* core, char const* dir_path, fskit_en
       struct fskit_entry* fent = ctx->destroy_queue->front();
       char* fent_path = ctx->destroy_paths->front();
 
-      fskit_entry_wlock( fent );
-
       ctx->destroy_queue->pop();
       ctx->destroy_paths->pop();
+
+      fskit_entry_wlock( fent );
 
       if( fent->type == FSKIT_ENTRY_TYPE_DIR ) {
 
@@ -550,7 +560,7 @@ int fskit_detach_all_ex( struct fskit_core* core, char const* dir_path, fskit_en
       }
 
       fent->open_count--;
-
+      
       rc = fskit_entry_try_destroy_and_free( core, fent_path, fent );
       if( rc >= 0 ) {
 
@@ -999,14 +1009,15 @@ int fskit_entry_try_destroy( struct fskit_core* core, char const* fs_path, struc
 // Free it and decrement the number of children in the filesystem if we succeed.
 // return 0 if not destroyed
 // return 1 if destroyed (even if the user-given detach callback fails)
+// fent must be write-locked
 int fskit_entry_try_destroy_and_free( struct fskit_core* core, char const* fs_path, struct fskit_entry* fent ) {
 
    int rc = 0;
-
+   
    // see if we can destroy this....
    rc = fskit_entry_try_destroy( core, fs_path, fent );
    if( rc > 0 ) {
-
+      
       // fent was unlocked and destroyed
       safe_free( fent );
 
@@ -1296,4 +1307,17 @@ off_t fskit_entry_get_size( struct fskit_entry* ent ) {
 // get device major/minor, if this is a special file (ent must be read-lodked)
 dev_t fskit_entry_get_rdev( struct fskit_entry* ent ) {
    return ent->dev;
+}
+
+// get number of children.  if this is not a directory, return -1 (ent must be read-locked)
+int64_t fskit_entry_get_num_children( struct fskit_entry* ent ) {
+   
+   if( ent->children != NULL ) {
+      
+      return (int64_t)ent->children->size();
+   }
+   else {
+      
+      return -1;
+   }
 }
