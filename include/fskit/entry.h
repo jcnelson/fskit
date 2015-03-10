@@ -301,6 +301,7 @@ void fskit_entry_get_mtime( struct fskit_entry* ent, int64_t* mtime_sec, int32_t
 void fskit_entry_get_ctime( struct fskit_entry* ent, int64_t* ctime_sec, int32_t* ctime_nsec );
 off_t fskit_entry_get_size( struct fskit_entry* ent ); 
 dev_t fskit_entry_get_rdev( struct fskit_entry* ent );
+int64_t fskit_entry_get_num_children( struct fskit_entry* ent );
 
 char* fskit_file_handle_get_path( struct fskit_file_handle* fh );
 struct fskit_entry* fskit_file_handle_get_entry( struct fskit_file_handle* fh );
