@@ -109,6 +109,7 @@ int fskit_deferred_remove( struct fskit_core* core, char const* child_path, stru
    struct fskit_deferred_remove_all_ctx* ctx = NULL;
    struct fskit_wreq work;
    int rc = 0;
+   int64_t old_link_count = 0;
 
    if( child->type == FSKIT_ENTRY_TYPE_DIR ) {
       return -EISDIR;
@@ -131,7 +132,10 @@ int fskit_deferred_remove( struct fskit_core* core, char const* child_path, stru
 
    // mark the child as dead--it won't be resolvable again
    child->deletion_in_progress = true;
-
+   
+   old_link_count = child->link_count;
+   child->link_count = 0;
+   
    // reference the child--don't want it to disappear on us
    child->open_count++;
 
@@ -140,8 +144,16 @@ int fskit_deferred_remove( struct fskit_core* core, char const* child_path, stru
 
    rc = fskit_wq_add( core->deferred, &work );
    if( rc != 0 ) {
+      
       // not running, or OOM
       fskit_error("fskit_wq_add( fskit_deferred_remove_cb, %s ) rc = %d\n", child_path, rc );
+      
+      child->deletion_in_progress = false;
+      child->open_count--;
+      child->link_count = old_link_count;
+      
+      fskit_safe_free( ctx->fs_path );
+      fskit_safe_free( ctx );
       return -EAGAIN;
    }
 
@@ -154,12 +166,16 @@ int fskit_deferred_remove( struct fskit_core* core, char const* child_path, stru
 // They will be garbage-collected asynchronously.
 // return 0 on success
 // return -ENOTDIR if child is not a directory
+// return -EINVAL if the child has no parent (shouldn't happen)
+// return -ENOMEM on OOM
+// return -EAGAIN if we failed to enqueue the request
 // NOTE: child must be write-locked
 int fskit_deferred_remove_all( struct fskit_core* core, char const* child_path, struct fskit_entry* child ) {
 
    struct fskit_deferred_remove_all_ctx* ctx = NULL;
    struct fskit_entry* parent = NULL;
    struct fskit_wreq work;
+   int64_t old_link_count = 0;
    int rc = 0;
 
    if( child->type != FSKIT_ENTRY_TYPE_DIR ) {
@@ -191,13 +207,20 @@ int fskit_deferred_remove_all( struct fskit_core* core, char const* child_path, 
    child->children = fskit_entry_set_new( child, parent );
 
    if( child->children == NULL ) {
+      
+      // restore 
+      child->children = ctx->children;
+      ctx->children = NULL;
+      
       fskit_safe_free( ctx->fs_path );
       fskit_safe_free( ctx );
       return -ENOMEM;
    }
 
    // mark the child as dead--it won't be resolvable again
+   old_link_count = child->link_count;
    child->link_count = 0;
+   
    child->deletion_in_progress = true;
 
    // defer deletion
@@ -205,8 +228,20 @@ int fskit_deferred_remove_all( struct fskit_core* core, char const* child_path, 
 
    rc = fskit_wq_add( core->deferred, &work );
    if( rc != 0 ) {
+      
       // not running, or OOM
       fskit_error("fskit_wq_add( fskit_deferred_remove_all_cb, %s ) rc = %d\n", child_path, rc );
+      
+      // restore 
+      child->link_count = old_link_count;
+      child->deletion_in_progress = false;
+      
+      safe_delete( child->children );
+      child->children = ctx->children;
+      
+      fskit_safe_free( ctx->fs_path );
+      fskit_safe_free( ctx );
+      
       return -EAGAIN;
    }
 
