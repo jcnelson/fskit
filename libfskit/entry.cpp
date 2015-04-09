@@ -75,6 +75,9 @@ int fskit_entry_set_insert( fskit_entry_set* set, char const* name, struct fskit
 }
 
 // insert a child entry into an fskit_entry_set
+// this overwrites any existing entry
+// return 0 on success
+// return -ENOMEM on OOM
 int fskit_entry_set_insert_hash( fskit_entry_set* set, long hash, struct fskit_entry* child ) {
    try {
       for( unsigned int i = 0; i < set->size(); i++ ) {
@@ -204,6 +207,7 @@ long fskit_entry_set_name_hash_at( fskit_entry_set* set, uint64_t i ) {
 // find a child by name.
 // dir must be at least read-locked
 // return NULL if not found, or if not a directory
+// NOTE: dir must be write-locked
 struct fskit_entry* fskit_dir_find_by_name( struct fskit_entry* dir, char const* name ) {
 
    if( dir->children == NULL ) {
@@ -213,13 +217,39 @@ struct fskit_entry* fskit_dir_find_by_name( struct fskit_entry* dir, char const*
    return fskit_entry_set_find_name( dir->children, name );
 }
 
+// add or replace a child by name
+// do not run user-given routes 
+// return 0 on success, and if a child was replaced, set it in *old_child
+// return -ENOENT on OOM 
+// return -ENOTDIR if dent isn't a dir
+// NOTE: dent must be write-locked
+int fskit_dir_add_child_by_name( struct fskit_entry* dent, struct fskit_entry* child, struct fskit_entry** ret_old_child ) {
+   
+   if( dent->children == NULL ) {
+      return -ENOTDIR;
+   }
+   
+   struct fskit_entry* old_child = NULL;
+   
+   old_child = fskit_entry_set_find_name( dent->children, child->name );
+   
+   fskit_entry_set_insert( dent->children, child->name, child );
+   
+   *ret_old_child = old_child;
+   
+   return 0;
+}
+
 // attach an entry as a child directly
 // both fskit_entry structures must be write-locked
 // return 0 on success 
 // return -ENOMEM on OOM
+// NOTE: parent must be write-locked, as well as fent
 int fskit_entry_attach_lowlevel( struct fskit_entry* parent, struct fskit_entry* fent ) {
 
-   fent->link_count++;
+   if( parent != fent ) {
+      fent->link_count++;
+   }
 
    struct timespec ts;
    clock_gettime( CLOCK_REALTIME, &ts );
@@ -229,12 +259,12 @@ int fskit_entry_attach_lowlevel( struct fskit_entry* parent, struct fskit_entry*
    return fskit_entry_set_insert( parent->children, fent->name, fent );
 }
 
-// detach an entry from a parent.
+// detach an entry from a parent.  If force is true, then do so even if the child is a non-empty directory
 // both entries must be write-locked.
 // child's link count will be decremented
 // parent must be write-locked, so it won't matter if the child is not.
 // the child will not be destroyed even if its link count reaches zero; the caller must take care of that.
-int fskit_entry_detach_lowlevel( struct fskit_entry* parent, struct fskit_entry* child ) {
+static int fskit_entry_detach_lowlevel_ex( struct fskit_entry* parent, struct fskit_entry* child, bool force ) {
 
    if( parent == child ) {
       // tried to detach .
@@ -254,32 +284,54 @@ int fskit_entry_detach_lowlevel( struct fskit_entry* parent, struct fskit_entry*
    }
 
    // if the child is a directory, and it's not empty, then don't proceed
-   if( child->type == FSKIT_ENTRY_TYPE_DIR && fskit_entry_set_count( child->children ) > 2 ) {
+   if( !force && child->type == FSKIT_ENTRY_TYPE_DIR && fskit_entry_set_count( child->children ) > 2 ) {
       // not empty
       return -ENOTEMPTY;
    }
 
    // unlink
    bool rc = fskit_entry_set_remove( parent->children, child->name );
-   if( !rc ) {
+   if( !force && !rc ) {
       
       fskit_error("fskit_entry_set_remove('%s', '%s') rc = false\n", parent->name, child->name );
       return -ENOENT;
    }
-
+   
    struct timespec ts;
    clock_gettime( CLOCK_REALTIME, &ts );
    parent->mtime_sec = ts.tv_sec;
    parent->mtime_nsec = ts.tv_nsec;
 
-   child->link_count--;
+   if( parent != child ) {
+      
+      child->link_count--;
 
-   // NOTE: have to check, since the app might have explicitly set the link count to 0
-   if( child->link_count < 0 ) {
-      child->link_count = 0;
+      // NOTE: have to check, since the app might have explicitly set the link count to 0
+      if( child->link_count < 0 ) {
+         child->link_count = 0;
+      }
    }
 
    return 0;
+}
+
+
+// detach an entry from a parent
+// both entries must be write-locked.
+// child's link count will be decremented
+// parent must be write-locked, so it won't matter if the child is not.
+// the child will not be destroyed even if its link count reaches zero; the caller must take care of that.
+int fskit_entry_detach_lowlevel( struct fskit_entry* parent, struct fskit_entry* child ) {
+   return fskit_entry_detach_lowlevel_ex( parent, child, false );
+}
+
+// forcibly detach an entry from a parent
+// both entries must be write-locked.
+// child's link count will be decremented
+// parent must be write-locked, so it won't matter if the child is not.
+// the child will not be destroyed even if its link count reaches zero; the caller must take care of that.
+int fskit_entry_detach_lowlevel_force( struct fskit_entry* parent, struct fskit_entry* child ) {
+   return fskit_entry_detach_lowlevel_ex( parent, child, true );
 }
 
 
@@ -714,6 +766,8 @@ int fskit_core_inode_free( struct fskit_core* core, uint64_t inode ) {
 }
 
 // get the root node
+// return pointer to the root on success
+// return NULL if the root is deleted
 struct fskit_entry* fskit_core_resolve_root( struct fskit_core* core, bool writelock ) {
 
    fskit_core_rlock( core );
@@ -1216,6 +1270,13 @@ int fskit_entry_set_user_data( struct fskit_entry* ent, void* app_data ) {
    return 0;
 }
 
+// set the file ID
+// NOTE: don't do this outside of creat(), mkdir(), or mknod(), unless you want to suffer the consequences.
+// ent must be write-locked
+void fskit_entry_set_file_id( struct fskit_entry* ent, uint64_t file_id ) {
+   ent->file_id = file_id;
+}
+
 // get the file's file ID (i.e. its inode number)
 uint64_t fskit_entry_get_file_id( struct fskit_entry* ent ) {
    return ent->file_id;
@@ -1307,6 +1368,11 @@ off_t fskit_entry_get_size( struct fskit_entry* ent ) {
 // get device major/minor, if this is a special file (ent must be read-lodked)
 dev_t fskit_entry_get_rdev( struct fskit_entry* ent ) {
    return ent->dev;
+}
+
+// get permission bits 
+mode_t fskit_entry_get_mode( struct fskit_entry* ent ) {
+   return ent->mode;
 }
 
 // get number of children.  if this is not a directory, return -1 (ent must be read-locked)

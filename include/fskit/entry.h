@@ -235,6 +235,7 @@ void* fskit_core_get_user_data( struct fskit_core* core );
 // directory methods (use instead of the entry set API)
 long fskit_entry_name_hash( char const* name );
 struct fskit_entry* fskit_dir_find_by_name( struct fskit_entry* dir, char const* name );
+int fskit_dir_add_replace_by_name( struct fskit_entry* dent, struct fskit_entry* child, struct fskit_entry** ret_old_child );
 
 // memory management
 int fskit_entry_init_lowlevel( struct fskit_entry* fent, uint8_t type, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode );
@@ -288,6 +289,7 @@ int fskit_xattr_unlock( struct fskit_entry* fent );
 // low-level linking and unlinking
 int fskit_entry_attach_lowlevel( struct fskit_entry* parent, struct fskit_entry* child );
 int fskit_entry_detach_lowlevel( struct fskit_entry* parent, struct fskit_entry* child );
+int fskit_entry_detach_lowlevel_force( struct fskit_entry* parent, struct fskit_entry* child );
 
 // getters
 uint64_t fskit_entry_get_file_id( struct fskit_entry* ent );
@@ -296,6 +298,7 @@ uint8_t fskit_entry_get_type( struct fskit_entry* ent );
 char* fskit_entry_get_name( struct fskit_entry* ent );
 uint64_t fskit_entry_get_owner( struct fskit_entry* ent );
 uint64_t fskit_entry_get_group( struct fskit_entry* ent );
+mode_t fskit_entry_get_mode( struct fskit_entry* ent );
 void fskit_entry_get_atime( struct fskit_entry* ent, int64_t* atime_sec, int32_t* atime_nsec );
 void fskit_entry_get_mtime( struct fskit_entry* ent, int64_t* mtime_sec, int32_t* mtime_nsec );
 void fskit_entry_get_ctime( struct fskit_entry* ent, int64_t* ctime_sec, int32_t* ctime_nsec );
@@ -313,6 +316,7 @@ void* fskit_dir_handle_get_user_data( struct fskit_file_handle* fh );
 
 // setters
 int fskit_entry_set_user_data( struct fskit_entry* ent, void* app_data );
+void fskit_entry_set_file_id( struct fskit_entry* ent, uint64_t file_id );
 
 // accounting
 uint64_t fskit_file_count_update( struct fskit_core* core, int change );
