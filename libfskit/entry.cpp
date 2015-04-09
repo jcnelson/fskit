@@ -276,13 +276,6 @@ static int fskit_entry_detach_lowlevel_ex( struct fskit_entry* parent, struct fs
       return -ENOENT;
    }
 
-   if( child->link_count == 0 ) {
-      // child is invalid
-      
-      fskit_error("child->link_count == %d\n", 0 );
-      return -ENOENT;
-   }
-
    // if the child is a directory, and it's not empty, then don't proceed
    if( !force && child->type == FSKIT_ENTRY_TYPE_DIR && fskit_entry_set_count( child->children ) > 2 ) {
       // not empty
