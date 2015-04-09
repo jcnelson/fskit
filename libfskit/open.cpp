@@ -361,11 +361,9 @@ struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path
          return NULL;
       }
    }
-   else {
-      
-      // done with parent 
-      fskit_entry_unlock( parent );
-   }
+   
+   // done with parent 
+   fskit_entry_unlock( parent );
 
    // still here--we can open the file now!
    fskit_entry_set_atime( child, NULL );
