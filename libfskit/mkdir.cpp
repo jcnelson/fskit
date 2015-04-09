@@ -26,13 +26,13 @@
 #include <fskit/util.h>
 
 // get the user-supplied inode data for creating a directory
-int fskit_run_user_mkdir( struct fskit_core* core, char const* path, struct fskit_entry* fent, mode_t mode, void** inode_data ) {
+int fskit_run_user_mkdir( struct fskit_core* core, char const* path, struct fskit_entry* parent, struct fskit_entry* fent, mode_t mode, void** inode_data ) {
 
    int rc = 0;
    int cbrc = 0;
    struct fskit_route_dispatch_args dargs;
 
-   fskit_route_mkdir_args( &dargs, mode );
+   fskit_route_mkdir_args( &dargs, parent, mode );
 
    rc = fskit_route_call_mkdir( core, path, fent, &dargs, &cbrc );
 
@@ -132,7 +132,7 @@ static int fskit_mkdir_lowlevel( struct fskit_core* core, char const* path, stru
       }
 
       // almost done.  run the route callback for this path if needed
-      err = fskit_run_user_mkdir( core, path, child, mode, &app_dir_data );
+      err = fskit_run_user_mkdir( core, path, parent, child, mode, &app_dir_data );
       if( err != 0 ) {
 
          // user route failed
