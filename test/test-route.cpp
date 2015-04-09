@@ -21,63 +21,68 @@
 
 #include "test-route.h"
 
-int create_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* fent, mode_t mode, void** inode_data, void** handle_data ) {
-   fskit_debug("Create %" PRIX64 " (%s) mode=%o\n", fent->file_id, grp->path, mode );
+int create_cb( struct fskit_core* core, struct fskit_route_metadata* route_metadata, struct fskit_entry* fent, mode_t mode, void** inode_data, void** handle_data ) {
+   fskit_debug("Create %" PRIX64 " (%s) mode=%o\n", fent->file_id, route_metadata->path, mode );
    return 0;
 }
 
-int mknod_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* fent, mode_t mode, dev_t dev, void** inode_data ) {
-   fskit_debug("Mknod %" PRIX64 " (%s) mode=%o dev=%lX \n", fent->file_id, grp->path, mode, dev );
+int mknod_cb( struct fskit_core* core, struct fskit_route_metadata* route_metadata, struct fskit_entry* fent, mode_t mode, dev_t dev, void** inode_data ) {
+   fskit_debug("Mknod %" PRIX64 " (%s) mode=%o dev=%lX \n", fent->file_id, route_metadata->path, mode, dev );
    return 0;
 }
 
-int mkdir_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* dent, mode_t mode, void** inode_data ) {
-   fskit_debug("Mkdir %" PRIX64 " (%s) mode=%o\n", dent->file_id, grp->path, mode );
+int mkdir_cb( struct fskit_core* core, struct fskit_route_metadata* route_metadata, struct fskit_entry* dent, mode_t mode, void** inode_data ) {
+   fskit_debug("Mkdir %" PRIX64 " (%s) mode=%o\n", dent->file_id, route_metadata->path, mode );
    return 0;
 }
 
-int open_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* fent, int flags, void** handle_data ) {
-   fskit_debug("Open %" PRIX64 " (%s) flags=%X\n", fent->file_id, grp->path, flags );
+int open_cb( struct fskit_core* core, struct fskit_route_metadata* route_metadata, struct fskit_entry* fent, int flags, void** handle_data ) {
+   fskit_debug("Open %" PRIX64 " (%s) flags=%X\n", fent->file_id, route_metadata->path, flags );
    return 0;
 }
 
-int close_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* fent, void* handle_data ) {
-   fskit_debug("Close %" PRIX64 " (%s)\n", fent->file_id, grp->path );
+int close_cb( struct fskit_core* core, struct fskit_route_metadata* route_metadata, struct fskit_entry* fent, void* handle_data ) {
+   fskit_debug("Close %" PRIX64 " (%s)\n", fent->file_id, route_metadata->path );
    return 0;
 }
 
-int read_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* fent, char* buf, size_t buflen, off_t offset, void* handle_data ) {
-   fskit_debug("Read %" PRIX64 " (%s) buf=%p buflen=%zu offset=%jd handle_data=%p\n", fent->file_id, grp->path, buf, buflen, offset, handle_data );
+int read_cb( struct fskit_core* core, struct fskit_route_metadata* route_metadata, struct fskit_entry* fent, char* buf, size_t buflen, off_t offset, void* handle_data ) {
+   fskit_debug("Read %" PRIX64 " (%s) buf=%p buflen=%zu offset=%jd handle_data=%p\n", fent->file_id, route_metadata->path, buf, buflen, offset, handle_data );
    return buflen;
 }
 
-int write_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* fent, char* buf, size_t buflen, off_t offset, void* handle_data ) {
-   fskit_debug("Write %" PRIX64 " (%s) buf=%p buflen=%zu offset=%jd handle_data=%p\n", fent->file_id, grp->path, buf, buflen, offset, handle_data );
+int write_cb( struct fskit_core* core, struct fskit_route_metadata* route_metadata, struct fskit_entry* fent, char* buf, size_t buflen, off_t offset, void* handle_data ) {
+   fskit_debug("Write %" PRIX64 " (%s) buf=%p buflen=%zu offset=%jd handle_data=%p\n", fent->file_id, route_metadata->path, buf, buflen, offset, handle_data );
    return buflen;
 }
 
-int trunc_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* fent, off_t new_size, void* handle_data ) {
-   fskit_debug("Trunc %" PRIX64 " (%s) new_size=%jd handle_data=%p\n", fent->file_id, grp->path, new_size, handle_data );
+int trunc_cb( struct fskit_core* core, struct fskit_route_metadata* route_metadata, struct fskit_entry* fent, off_t new_size, void* handle_data ) {
+   fskit_debug("Trunc %" PRIX64 " (%s) new_size=%jd handle_data=%p\n", fent->file_id, route_metadata->path, new_size, handle_data );
    return 0;
 }
 
-int readdir_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* dir, struct fskit_dir_entry** dents, uint64_t num_dents ) {
-   fskit_debug("Readdir %" PRIX64 " (%s) dents[0]=(%" PRIX64 " %s), num_dents=%" PRIu64 "\n", dents[0]->file_id, grp->path, dents[0]->file_id, dents[0]->name, num_dents );
+int readdir_cb( struct fskit_core* core, struct fskit_route_metadata* route_metadata, struct fskit_entry* dir, struct fskit_dir_entry** dents, uint64_t num_dents ) {
+   fskit_debug("Readdir %" PRIX64 " (%s) dents[0]=(%" PRIX64 " %s), num_dents=%" PRIu64 "\n", dents[0]->file_id, route_metadata->path, dents[0]->file_id, dents[0]->name, num_dents );
    return 0;
 }
 
-int detach_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* fent, void* inode_data ) {
-   fskit_debug("Detach %" PRIX64 " (%s)\n", fent->file_id, grp->path );
+int detach_cb( struct fskit_core* core, struct fskit_route_metadata* route_metadata, struct fskit_entry* fent, void* inode_data ) {
+   fskit_debug("Detach %" PRIX64 " (%s)\n", fent->file_id, route_metadata->path );
    return 0;
 }
 
-int stat_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* fent, struct stat* sb ) {
-   fskit_debug("Stat %" PRIX64 " (%s)\n", fent->file_id, grp->path );
+int stat_cb( struct fskit_core* core, struct fskit_route_metadata* route_metadata, struct fskit_entry* fent, struct stat* sb ) {
+   fskit_debug("Stat %" PRIX64 " (%s)\n", fent->file_id, route_metadata->path );
    return 0;
 }
 
-int sync_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* fent ) {
-   fskit_debug("Sync %" PRIX64 " (%s)\n", fent->file_id, grp->path );
+int sync_cb( struct fskit_core* core, struct fskit_route_metadata* route_metadata, struct fskit_entry* fent ) {
+   fskit_debug("Sync %" PRIX64 " (%s)\n", fent->file_id, route_metadata->path );
+   return 0;
+}
+
+int rename_cb( struct fskit_core* core, struct fskit_route_metadata* route_metadata, struct fskit_entry* fent, char const* new_path, struct fskit_entry* new_fent ) {
+   fskit_debug("Rename %" PRIX64 " from %s to %s (overwriting %s)\n", fent->file_id, route_metadata->path, new_path, (new_fent != NULL ? new_fent->name : "(null)"));
    return 0;
 }
 
@@ -85,8 +90,8 @@ int main( int argc, char** argv ) {
    struct fskit_core core;
    int rc;
    void* output;
-
-   int create_rh, mknod_rh, mkdir_rh, opendir_rh, open_rh, close_rh, closedir_rh, readdir_rh, read_rh, write_rh, trunc_rh, unlink_rh, rmdir_rh, stat_rh, sync_rh;
+   
+   int create_rh, mknod_rh, mkdir_rh, opendir_rh, open_rh, close_rh, closedir_rh, readdir_rh, read_rh, write_rh, trunc_rh, unlink_rh, rmdir_rh, stat_rh, sync_rh, rename_rh;
 
    rc = fskit_test_begin( &core, NULL );
    if( rc != 0 ) {
@@ -182,6 +187,12 @@ int main( int argc, char** argv ) {
    sync_rh = fskit_route_sync( &core, "/test-file", sync_cb, FSKIT_SEQUENTIAL );
    if( sync_rh < 0 ) {
       fskit_error("fskit_route_sync rc = %d\n", sync_rh );
+      exit(1);
+   }
+   
+   rename_rh = fskit_route_rename( &core, "/test-file", rename_cb, FSKIT_SEQUENTIAL );
+   if( rename_rh < 0 ) {
+      fskit_error("fskit_route_rename rc = %d\n", rename_rh );
       exit(1);
    }
 
@@ -290,6 +301,13 @@ int main( int argc, char** argv ) {
       fskit_error("fskit_stat rc = %d\n", rc );
       exit(1);
    }
+   
+   // rename 
+   rc = fskit_rename( &core, "/test-file", "/test-file-renamed", 0, 0 );
+   if( rc != 0 ) {
+      fskit_error("fskit_rename rc = %d\n", rc );
+      exit(1);
+   }
 
    // undefine routes
    rc = fskit_unroute_create( &core, create_rh );
@@ -367,6 +385,12 @@ int main( int argc, char** argv ) {
    rc = fskit_unroute_detach( &core, rmdir_rh );
    if( rc < 0 ) {
       fskit_error("fskit_unroute_detach rc = %d\n", rc );
+      exit(1);
+   }
+   
+   rc = fskit_unroute_rename( &core, rename_rh );
+   if( rc < 0 ) {
+      fskit_error("fskit_unroute_rename rc = %d\n", rc );
       exit(1);
    }
 
