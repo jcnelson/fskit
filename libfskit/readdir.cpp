@@ -278,6 +278,7 @@ int fskit_readdir_compactify_list( struct fskit_dir_entry*** ret_entries, uint64
 
 
 // read data from a directory, using the given directory handle.
+// returns a null-terminated list of directory entries
 // starts reading at child_offset, and reads at most a range of num_children (the actual value will be set into *num_read)
 // on failure, it sets *err to one of the following:
 // * -ENOMEM if no memory
@@ -354,6 +355,8 @@ struct fskit_dir_entry** fskit_readdir( struct fskit_core* core, struct fskit_di
 }
 
 // list a whole directory's data
+// returns a null-terminated list of entries, and set *num_read to the number actually consumed 
+// return NULL on error, and set *err
 struct fskit_dir_entry** fskit_listdir( struct fskit_core* core, struct fskit_dir_handle* dirh, uint64_t* num_read, int* err ) {
    return fskit_readdir( core, dirh, 0, UINT64_MAX, num_read, err );
 }
