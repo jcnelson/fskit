@@ -26,13 +26,13 @@
 #include <fskit/util.h>
 
 // get the user-supplied inode data for creating a node
-int fskit_run_user_mknod( struct fskit_core* core, char const* path, struct fskit_entry* fent, mode_t mode, dev_t dev, void** inode_data ) {
+int fskit_run_user_mknod( struct fskit_core* core, char const* path, struct fskit_entry* parent, struct fskit_entry* fent, mode_t mode, dev_t dev, void** inode_data ) {
 
    int rc = 0;
    int cbrc = 0;
    struct fskit_route_dispatch_args dargs;
 
-   fskit_route_mknod_args( &dargs, mode, dev );
+   fskit_route_mknod_args( &dargs, parent, mode, dev );
 
    rc = fskit_route_call_mknod( core, path, fent, &dargs, &cbrc );
 
@@ -218,7 +218,7 @@ int fskit_mknod( struct fskit_core* core, char const* fs_path, mode_t mode, dev_
       child->file_id = file_id;
 
       // perform any user-defined creations
-      err = fskit_run_user_mknod( core, path, child, mode, dev, &inode_data );
+      err = fskit_run_user_mknod( core, path, parent, child, mode, dev, &inode_data );
       if( err != 0 ) {
 
          // failed. abort creation
