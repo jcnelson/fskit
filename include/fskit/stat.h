@@ -29,6 +29,8 @@
 
 extern "C" {
 
+int fskit_entry_fstat( struct fskit_entry* fent, struct stat* sb );
+
 int fskit_stat( struct fskit_core* core, char const* fs_path, uint64_t user, uint64_t group, struct stat* sb );
 int fskit_fstat( struct fskit_core* core, char const* fs_path, struct fskit_entry* fent, struct stat* sb );
 

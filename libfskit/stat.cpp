@@ -46,19 +46,20 @@ int fskit_do_user_stat( struct fskit_core* core, char const* fs_path, struct fsk
 // return the usual path resolution errors.
 int fskit_stat( struct fskit_core* core, char const* fs_path, uint64_t user, uint64_t group, struct stat* sb ) {
 
-   int err = 0;
    int rc = 0;
 
-   // get the fent
-   struct fskit_entry* fent = fskit_entry_resolve_path( core, fs_path, user, group, false, &err );
-   if( fent == NULL || err != 0 ) {
-      return err;
+   // ref this entry, so it won't disappear on stat
+   struct fskit_entry* fent = fskit_entry_ref( core, fs_path, &rc );
+   if( fent == NULL ) {
+      
+      return rc;
    }
-
+   
    // stat it
    rc = fskit_fstat( core, fs_path, fent, sb );
 
-   fskit_entry_unlock( fent );
+   fskit_entry_unref( core, fs_path, fent );
+   
    return rc;
 }
 
@@ -95,10 +96,13 @@ mode_t fskit_fullmode( int fskit_type, mode_t mode ) {
    return type | mode;
 }
 
+
+
 // stat an inode directly
-// fill in the stat buffer
+// fill in the stat buffer, but do NOT call the user route
+// always succeeds
 // NOTE: fent must be read-locked
-int fskit_fstat( struct fskit_core* core, char const* fs_path, struct fskit_entry* fent, struct stat* sb ) {
+int fskit_entry_fstat( struct fskit_entry* fent, struct stat* sb ) {
    
    // fill in defaults
    sb->st_dev = 0;
@@ -121,6 +125,21 @@ int fskit_fstat( struct fskit_core* core, char const* fs_path, struct fskit_entr
    sb->st_ctim.tv_sec = fent->ctime_sec;
    sb->st_ctim.tv_nsec = fent->ctime_nsec;
 
+   return 0;
+}
+
+
+// stat an inode directly
+// fill in the stat buffer, and call the user route
+// NOTE: fent must be read-locked
+// returns the result of the user route
+int fskit_fstat( struct fskit_core* core, char const* fs_path, struct fskit_entry* fent, struct stat* sb ) {
+   
+   // fill in defaults
+   fskit_entry_rlock( fent );
+   fskit_entry_fstat( fent, sb );
+   fskit_entry_unlock( fent );
+   
    // route to user callback
    int rc = fskit_do_user_stat( core, fs_path, fent, sb );
 
