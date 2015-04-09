@@ -806,6 +806,10 @@ int fskit_entry_unref( struct fskit_core* core, char const* fs_path, struct fski
          rc = 0;
       }
    }
+   else {
+      
+      fskit_entry_unlock( fent );
+   }
    
    return rc;
 }
