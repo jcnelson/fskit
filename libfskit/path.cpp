@@ -143,6 +143,7 @@ char* fskit_basename( char const* path, char* dest ) {
 // the depth of /foo/bar/baz is also 3
 // the paths must be normalized (no //), and not include ..
 int fskit_depth( char const* path ) {
+   
    int i = strlen(path) - 1;
 
    if( i <= 0 ) {
@@ -164,6 +165,67 @@ int fskit_depth( char const* path ) {
 }
 
 
+// chop up a path into its constituent names
+// return 0 on success
+// return -ENOMEM on OOM 
+int fskit_path_split( char* path, char** ret_names ) {
+   
+   size_t path_len = strlen(path);
+   size_t num_names = 0;
+   char** names = NULL;
+   size_t names_i = 0;
+   
+   // how many names?
+   for( size_t i = 0; i < path_len; i++ ) {
+      
+      // skip to next non-'/'
+      if( path[i] != '/' ) {
+         
+         num_names++;
+         
+         // skip this name; advance to next '/'
+         for( ; i < path_len; i++ ) {
+            
+            if( path[i] == '/' ) {
+               break;
+            }
+         }
+      }
+   }
+   
+   names = CALLOC_LIST( char*, num_names + 1 );
+   if( names == NULL ) {
+      
+      return -ENOMEM;
+   }
+   
+   for( size_t i = 0; i < path_len; i++ ) {
+      
+      if( path[i] == '/' ) {
+         path[i] = 0;
+      }
+      else {
+            
+         // next name
+         names[names_i] = &path[i];
+         names_i++;
+         
+         // skip this name; advance to next '/' 
+         for( ; i < path_len; i++ ) {
+
+            if( path[i] == '/' ) {
+               
+               path[i] = 0;
+               break;
+            }
+         }
+      }
+   }
+   
+   return 0;
+}
+
+
 // make sure paths don't end in /, unless they're root.
 // NOTE: this modifies the argument
 void fskit_sanitize_path( char* path ) {
@@ -182,6 +244,7 @@ void fskit_sanitize_path( char* path ) {
 // return the eval function's return code.
 // if the eval function fails, both cur_ent and prev_ent will be unlocked
 static int fskit_entry_ent_eval( struct fskit_entry* prev_ent, struct fskit_entry* cur_ent, int (*ent_eval)( struct fskit_entry*, void* ), void* cls ) {
+   
    long name_hash = fskit_entry_name_hash( cur_ent->name );
    char* name_dup = strdup( cur_ent->name );
 
@@ -192,15 +255,18 @@ static int fskit_entry_ent_eval( struct fskit_entry* prev_ent, struct fskit_entr
 
       // cur_ent might not even exist anymore....
       if( cur_ent->type != FSKIT_ENTRY_TYPE_DEAD ) {
+         
          fskit_entry_unlock( cur_ent );
          if( prev_ent != cur_ent && prev_ent != NULL ) {
+            
             fskit_entry_unlock( prev_ent );
          }
       }
       else {
          fskit_safe_free( cur_ent );
 
-         if( prev_ent ) {
+         if( prev_ent != NULL ) {
+            
             fskit_debug("Remove %s from %s\n", name_dup, prev_ent->name );
             fskit_entry_set_remove_hash( prev_ent->children, name_hash );
             fskit_entry_unlock( prev_ent );
@@ -257,6 +323,7 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
 
    // run our evaluator on the root entry (which is already locked)
    if( ent_eval ) {
+      
       int eval_rc = fskit_entry_ent_eval( prev_ent, cur_ent, ent_eval, cls );
       if( eval_rc != 0 ) {
          *err = eval_rc;
@@ -342,9 +409,8 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
             name = strtok_r( NULL, "/", &tmp );
          }
 
-         // If this is the last step of the path,
-         // do a write lock if requested
-         if( name == NULL && writelock ) {
+         // keep to the locking discipline
+         if( writelock ) {
             fskit_entry_wlock( cur_ent );
          }
          else {
@@ -353,6 +419,7 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
 
          // before unlocking the previous ent, run our evaluator (if we have one)
          if( ent_eval ) {
+            
             int eval_rc = fskit_entry_ent_eval( prev_ent, cur_ent, ent_eval, cls );
             if( eval_rc != 0 ) {
 
@@ -414,4 +481,331 @@ struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char 
 // returns the locked fskit_entry at the end of the path on success
 struct fskit_entry* fskit_entry_resolve_path( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, bool writelock, int* err ) {
    return fskit_entry_resolve_path_cls( core, path, user, group, writelock, err, NULL, NULL );
+}
+
+
+// start iterating on a path 
+// return an iterator 
+struct fskit_path_iterator fskit_path_begin( struct fskit_core* core, char const* path, bool writelock ) {
+   
+   struct fskit_entry* root = NULL;
+   
+   struct fskit_path_iterator ret;
+   
+   memset( &ret, 0, sizeof(struct fskit_path_iterator) );
+   
+   // find root 
+   root = fskit_core_resolve_root( core, writelock );
+   if( root == NULL ) {
+      
+      ret.rc = -ENOENT;
+      return ret;
+   }
+   
+   // is root dead?
+   if( root->link_count == 0 || root->type == FSKIT_ENTRY_TYPE_DEAD ) {
+      
+      fskit_entry_unlock( root );
+      ret.rc = -ENOENT;
+      return ret;
+   }
+   
+   ret.core = core;
+   ret.path = path;
+   ret.name_i = 0;
+   ret.writelock = writelock;
+   ret.cur_ent = root;
+   ret.prev_ent = NULL;
+   
+   ret.name = (char*)ret.path;
+   while( *ret.name != '\0' ) {
+      
+      if( *ret.name != '/' ) {
+         break;
+      }
+      
+      ret.name++;
+      ret.name_i++;
+   }
+   
+   return ret;
+}
+
+
+// are we at the end of the path, or can we continue?
+bool fskit_path_end( struct fskit_path_iterator* itr ) {
+   
+   if( itr->rc != 0 ) {
+      return true;
+   }
+   
+   if( itr->cur_ent == NULL ) {
+      return true;
+   }
+   
+   if( itr->end_of_path ) {
+      return true;
+   }
+   
+   return false;
+}
+
+
+// advance the path iterator to the next entry in the path.
+// set itr->rc to -ENOTDIR if we encounter a file before running out of path
+// set itr->rc to -ENOMEM if we're OOM 
+// set itr->rc to -ENOENT if the named entry does not exist in the filesystem
+void fskit_path_next( struct fskit_path_iterator* itr ) {
+   
+   char* tmp = itr->name;
+   char* name_candidate = NULL;
+   
+   size_t len = 0;
+   size_t name_len = 0;
+   char* next_name = NULL;
+   
+   if( itr->end_of_path ) {
+      return;
+   }
+   
+   if( itr->prev_ent != NULL ) {
+      
+      fskit_entry_unlock( itr->prev_ent );
+   }
+   
+   itr->prev_ent = itr->cur_ent;
+   itr->cur_ent = NULL;
+   
+   // what's the next name?  Skip '.'
+   tmp = itr->name;
+   len = 0;             // total characters traversed in searching for the next non-"." name
+   name_len = 0;        // candidate name length
+   
+   while( true ) {
+         
+      name_candidate = tmp;
+      name_len = 0;
+      
+      // next delimited name
+      while( *tmp != '\0' ) {
+         
+         if( *tmp == '/' ) {
+            break;
+         }
+         
+         tmp++;
+         len++;
+         name_len++;
+      }
+      
+      // advance tmp beyond the '/''s--it'll become the name we search for next
+      while( *tmp != '\0' ) {
+         
+         if( *tmp != '/' ) {
+            break;
+         }
+         
+         tmp++;
+         len++;
+      }
+      
+      if( *tmp == '\0' || len == 0 || name_len == 0 || itr->prev_ent == NULL ) {
+         
+         // out of path 
+         itr->end_of_path = true;
+         break;
+      }
+      else {
+         
+         if( name_len == 1 && *name_candidate == '.' ) {
+            
+            // skip
+            continue;
+         }
+         else {
+            
+            break;
+         }
+      }
+   }
+   
+   // we're in trouble if we're not at the end of the path, and itr->prev_ent is not a directory 
+   if( !itr->end_of_path && fskit_entry_get_type( itr->prev_ent ) != FSKIT_ENTRY_TYPE_DIR ) {
+      
+      // not a directory 
+      itr->rc = -ENOTDIR;
+      return;
+   }
+   
+   if( itr->end_of_path ) {
+      
+      // end-of-path 
+      itr->rc = 0;
+      return;
+   }
+   
+   next_name = CALLOC_LIST( char, name_len + 1 );
+   if( next_name == NULL ) {
+      
+      // OOM!
+      itr->rc = -ENOMEM;
+      return;
+   }
+   
+   strncpy( next_name, name_candidate, name_len );
+   
+   // advance name (and path length considered)
+   itr->name = tmp;
+   itr->name_i += len;
+   
+   // look up the next entry in prev_ent 
+   itr->cur_ent = fskit_entry_set_find_name( itr->prev_ent->children, next_name );
+   
+   fskit_safe_free( next_name );
+   
+   if( itr->cur_ent == NULL ) {
+      
+      // not found 
+      itr->rc = -ENOENT;
+      return;
+   }
+   
+   if( itr->writelock ) {
+      
+      fskit_entry_wlock( itr->cur_ent );
+   }
+   else {
+      
+      fskit_entry_rlock( itr->cur_ent );
+   }
+   
+   // success!
+   return;
+}
+
+
+// get an iterator's error code 
+int fskit_path_iterator_error( struct fskit_path_iterator* itr ) {
+   
+   return itr->rc;
+}
+
+// get an iterator's current entry 
+struct fskit_entry* fskit_path_iterator_entry( struct fskit_path_iterator* itr ) {
+   
+   return itr->cur_ent;
+}
+
+// get an iterator entry's parent 
+struct fskit_entry* fskit_path_iterator_entry_parent( struct fskit_path_iterator* itr ) {
+   
+   return itr->prev_ent;
+}
+
+
+// "release" an iterator (i.e. unlock its entries)
+void fskit_path_iterator_release( struct fskit_path_iterator* itr ) {
+   
+   if( itr->prev_ent != NULL ) {
+      
+      fskit_entry_unlock( itr->prev_ent );
+   }
+   
+   if( itr->cur_ent != NULL ) {
+      
+      fskit_entry_unlock( itr->cur_ent );
+   }
+   
+   itr->prev_ent = NULL;
+   itr->cur_ent = NULL;
+}
+
+
+// what's the path we're on?
+// return a malloc'ed copy of the path to this entry the iterator represents 
+// return NULL on OOM, or if the iterator was not initialized
+char* fskit_path_iterator_path( struct fskit_path_iterator* itr ) {
+   
+   if( itr->path == NULL || itr->name == NULL ) {
+      return NULL;
+   }
+      
+   char* ret = CALLOC_LIST( char, itr->name_i + 1 );
+   if( ret == NULL ) {
+      
+      return NULL;
+   }
+   
+   strncpy( ret, itr->path, itr->name_i );
+   return ret;
+}
+
+
+// reference an fskit_entry 
+// resolve it, increment its open count, unlock it, and return a pointer to it.
+// this is meant to prevent the fskit_entry from getting freed, but without locking it.
+// return the pointer on success
+// return NULL on error, and set *rc to the error code (i.e. from resolving the path)
+struct fskit_entry* fskit_entry_ref( struct fskit_core* core, char const* fs_path, int* rc ) {
+   
+   struct fskit_entry* fent = NULL;
+   
+   fent = fskit_entry_resolve_path( core, fs_path, 0, 0, true, rc );
+   if( fent == NULL ) {
+      
+      return NULL;
+   }
+   
+   fent->open_count++;
+   fskit_entry_unlock( fent );
+   
+   return fent;
+}
+
+// reference a write-locked entry 
+// always succeeds
+int fskit_entry_ref_entry( struct fskit_entry* fent ) {
+   fent->open_count++;
+   return 0;
+}
+
+// unreference an fskit_entry 
+// decrement the open counter, and optionally delete it if it is fully unreferenced.
+// return 0 on success
+// return negative on error (from the user-given detach route)
+// NOTE: fent must *not* be locked!
+int fskit_entry_unref( struct fskit_core* core, char const* fs_path, struct fskit_entry* fent ) {
+   
+   int rc = 0;
+   
+   fskit_entry_wlock( fent );
+   
+   fent->open_count--;
+   
+   if( fent->open_count <= 0 && fent->link_count <= 0 ) {
+      
+      // blow it away 
+      rc = fskit_entry_try_destroy_and_free( core, fs_path, fent );
+
+      if( rc < 0 ) {
+
+         // some error occurred
+         fskit_error("fskit_entry_try_destroy(%p) rc = %d\n", fent, rc );
+         fskit_entry_unlock( fent );
+
+         return rc;
+      }
+      else if( rc == 0 ) {
+
+         // done with this entry--it's still exists
+         fskit_entry_unlock( fent );
+      }
+      else {
+
+         // destroyed and freed
+         rc = 0;
+      }
+   }
+   
+   return rc;
 }

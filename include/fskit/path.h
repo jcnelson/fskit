@@ -39,10 +39,48 @@ char* fskit_dirname( char const* path, char* dest );
 char* fskit_basename( char const* path, char* dest );
 size_t fskit_basename_len( char const* path );
 int fskit_depth( char const* path );
+int fskit_path_split( char* path, char** names );
 
 // path resolution
 struct fskit_entry* fskit_entry_resolve_path_cls( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, bool writelock, int* err, int (*ent_eval)( struct fskit_entry*, void* ), void* cls );
 struct fskit_entry* fskit_entry_resolve_path( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, bool writelock, int* err );
+
+// path iteration struct 
+struct fskit_path_iterator {
+   
+   struct fskit_core* core;
+   
+   char const* path;
+   
+   bool writelock;
+   
+   struct fskit_entry* prev_ent;
+   struct fskit_entry* cur_ent;
+   
+   char* name;
+   size_t name_i;
+   
+   bool end_of_path;
+   
+   int rc;
+};
+
+// path iteration
+struct fskit_path_iterator fskit_path_begin( struct fskit_core* core, char const* path, bool writelock );
+bool fskit_path_end( struct fskit_path_iterator* itr );
+void fskit_path_next( struct fskit_path_iterator* itr );
+
+// path iterator getters
+int fskit_path_iterator_error( struct fskit_path_iterator* itr );
+struct fskit_entry* fskit_path_iterator_entry( struct fskit_path_iterator* itr );
+struct fskit_entry* fskit_path_iterator_entry_parent( struct fskit_path_iterator* itr );
+void fskit_path_iterator_release( struct fskit_path_iterator* itr );
+char* fskit_path_iterator_path( struct fskit_path_iterator* itr );
+
+// referencing 
+struct fskit_entry* fskit_entry_ref( struct fskit_core* core, char const* fs_path, int* rc );
+int fskit_entry_ref_entry( struct fskit_entry* fent );
+int fskit_entry_unref( struct fskit_core* core, char const* fs_path, struct fskit_entry* fent );
 
 }
 
