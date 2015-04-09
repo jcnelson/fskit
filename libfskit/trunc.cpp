@@ -61,6 +61,16 @@ int fskit_run_user_trunc( struct fskit_core* core, char const* path, struct fski
 }
 
 
+// directly set the size.
+// do not call the user callback.
+// always succeeds
+// NOTE; fent must be write-locked
+int fskit_entry_set_size( struct fskit_entry* fent, off_t size ) {
+   
+   fent->size = size;
+   return 0;
+}
+
 // truncate a file to a given size
 // return zero on success
 // return negative on failure.
