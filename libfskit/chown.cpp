@@ -22,6 +22,17 @@
 #include <fskit/chown.h>
 #include <fskit/path.h>
 
+
+// directly set the owner and group of an inode 
+// always succeeds
+// NOTE: fent must be write-locked 
+int fskit_entry_set_owner_and_group( struct fskit_entry* fent, uint64_t new_user, uint64_t new_group ) {
+   
+   fent->owner = new_user;
+   fent->group = new_group;
+   return 0;
+}
+
 // change the owner of a path.
 // the file must be owned by the given user.
 // NOTE: no ingroup-checking occurs--if the caller is the owner, the new_group can be arbitrary.
@@ -50,8 +61,7 @@ int fskit_chown( struct fskit_core* core, char const* path, uint64_t user, uint6
       return -EPERM;
    }
 
-   fent->owner = new_user;
-   fent->group = new_group;
+   fskit_entry_set_owner_and_group( fent, new_user, new_group );
 
    fskit_entry_unlock( fent );
 
