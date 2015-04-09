@@ -98,14 +98,6 @@ int fskit_close( struct fskit_core* core, struct fskit_file_handle* fh ) {
       return -EBADF;
    }
 
-   rc = fskit_entry_wlock( fh->fent );
-   if( rc != 0 ) {
-      // shouldn't happen: indicates deadlock
-      fskit_error("BUG: fskit_entry_wlock(%p) rc = %d\n", fh->fent, rc );
-      fskit_file_handle_unlock( fh );
-      return rc;
-   }
-
    // clean up the handle
    rc = fskit_run_user_close( core, fh->path, fh->fent, fh->app_data );
    if( rc != 0 ) {
@@ -113,6 +105,14 @@ int fskit_close( struct fskit_core* core, struct fskit_file_handle* fh ) {
       fskit_error("fskit_run_user_close(%s) rc = %d\n", fh->path, rc );
 
       fskit_entry_unlock( fh->fent );
+      fskit_file_handle_unlock( fh );
+      return rc;
+   }
+   
+   rc = fskit_entry_wlock( fh->fent );
+   if( rc != 0 ) {
+      // shouldn't happen: indicates deadlock
+      fskit_error("BUG: fskit_entry_wlock(%p) rc = %d\n", fh->fent, rc );
       fskit_file_handle_unlock( fh );
       return rc;
    }
