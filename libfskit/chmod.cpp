@@ -22,6 +22,15 @@
 #include <fskit/chmod.h>
 #include <fskit/path.h>
 
+// directly set the mode of an inode 
+// always succeeds
+// NOTE: fent must be write-locked 
+int fskit_entry_set_mode( struct fskit_entry* fent, mode_t mode ) {
+   
+   fent->mode = mode;
+   return 0;
+}
+
 // change the mode of the file.  All bits (including suid, sgid, and sticky) are supported
 // only the owner can change the file's mode.
 // Return 0 on success, negative on error:
@@ -48,8 +57,8 @@ int fskit_chmod( struct fskit_core* core, char const* path, uint64_t user, uint6
       return -EPERM;
    }
 
-   fent->mode = mode;
-
+   fskit_entry_set_mode( fent, mode );
+   
    fskit_entry_unlock( fent );
 
    return err;
