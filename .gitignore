@@ -23,3 +23,5 @@ test/test-unlink
 test/test-utime
 test/test-write
 test/test-xattr
+test/test-iterator
+demo/store
