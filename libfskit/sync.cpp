@@ -21,6 +21,7 @@
 
 #include <fskit/sync.h>
 #include <fskit/route.h>
+#include <fskit/path.h>
 
 static int fskit_do_user_sync( struct fskit_core* core, char const* path, struct fskit_entry* fent ) {
 
@@ -43,15 +44,13 @@ static int fskit_do_user_sync( struct fskit_core* core, char const* path, struct
 
 
 // sync a file handle
-// basically, just call the user route, but write-lock the entry
+// basically, just call the user route
 int fskit_fsync( struct fskit_core* core, struct fskit_file_handle* fh ) {
 
    fskit_file_handle_rlock( fh );
-   fskit_entry_wlock( fh->fent );
-
+   
    int rc = fskit_do_user_sync( core, fh->path, fh->fent );
-
-   fskit_entry_unlock( fh->fent );
+   
    fskit_file_handle_unlock( fh );
 
    return rc;
