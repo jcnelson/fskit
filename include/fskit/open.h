@@ -26,10 +26,10 @@
 #include "common.h"
 #include "entry.h"
 
-extern "C" {
-
+// private--needed by opendir()
 int fskit_run_user_open( struct fskit_core* core, char const* path, struct fskit_entry* fent, int flags, void** handle_data );
-int fskit_do_open( struct fskit_core* core, char const* path, struct fskit_entry* child, int flags, uint64_t user, uint64_t group, void** handle_data );
+
+extern "C" {
 
 struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, int flags, mode_t mode, int* err );
 

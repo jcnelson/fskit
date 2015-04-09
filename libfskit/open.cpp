@@ -49,7 +49,7 @@ static struct fskit_file_handle* fskit_file_handle_create( struct fskit_core* co
 }
 
 // get the user-supplied handle data for opening a file
-// fent *cannot* be locked
+// NOTE: fent *cannot* be locked--it's lock status will be set through the route consistency discipline
 int fskit_run_user_open( struct fskit_core* core, char const* path, struct fskit_entry* fent, int flags, void** handle_data ) {
 
    int rc = 0;
@@ -124,12 +124,16 @@ static int fskit_do_parent_check( struct fskit_entry* parent, int flags, uint64_
 
 
 // do a file open
-// child must be write-locked
+// child must *not* be locked.
+// parent must be write-locked, but it will be unlocked and re-locked.  The child will be referenced during that time, so the parent is guaranteed not to disappear
 // on success, fill in the handle data
-int fskit_do_open( struct fskit_core* core, char const* path, struct fskit_entry* child, int flags, uint64_t user, uint64_t group, void** handle_data ) {
+int fskit_do_open( struct fskit_core* core, char const* path, struct fskit_entry* parent, struct fskit_entry* child, int flags, uint64_t user, uint64_t group, void** handle_data ) {
 
    int rc = 0;
 
+   // block other processes so we can do access checks
+   fskit_entry_wlock( child );
+   
    // sanity check
    if( child->link_count == 0 || child->deletion_in_progress || child->type == FSKIT_ENTRY_TYPE_DEAD ) {
       rc = -ENOENT;
@@ -151,27 +155,36 @@ int fskit_do_open( struct fskit_core* core, char const* path, struct fskit_entry
    else if( (flags & O_RDWR) && (!FSKIT_ENTRY_IS_READABLE(child->mode, child->owner, child->group, user, group) || !FSKIT_ENTRY_IS_WRITEABLE(child->mode, child->owner, child->group, user, group)) ) {
       rc = -EACCES;  // not readable or not writable
    }
+   
+   if( rc == 0 ) {
+      
+      // reference the child
+      fskit_entry_ref_entry( child );
+   }
+   
+   fskit_entry_unlock( child );
 
    if( rc != 0 ) {
       // can't open
       return rc;
    }
    
+   // safe to allow access to the child while the user route is running, since the child (and thus the parent) can't get unlinked
+   fskit_entry_unlock( parent );
+   
    // open will succeed according to fskit.  invoke the user callback to generate handle data
    rc = fskit_run_user_open( core, path, child, flags, handle_data );
+   
+   // reaquire...
+   fskit_entry_wlock( parent );
    
    if( rc != 0 ) {
       fskit_error("fskit_run_user_open(%s) rc = %d\n", path, rc );
 
-      return rc;
+      fskit_entry_unref( core, path, child );
    }
-
-   else {
-      // finish opening the child
-      child->open_count++;
-
-      return rc;
-   }
+   
+   return rc;
 }
 
 
@@ -217,6 +230,7 @@ struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path
 
    struct fskit_file_handle* ret = NULL;
 
+   // write-lock parent--we need to ensure that the child does not disappear on us between attaching it and routing the user-given callback
    struct fskit_entry* parent = fskit_entry_resolve_path( core, path_dirname, user, group, true, err );
 
    if( parent == NULL ) {
@@ -290,6 +304,7 @@ struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path
       if( child == NULL ) {
 
          // can create!
+         // NOTE: do *not* lock child--it has to be unlocked for running user-given routes
          rc = fskit_do_create( core, parent, path, mode, user, group, &child, &handle_data );
          if( rc != 0 ) {
 
@@ -320,6 +335,7 @@ struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path
    if( (flags & O_TRUNC) && (flags & (O_RDWR | O_WRONLY)) ) {
 
       // run user truncate
+      // NOTE: do *not* lock it--it has to be unlocked for running user-given routes
       rc = fskit_run_user_trunc( core, path, child, 0, NULL );
       if( rc != 0 ) {
 
@@ -332,9 +348,10 @@ struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path
    }
 
    if( !created ) {
-
+      
       // do the open
-      rc = fskit_do_open( core, path, child, flags, user, group, &handle_data );
+      // NOTE: do *not* lock it--it has to be unlocked for running user-given routes
+      rc = fskit_do_open( core, path, parent, child, flags, user, group, &handle_data );
       if( rc != 0 ) {
 
          // open failed
@@ -344,12 +361,15 @@ struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path
          return NULL;
       }
    }
+   else {
+      
+      // done with parent 
+      fskit_entry_unlock( parent );
+   }
 
    // still here--we can open the file now!
    fskit_entry_set_atime( child, NULL );
    ret = fskit_file_handle_create( core, child, path, flags, handle_data );
-
-   fskit_entry_unlock( parent );
 
    fskit_safe_free( path );
 
