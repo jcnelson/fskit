@@ -729,7 +729,26 @@ struct fuse_operations fskit_fuse_get_opers() {
 }
 
 
+// set up fskit for fuse, using an initialized filesystem core.
+// make sure to call fskit_library_init() before calling this method.
+// always succeeds
+int fskit_fuse_init_fs( struct fskit_fuse_state* state, struct fskit_core* fs ) {
+   
+   memset( state, 0, sizeof(struct fskit_fuse_state) );
+   state->core = fs;
+   
+   // load default FUSE operations
+   state->ops = fskit_fuse_get_opers();
+   
+   return 0;
+}
+
+
 // set up fskit for FUSE
+// this is the "easy" method that handles the filesystem initialization for you.
+// return 0 on success
+// return -ENOMEM on OOM
+// return -errno on error
 int fskit_fuse_init( struct fskit_fuse_state* state, void* core_state ) {
 
    int rc = 0;
@@ -743,19 +762,20 @@ int fskit_fuse_init( struct fskit_fuse_state* state, void* core_state ) {
 
    // set up fskit
    struct fskit_core* core = (struct fskit_core*)calloc( sizeof(struct fskit_core), 1 );
-
+   if( core == NULL ) {
+      return -ENOMEM;
+   }
+   
    rc = fskit_core_init( core, core_state );
    if( rc != 0 ) {
+      
       fskit_error( "fskit_core_init rc = %d\n", rc );
       return rc;
    }
 
-   memset( state, 0, sizeof(struct fskit_fuse_state) );
-
-   state->core = core;
-
-   return 0;
+   return fskit_fuse_init_fs( state, core );
 }
+
 
 // run fskit with fuse
 int fskit_fuse_main( struct fskit_fuse_state* state, int argc, char** argv ) {
@@ -764,7 +784,6 @@ int fskit_fuse_main( struct fskit_fuse_state* state, int argc, char** argv ) {
 
    // set up FUSE
    struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
-   struct fuse_operations fskit_fuse = fskit_fuse_get_opers();
    struct fuse_chan* ch = NULL;
    struct fuse* fs = NULL;
    int multithreaded = 1;
@@ -800,7 +819,7 @@ int fskit_fuse_main( struct fskit_fuse_state* state, int argc, char** argv ) {
    }
 
    // create the filesystem
-   fs = fuse_new( ch, &args, &fskit_fuse, sizeof(fskit_fuse), state );
+   fs = fuse_new( ch, &args, &state->ops, sizeof(state->ops), state );
    fuse_opt_free_args(&args);
 
    if( fs == NULL ) {
