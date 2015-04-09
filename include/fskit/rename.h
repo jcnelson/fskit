@@ -31,6 +31,8 @@ using namespace std;
 
 extern "C" {
 
+int fskit_entry_rename_in_directory( struct fskit_entry* fent_parent, struct fskit_entry* fent, char const* new_name );
+
 int fskit_rename( struct fskit_core* core, char const* old_path, char const* new_path, uint64_t user, uint64_t group );
 
 }
