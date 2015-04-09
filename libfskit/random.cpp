@@ -27,9 +27,12 @@ static uint32_t Q[4096], c=362436;     /* choose random initial c<809430660 and 
 static pthread_mutex_t CMWC4096_lock = PTHREAD_MUTEX_INITIALIZER;
 
 // initialize random state
+// this is idempotent.
+// return 0 on success
+// return -errno on failure to open or read /dev/urandom
 int fskit_random_init() {
 
-   int rfd = open(FSKIT_RANDOM_DEVICE_PATH, O_RDONLY );
+   int rfd = open( FSKIT_RANDOM_DEVICE_PATH, O_RDONLY );
    if( rfd < 0 ) {
       return -errno;
    }
