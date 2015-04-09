@@ -28,7 +28,10 @@
 static struct fskit_dir_handle* fskit_dir_handle_create( struct fskit_entry* dir, char const* path, void* app_handle_data ) {
 
    struct fskit_dir_handle* dirh = CALLOC_LIST( struct fskit_dir_handle, 1 );
-
+   if( dirh == NULL ) {
+      return NULL;
+   }
+   
    dirh->dent = dir;
    dirh->path = strdup( path );
    dirh->file_id = dir->file_id;
@@ -48,6 +51,7 @@ static struct fskit_dir_handle* fskit_dir_handle_create( struct fskit_entry* dir
 // * -EACCES if some part of _path is in accessible to the given user and group
 // * -ENOTDIR if the entry referred to by _path isn't a directory
 // * -ENOENT if the entry doesn't exist
+// * -ENOMEM on OOM
 struct fskit_dir_handle* fskit_opendir( struct fskit_core* core, char const* _path, uint64_t user, uint64_t group, int* err ) {
 
    void* app_handle_data = NULL;
@@ -95,6 +99,12 @@ struct fskit_dir_handle* fskit_opendir( struct fskit_core* core, char const* _pa
 
    // make a handle to it
    struct fskit_dir_handle* dirh = fskit_dir_handle_create( dir, path, app_handle_data );
+   if( dirh == NULL ) {
+      
+      // OOM
+      dir->open_count--;
+      *err = -ENOMEM;
+   }
 
    // release the directory
    fskit_entry_unlock( dir );
