@@ -79,31 +79,26 @@ static void fskit_listxattr_copy_names( fskit_xattr_set* xattrs, char* list, siz
 // return on error:
 // * -ERANGE if the buffer is too short
 // if list == NULL or size == 0, then just return the length of the name list
+// NOTE: fent must be at least read-locked
 int fskit_flistxattr( struct fskit_core* core, struct fskit_entry* fent, char* list, size_t size ) {
 
    int total_size = 0;
-
-   fskit_xattr_rlock( fent );
 
    // what's the total size?
    total_size = fskit_listxattr_len( fent->xattrs );
 
    // just a length query?
    if( list == NULL || size == 0 ) {
-      fskit_xattr_unlock( fent );
       return total_size;
    }
 
    // range check
    if( (unsigned)total_size > size ) {
-      fskit_xattr_unlock( fent );
       return -ERANGE;
    }
 
    // copy everything in
    fskit_listxattr_copy_names( fent->xattrs, list, size );
-
-   fskit_xattr_unlock( fent );
 
    return total_size;
 }

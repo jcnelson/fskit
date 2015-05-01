@@ -53,8 +53,6 @@ int fskit_getxattr( struct fskit_core* core, char const* path, uint64_t user, ui
 // if size == 0 or value == NULL, then just return the length of the attribute requested
 int fskit_fgetxattr( struct fskit_core* core, struct fskit_entry* fent, char const* name, char* value, size_t size ) {
 
-   fskit_xattr_rlock( fent );
-
    string name_s;
    fskit_xattr_set::iterator itr;
 
@@ -66,13 +64,11 @@ int fskit_fgetxattr( struct fskit_core* core, struct fskit_entry* fent, char con
 
    } catch( bad_alloc& ba ) {
 
-      fskit_xattr_unlock( fent );
       return -ENOMEM;
    }
 
    if( itr == fent->xattrs->end() ) {
       // not found
-      fskit_xattr_unlock( fent );
       return -ENOATTR;
    }
 
@@ -82,14 +78,12 @@ int fskit_fgetxattr( struct fskit_core* core, struct fskit_entry* fent, char con
    // size query?
    if( value == NULL || size == 0 ) {
 
-      fskit_xattr_unlock( fent );
       return value_len;
    }
 
    // enough space?
    if( value_s.size() > size ) {
 
-      fskit_xattr_unlock( fent );
       return -ERANGE;
    }
 
@@ -97,8 +91,6 @@ int fskit_fgetxattr( struct fskit_core* core, struct fskit_entry* fent, char con
 
    // success!
    memcpy( value, value_s.data(), value_s.size() );
-
-   fskit_xattr_unlock( fent );
 
    return ret;
 }

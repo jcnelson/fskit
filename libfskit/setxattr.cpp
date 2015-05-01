@@ -52,14 +52,13 @@ int fskit_setxattr( struct fskit_core* core, char const* path, uint64_t user, ui
 // * if XATTR_CREATE is set and the attribute already exists, return EEXIST
 // * if XATTR_REPLACE is set and the attribute does not exist, return ENOATTR
 // * if there is no space, return -ENOSPC
+// NOTE: fent must be write-locked
 int fskit_fsetxattr( struct fskit_core* core, struct fskit_entry* fent, char const* name, char const* value, size_t value_len, int flags ) {
 
    // check for invalid flags
    if( (flags & XATTR_REPLACE) && (flags & XATTR_CREATE) ) {
       return -EINVAL;
    }
-
-   fskit_xattr_wlock( fent );
 
    fskit_xattr_set::iterator itr;
    string name_s;
@@ -73,7 +72,6 @@ int fskit_fsetxattr( struct fskit_core* core, struct fskit_entry* fent, char con
    }
    catch( bad_alloc& ba ) {
 
-      fskit_xattr_unlock( fent );
       return -ENOSPC;
    }
 
@@ -81,14 +79,12 @@ int fskit_fsetxattr( struct fskit_core* core, struct fskit_entry* fent, char con
    if( itr == fent->xattrs->end() && (flags & XATTR_REPLACE) ) {
 
       // needs to exist...
-      fskit_xattr_unlock( fent );
       return -ENOATTR;
    }
 
    if( itr != fent->xattrs->end() && (flags & XATTR_CREATE) ) {
 
       // can't exist yet
-      fskit_xattr_unlock( fent );
       return -EEXIST;
    }
 
@@ -99,11 +95,8 @@ int fskit_fsetxattr( struct fskit_core* core, struct fskit_entry* fent, char con
    }
    catch( bad_alloc& ba ) {
 
-      fskit_xattr_unlock( fent );
       return -ENOSPC;
    }
-
-   fskit_xattr_unlock( fent );
 
    return 0;
 }
