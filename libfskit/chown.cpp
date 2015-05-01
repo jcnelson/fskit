@@ -33,6 +33,24 @@ int fskit_entry_set_owner_and_group( struct fskit_entry* fent, uint64_t new_user
    return 0;
 }
 
+// directly set the owner of an inode 
+// always succeeds
+// NOTE: fent must be write-locked
+int fskit_entry_set_owner( struct fskit_entry* fent, uint64_t new_user ) {
+   
+   fent->owner = new_user;
+   return 0;
+}
+
+// directly set the group of an inode 
+// always succeeds 
+// NOTE: fent must be write-locked 
+int fskit_entry_set_group( struct fskit_entry* fent, uint64_t new_group ) {
+
+   fent->group = new_group;
+   return 0;
+}
+
 // change the owner of a path.
 // the file must be owned by the given user.
 // NOTE: no ingroup-checking occurs--if the caller is the owner, the new_group can be arbitrary.
