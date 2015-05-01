@@ -39,7 +39,7 @@ static int fskit_trunc_cont( struct fskit_core* core, struct fskit_entry* fent, 
 }
 
 // run the user-given truncate route callback
-// fent does not have to be locked if it is open, but otherwise it must be at least read-locked
+// fent should be referenced, but it should NOT be locked in any way
 // return 0 on success
 // return negative on failure
 int fskit_run_user_trunc( struct fskit_core* core, char const* path, struct fskit_entry* fent, off_t new_size, void* handle_data ) {
