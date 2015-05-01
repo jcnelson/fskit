@@ -827,7 +827,6 @@ int fskit_entry_init_common( struct fskit_entry* fent, uint8_t type, uint64_t fi
    fskit_entry_set_mtime( fent, &now );
 
    pthread_rwlock_init( &fent->lock, NULL );
-   pthread_rwlock_init( &fent->xattrs_lock, NULL );
 
    fent->xattrs = xattrs;
 
@@ -1008,19 +1007,14 @@ int fskit_entry_destroy( struct fskit_core* core, struct fskit_entry* fent, bool
       fskit_safe_free( fent->symlink_target );
       fent->symlink_target = NULL;
    }
-
-   fskit_xattr_wlock( fent );
-
+   
    if( fent->xattrs != NULL ) {
       delete fent->xattrs;
       fent->xattrs = NULL;
    }
-
-   fskit_xattr_unlock( fent );
-
+   
    fskit_entry_unlock( fent );
    pthread_rwlock_destroy( &fent->lock );
-   pthread_rwlock_destroy( &fent->xattrs_lock );
 
    return 0;
 }
@@ -1239,22 +1233,6 @@ int fskit_core_route_wlock( struct fskit_core* core ) {
 int fskit_core_route_unlock( struct fskit_core* core ) {
    return pthread_rwlock_unlock( &core->route_lock );
 }
-
-// read-lock xattrs
-int fskit_xattr_rlock( struct fskit_entry* fent ) {
-   return pthread_rwlock_rdlock( &fent->xattrs_lock );
-}
-
-// write-lock xattrs
-int fskit_xattr_wlock( struct fskit_entry* fent ) {
-   return pthread_rwlock_wrlock( &fent->xattrs_lock );
-}
-
-// unlock xattrs
-int fskit_xattr_unlock( struct fskit_entry* fent ) {
-   return pthread_rwlock_unlock( &fent->xattrs_lock );
-}
-
 
 // set user data in an fskit_entry (which must be write-locked)
 // return 0 always

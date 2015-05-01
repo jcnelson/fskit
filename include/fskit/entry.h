@@ -100,10 +100,7 @@ struct fskit_entry {
 
    // extended attributes
    fskit_xattr_set* xattrs;
-
-   // lock governing access to xattrs
-   pthread_rwlock_t xattrs_lock;
-
+   
    // if this is a symlink, this is the target
    char* symlink_target;
 };
