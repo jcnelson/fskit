@@ -47,9 +47,8 @@ int fskit_removexattr( struct fskit_core* core, char const* path, uint64_t user,
 // return 0 on success
 // return -ENOATTR if the attribute doesn't exist
 // return -ENOMEM if we run out of memory
+// NOTE: fent must be write-locked
 int fskit_fremovexattr( struct fskit_core* core, struct fskit_entry* fent, char const* name ) {
-
-   fskit_xattr_wlock( fent );
 
    try {
 
@@ -57,7 +56,6 @@ int fskit_fremovexattr( struct fskit_core* core, struct fskit_entry* fent, char 
 
       if( itr == fent->xattrs->end() ) {
 
-         fskit_xattr_unlock( fent );
          return -ENOATTR;
       }
 
@@ -65,10 +63,27 @@ int fskit_fremovexattr( struct fskit_core* core, struct fskit_entry* fent, char 
       fent->xattrs->erase( itr );
    }
    catch( bad_alloc& ba ) {
-      fskit_xattr_unlock( fent );
       return -ENOMEM;
    }
-
-   fskit_xattr_unlock( fent );
+   
    return 0;
 }
+
+
+// clear out all xattrs at once 
+// return 0 on success
+// return -ENOMEM on OOM
+// NOTE: fent must be write-locked
+int fskit_fremovexattr_all( struct fskit_core* core, struct fskit_entry* fent ) {
+   
+   try {
+      
+      fent->xattrs->clear();
+      return 0;
+   }
+   catch( bad_alloc& ba ) {
+      
+      return -ENOMEM;
+   }
+}
+
