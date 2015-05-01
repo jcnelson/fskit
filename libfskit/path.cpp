@@ -165,10 +165,11 @@ int fskit_depth( char const* path ) {
 }
 
 
-// chop up a path into its constituent names
+// chop up a path into its constituent names--put pointers to them into ret_names.
+// NOTE: this modifies path
 // return 0 on success
 // return -ENOMEM on OOM 
-int fskit_path_split( char* path, char** ret_names ) {
+int fskit_path_split( char* path, char*** ret_names ) {
    
    size_t path_len = strlen(path);
    size_t num_names = 0;
@@ -222,6 +223,7 @@ int fskit_path_split( char* path, char** ret_names ) {
       }
    }
    
+   *ret_names = names;
    return 0;
 }
 
