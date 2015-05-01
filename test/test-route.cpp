@@ -61,7 +61,7 @@ int trunc_cb( struct fskit_core* core, struct fskit_route_metadata* route_metada
    return 0;
 }
 
-int readdir_cb( struct fskit_core* core, struct fskit_route_metadata* route_metadata, struct fskit_entry* dir, struct fskit_dir_entry** dents, uint64_t num_dents ) {
+int readdir_cb( struct fskit_core* core, struct fskit_route_metadata* route_metadata, struct fskit_entry* dir, struct fskit_dir_entry** dents, size_t num_dents ) {
    fskit_debug("Readdir %" PRIX64 " (%s) dents[0]=(%" PRIX64 " %s), num_dents=%" PRIu64 "\n", dents[0]->file_id, route_metadata->path, dents[0]->file_id, dents[0]->name, num_dents );
    return 0;
 }
