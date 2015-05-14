@@ -65,6 +65,11 @@
 #include <map>
 #include <vector>
 #include <new>
+#include <attr/xattr.h>
+
+#ifndef ENOATTR
+#define ENODATTR ENODATA
+#endif
 
 #define MIN( x, y ) (x) > (y) ? (y) : (x)
 
