@@ -58,7 +58,15 @@ $(BUILD_LIBFSKIT_HEADERS)/%.h: ../include/fskit/%.h
 	@mkdir -p "$(shell dirname "$@")"
 	@cp -a "$<" "$@"
 
-install: $(LIBFSKIT_INSTALL_TARGET) $(LIBFSKIT_SO_INSTALL_TARGET) $(LIBFSKIT_LIB_INSTALL_TARGET) $(PC_FILE_INSTALL)
+$(BUILD_LIBFSKIT)/%.o : %.c $(BUILD_HEADERS)
+	@mkdir -p "$(shell dirname "$@")"
+	$(CC) $(CCFLAGS) -o "$@" $(INC) -c "$<" $(DEFS)
+
+$(BUILD_LIBFSKIT)/%.o : %.cpp $(BUILD_HEADERS)
+	@mkdir -p "$(shell dirname "$@")"
+	$(CXX) $(CXXFLAGS) -o "$@" $(INC) -c "$<" $(DEFS)
+
+install: $(LIBFSKIT_INSTALL_TARGET) $(LIBFSKIT_SO_INSTALL_TARGET) $(LIBFSKIT_LIB_INSTALL_TARGET) $(PC_FILE_INSTALL) $(INSTALL_HEADERS)
 
 $(LIBFSKIT_INSTALL_TARGET): $(LIBFSKIT_TARGET)
 	@mkdir -p "$(shell dirname "$@")"
@@ -74,15 +82,11 @@ $(LIBFSKIT_LIB_INSTALL_TARGET): $(LIBFSKIT_LIB_TARGET)
 
 $(PC_FILE_INSTALL): $(PC_FILE)
 	@mkdir -p "$(shell dirname "$@")"
-	cat "$<" "$@"
+	cp -a "$<" "$@"
 
-$(BUILD_LIBFSKIT)/%.o : %.c
+$(INSTALL_LIBFSKIT_HEADERS)/%.h: $(BUILD_LIBFSKIT_HEADERS)/%.h
 	@mkdir -p "$(shell dirname "$@")"
-	$(CC) $(CCFLAGS) -o "$@" $(INC) -c "$<" $(DEFS)
-
-$(BUILD_LIBFSKIT)/%.o : %.cpp
-	@mkdir -p "$(shell dirname "$@")"
-	$(CXX) $(CXXFLAGS) -o "$@" $(INC) -c "$<" $(DEFS)
+	cp -a "$<" "$@"
 
 .PHONY: clean
 clean:
