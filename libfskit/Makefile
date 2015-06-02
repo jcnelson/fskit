@@ -1,58 +1,95 @@
 
 include ../buildconf.mk
 
-INC   := $(PTHREAD_CFLAGS) -I../include
 C_SRCS:= $(wildcard *.c)
 CXSRCS:= $(wildcard *.cpp)
-OBJ   := $(patsubst %.c,%.o,$(C_SRCS)) $(patsubst %.cpp,%.o,$(CXSRCS))
-DEFS  := -D_REENTRANT -D_THREAD_SAFE
+OBJ   := $(patsubst %.c,$(BUILD_LIBFSKIT)/%.o,$(C_SRCS)) $(patsubst %.cpp,$(BUILD_LIBFSKIT)/%.o,$(CXSRCS))
+LIBS  := -lpthread
 
-LIBS		:= $(PTHREAD_LIBS)
-
-PC_FILE		:= fskit.pc
+PC_FILE		:= $(BUILD_PKGCONFIG)/fskit.pc
+PC_FILE_INSTALL := $(PKGCONFIGDIR)/fskit.pc
+PC_FILE_IN  := fskit.pc.in
 
 LIBFSKIT := libfskit.so
-LIBFSKIT_SO := libfskit.so.$(VERSION_MAJOR)
-LIBFSKIT_LIB := libfskit.so.$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)
+LIBFSKIT_SO := libfskit.so.$(LIBFSKIT_MAJOR)
+LIBFSKIT_LIB := libfskit.so.$(LIBFSKIT_MAJOR).$(LIBFSKIT_MINOR).$(LIBFSKIT_PATCH)
 
-INCDIR		?= $(INCLUDEDIR)/fskit
+LIBFSKIT_TARGET := $(patsubst %,$(BUILD_LIBFSKIT)/%,$(LIBFSKIT))
+LIBFSKIT_SO_TARGET := $(patsubst %,$(BUILD_LIBFSKIT)/%,$(LIBFSKIT_SO))
+LIBFSKIT_LIB_TARGET := $(patsubst %,$(BUILD_LIBFSKIT)/%,$(LIBFSKIT_LIB))
 
-all: libfskit $(PC_FILE)
+LIBFSKIT_INSTALL_TARGET := $(patsubst $(BUILD_LIBFSKIT)/%,$(INSTALL_LIBFSKIT)/%,$(LIBFSKIT_TARGET))
+LIBFSKIT_SO_INSTALL_TARGET := $(patsubst $(BUILD_LIBFSKIT)/%,$(INSTALL_LIBFSKIT)/%,$(LIBFSKIT_SO_TARGET))
+LIBFSKIT_LIB_INSTALL_TARGET := $(patsubst $(BUILD_LIBFSKIT)/%,$(INSTALL_LIBFSKIT)/%,$(LIBFSKIT_LIB_TARGET))
 
-$(PC_FILE):	$(PC_FILE).in
-	@cat $< | \
+LIBFSKIT_INSTALL: $(patsubst $(BUILD_LIBFSKIT)/%,$(INSTALL_LIBFSKIT)/%,$(LIBFSKIT_TARGET) $(LIBFSKIT_SO_TARGET) $(LIBFSKIT_LIB_TARGET))
+
+HEADERS := $(wildcard ../include/fskit/*.h)
+BUILD_HEADERS := $(patsubst ../include/fskit/%.h,$(BUILD_LIBFSKIT_HEADERS)/%.h,$(HEADERS))
+INSTALL_HEADERS := $(patsubst $(BUILD_LIBFSKIT_HEADERS)/%.h,$(INSTALL_LIBFSKIT_HEADERS)/%.h,$(BUILD_HEADERS))
+
+all: $(LIBFSKIT_TARGET) $(LIBFSKIT_SO_TARGET) $(LIBFSKIT_LIB_TARGET) $(BUILD_HEADERS) $(PC_FILE)
+
+$(PC_FILE):	$(PC_FILE_IN)
+	@mkdir -p "$(shell dirname "$@")"
+	@cat "$<" | \
 		sed -e 's~@PREFIX@~$(PREFIX)~g;' | \
 		sed -e 's~@INCLUDEDIR@~$(INCDIR)~g;' | \
 		sed -e 's~@VERSION@~$(VERSION)~g; ' | \
 		sed -e 's~@LIBS@~$(LIBS)~g; ' | \
 		sed -e 's~@LIBDIR@~$(LIBDIR)~g; ' | \
-	   sed -e 's~@VERSION_MAJOR@~$(VERSION_MAJOR)~g; ' | \
-	   sed -e 's~@VERSION_MINOR@~$(VERSION_MINOR)~g; ' | \
-	   sed -e 's~@VERSION_PATCH@~$(VERSION_PATCH)~g; '	> $@
+	   sed -e 's~@VERSION_MAJOR@~$(LIBFSKIT_MAJOR)~g; ' | \
+	   sed -e 's~@VERSION_MINOR@~$(LIBFSKIT_MINOR)~g; ' | \
+	   sed -e 's~@VERSION_PATCH@~$(LIBFSKIT_PATCH)~g; '	> "$@"
 
-libfskit: $(OBJ)
-	$(CXX) $(CXXFLAGS) -shared -Wl,-soname,$(LIBFSKIT_SO) -o $(LIBFSKIT_LIB) $(OBJ) $(LIBINC) $(LIBS)
-	$(LN_SF) $(LIBFSKIT_LIB) $(LIBFSKIT_SO)
-	$(LN_SF) $(LIBFSKIT_SO) $(LIBFSKIT)
+$(LIBFSKIT_LIB_TARGET): $(OBJ)
+	@mkdir -p "$(shell dirname "$@")"
+	$(CXX) $(CXXFLAGS) -shared -Wl,-soname,$(LIBFSKIT_SO) -o $(LIBFSKIT_LIB_TARGET) $(OBJ) $(LIBINC) $(LIBS)
 
-libfskit-install: libfskit $(PC_FILE)
-	$(MKDIR_P) $(DESTDIR)/$(LIBDIR) $(DESTDIR)/$(PKGCONFIGDIR)
-	$(CP_A) $(LIBFSKIT) $(LIBFSKIT_SO) $(LIBFSKIT_LIB) $(DESTDIR)/$(LIBDIR)
-	$(CP_A) $(PC_FILE) $(DESTDIR)/$(PKGCONFIGDIR)
+$(LIBFSKIT_SO_TARGET): $(LIBFSKIT_LIB_TARGET)
+	@mkdir -p "$(shell dirname "$@")"
+	@ln -sf "$(shell basename "$<")" "$@"
 
-libfskit-dev-install: libfskit
-	$(MKDIR_P) $(DESTDIR)/$(INCDIR)
-	$(CP_A) ../include/fskit/*.h $(DESTDIR)/$(INCDIR)
+$(LIBFSKIT_TARGET): $(LIBFSKIT_SO_TARGET)
+	@mkdir -p "$(shell dirname "$@")"
+	@ln -sf "$(shell basename "$<")" "$@"
 
-install: libfskit-install libfskit-dev-install $(PC_FILE)
+$(BUILD_LIBFSKIT_HEADERS)/%.h: ../include/fskit/%.h
+	@mkdir -p "$(shell dirname "$@")"
+	@cp -a "$<" "$@"
 
-%.o : %.c
-	$(CXX) $(CXXFLAGS) -o $@ $(INC) -c $< $(DEFS)
+install: $(LIBFSKIT_INSTALL_TARGET) $(LIBFSKIT_SO_INSTALL_TARGET) $(LIBFSKIT_LIB_INSTALL_TARGET) $(PC_FILE_INSTALL)
 
-%.o : %.cpp
-	$(CXX) $(CXXFLAGS) -o $@ $(INC) -c $< $(DEFS)
+$(LIBFSKIT_INSTALL_TARGET): $(LIBFSKIT_TARGET)
+	@mkdir -p "$(shell dirname "$@")"
+	cp -a "$<" "$@"
+
+$(LIBFSKIT_SO_INSTALL_TARGET): $(LIBFSKIT_SO_TARGET)
+	@mkdir -p "$(shell dirname "$@")"
+	cp -a "$<" "$@"
+
+$(LIBFSKIT_LIB_INSTALL_TARGET): $(LIBFSKIT_LIB_TARGET)
+	@mkdir -p "$(shell dirname "$@")"
+	cp -a "$<" "$@"
+
+$(PC_FILE_INSTALL): $(PC_FILE)
+	@mkdir -p "$(shell dirname "$@")"
+	cat "$<" "$@"
+
+$(BUILD_LIBFSKIT)/%.o : %.c
+	@mkdir -p "$(shell dirname "$@")"
+	$(CC) $(CCFLAGS) -o "$@" $(INC) -c "$<" $(DEFS)
+
+$(BUILD_LIBFSKIT)/%.o : %.cpp
+	@mkdir -p "$(shell dirname "$@")"
+	$(CXX) $(CXXFLAGS) -o "$@" $(INC) -c "$<" $(DEFS)
 
 .PHONY: clean
-
 clean:
-	$(RM_RF) $(OBJ) $(LIBFSKIT_LIB) $(LIBFSKIT_SO) $(LIBFSKIT) $(PC_FILE)
+	rm -f $(OBJ) $(LIBFSKIT_TARGET) $(LIBFSKIT_SO_TARGET) $(LIBFSKIT_LIB_TARGET) $(BUILD_HEADERS) $(PC_FILE)
+
+.PHONY: uninstall
+uninstall:
+	rm -f $(LIBFSKIT_INSTALL_TARGET) $(LIBFSKIT_SO_INSTALL_TARGET) $(LIBFSKIT_LIB_INSTALL_TARGET) $(INSTALL_HEADERS) $(PC_FILE_INSTALL)
+
+print-%: ; @echo $*=$($*)

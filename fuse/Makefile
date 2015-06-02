@@ -1,59 +1,96 @@
 
 include ../buildconf.mk
 
-LIB   := $(PTHREAD_LIBS) $(FUSE_LIBS) -L../libfskit -lfskit
-INC   := $(PTHREAD_CFLAGS) $(FUSE_CFLAGS) -I../include -I.
 C_SRCS:= $(wildcard *.c)
 CXSRCS:= $(wildcard *.cpp)
+OBJ   := $(patsubst %.c,$(BUILD_LIBFSKIT_FUSE)/%.o,$(C_SRCS)) $(patsubst %.cpp,$(BUILD_LIBFSKIT_FUSE)/%.o,$(CXSRCS))
+LIBS  := -lpthread -lfuse
+DEFS  := $(DEFS) -D_FILE_OFFSET_BITS=64
+
+PC_FILE		:= $(BUILD_PKGCONFIG)/fskit_fuse.pc
+PC_FILE_INSTALL := $(PKGCONFIGDIR)/fskit_fuse.pc
+PC_FILE_IN  := fskit_fuse.pc.in
+
+LIBFSKIT_FUSE := libfskit_fuse.so
+LIBFSKIT_FUSE_SO := libfskit_fuse.so.$(LIBFSKIT_FUSE_MAJOR)
+LIBFSKIT_FUSE_LIB := libfskit_fuse.so.$(LIBFSKIT_FUSE_MAJOR).$(LIBFSKIT_FUSE_MINOR).$(LIBFSKIT_FUSE_PATCH)
+
+LIBFSKIT_FUSE_TARGET := $(patsubst %,$(BUILD_LIBFSKIT_FUSE)/%,$(LIBFSKIT_FUSE))
+LIBFSKIT_FUSE_SO_TARGET := $(patsubst %,$(BUILD_LIBFSKIT_FUSE)/%,$(LIBFSKIT_FUSE_SO))
+LIBFSKIT_FUSE_LIB_TARGET := $(patsubst %,$(BUILD_LIBFSKIT_FUSE)/%,$(LIBFSKIT_FUSE_LIB))
+
+LIBFSKIT_FUSE_INSTALL_TARGET := $(patsubst $(BUILD_LIBFSKIT_FUSE)/%,$(INSTALL_LIBFSKIT_FUSE)/%,$(LIBFSKIT_FUSE_TARGET))
+LIBFSKIT_FUSE_SO_INSTALL_TARGET := $(patsubst $(BUILD_LIBFSKIT_FUSE)/%,$(INSTALL_LIBFSKIT_FUSE)/%,$(LIBFSKIT_FUSE_SO_TARGET))
+LIBFSKIT_FUSE_LIB_INSTALL_TARGET := $(patsubst $(BUILD_LIBFSKIT_FUSE)/%,$(INSTALL_LIBFSKIT_FUSE)/%,$(LIBFSKIT_FUSE_LIB_TARGET))
+
+LIBFSKIT_FUSE_INSTALL: $(patsubst $(BUILD_LIBFSKIT_FUSE)/%,$(INSTALL_LIBFSKIT_FUSE)/%,$(LIBFSKIT_FUSE_TARGET) $(LIBFSKIT_FUSE_SO_TARGET) $(LIBFSKIT_FUSE_LIB_TARGET))
+
 HEADERS := $(wildcard *.h)
-OBJ   := $(patsubst %.c,%.o,$(C_SRCS)) $(patsubst %.cpp,%.o,$(CXSRCS))
-DEFS  := -D_REENTRANT -D_THREAD_SAFE -D__STDC_FORMAT_MACROS -D_FILE_OFFSET_BITS=64
-INCDIR		?= $(INCLUDEDIR)/fskit/fuse
+BUILD_HEADERS := $(patsubst %.h,$(BUILD_LIBFSKIT_FUSE_HEADERS)/%.h,$(HEADERS))
+INSTALL_HEADERS := $(patsubst $(BUILD_LIBFSKIT_FUSE_HEADERS)/%.h,$(INSTALL_LIBFSKIT_FUSE_HEADERS)/%.h,$(BUILD_HEADERS))
 
-FUSE_DEMO = fuse-demo
+all: $(LIBFSKIT_FUSE_TARGET) $(LIBFSKIT_FUSE_SO_TARGET) $(LIBFSKIT_FUSE_LIB_TARGET) $(BUILD_HEADERS) $(PC_FILE)
 
-LIBFSKIT_FUSE = libfskit_fuse.so
-LIBFSKIT_FUSE_SO = libfskit_fuse.so.$(VERSION_MAJOR)
-LIBFSKIT_FUSE_LIB = libfskit_fuse.so.$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)
-
-PC_FILE := fskit_fuse.pc
-
-all: libfskit_fuse $(PC_FILE)
-
-$(PC_FILE):	$(PC_FILE).in
-	@cat $< | \
+$(PC_FILE):	$(PC_FILE_IN)
+	@mkdir -p "$(shell dirname "$@")"
+	@cat "$<" | \
 		sed -e 's~@PREFIX@~$(PREFIX)~g;' | \
 		sed -e 's~@INCLUDEDIR@~$(INCDIR)~g;' | \
 		sed -e 's~@VERSION@~$(VERSION)~g; ' | \
-		sed -e 's~@LIBS@~$(LIB)~g; ' | \
+		sed -e 's~@LIBS@~$(LIBS)~g; ' | \
 		sed -e 's~@LIBDIR@~$(LIBDIR)~g; ' | \
-	   sed -e 's~@VERSION_MAJOR@~$(VERSION_MAJOR)~g; ' | \
-	   sed -e 's~@VERSION_MINOR@~$(VERSION_MINOR)~g; ' | \
-	   sed -e 's~@VERSION_PATCH@~$(VERSION_PATCH)~g; '	> $@
+	   sed -e 's~@VERSION_MAJOR@~$(LIBFSKIT_FUSE_MAJOR)~g; ' | \
+	   sed -e 's~@VERSION_MINOR@~$(LIBFSKIT_FUSE_MINOR)~g; ' | \
+	   sed -e 's~@VERSION_PATCH@~$(LIBFSKIT_FUSE_PATCH)~g; '	> "$@"
 
-libfskit_fuse: $(OBJ)
-	$(CXX) $(CXXFLAGS) -shared -Wl,-soname,$(LIBFSKIT_FUSE_SO) -o $(LIBFSKIT_FUSE_LIB) $(OBJ) $(LIB)
-	$(LN_SF) $(LIBFSKIT_FUSE_LIB) $(LIBFSKIT_FUSE_SO)
-	$(LN_SF) $(LIBFSKIT_FUSE_SO) $(LIBFSKIT_FUSE)
+$(LIBFSKIT_FUSE_LIB_TARGET): $(OBJ)
+	@mkdir -p "$(shell dirname "$@")"
+	$(CXX) $(CXXFLAGS) -shared -Wl,-soname,$(LIBFSKIT_FUSE_SO) -o $(LIBFSKIT_FUSE_LIB_TARGET) $(OBJ) $(LIBINC) $(LIBS)
 
-libfskit_fuse-install: libfskit_fuse $(PC_FILE)
-	$(MKDIR_P) $(DESTDIR)/$(LIBDIR) $(DESTDIR)/$(PKGCONFIGDIR)
-	$(CP_A) $(LIBFSKIT_FUSE) $(LIBFSKIT_FUSE_SO) $(LIBFSKIT_FUSE_LIB) $(DESTDIR)/$(LIBDIR)
-	$(CP_A) $(PC_FILE) $(DESTDIR)/$(PKGCONFIGDIR)
+$(LIBFSKIT_FUSE_SO_TARGET): $(LIBFSKIT_FUSE_LIB_TARGET)
+	@mkdir -p "$(shell dirname "$@")"
+	@ln -sf "$(shell basename "$<")" "$@"
 
-libfskit_fuse-dev-install: libfskit_fuse
-	$(MKDIR_P) $(DESTDIR)/$(INCDIR)
-	$(CP_A) $(HEADERS) $(DESTDIR)/$(INCDIR)
+$(LIBFSKIT_FUSE_TARGET): $(LIBFSKIT_FUSE_SO_TARGET)
+	@mkdir -p "$(shell dirname "$@")"
+	@ln -sf "$(shell basename "$<")" "$@"
 
-%.o : %.c
-	$(CXX) $(CXXFLAGS) -o $@ $(INC) -c $< $(DEFS)
+$(BUILD_LIBFSKIT_FUSE_HEADERS)/%.h: %.h
+	@mkdir -p "$(shell dirname "$@")"
+	@cp -a "$<" "$@"
 
-%.o : %.cpp
-	$(CXX) $(CXXFLAGS) -o $@ $(INC) -c $< $(DEFS)
+install: $(LIBFSKIT_FUSE_INSTALL_TARGET) $(LIBFSKIT_FUSE_SO_INSTALL_TARGET) $(LIBFSKIT_FUSE_LIB_INSTALL_TARGET) $(PC_FILE_INSTALL)
 
-.PHONY: install
-install: libfskit_fuse-install libfskit_fuse-dev-install
+$(LIBFSKIT_FUSE_INSTALL_TARGET): $(LIBFSKIT_FUSE_TARGET)
+	@mkdir -p "$(shell dirname "$@")"
+	cp -a "$<" "$@"
+
+$(LIBFSKIT_FUSE_SO_INSTALL_TARGET): $(LIBFSKIT_FUSE_SO_TARGET)
+	@mkdir -p "$(shell dirname "$@")"
+	cp -a "$<" "$@"
+
+$(LIBFSKIT_FUSE_LIB_INSTALL_TARGET): $(LIBFSKIT_FUSE_LIB_TARGET)
+	@mkdir -p "$(shell dirname "$@")"
+	cp -a "$<" "$@"
+
+$(PC_FILE_INSTALL): $(PC_FILE)
+	@mkdir -p "$(shell dirname "$@")"
+	cat "$<" "$@"
+
+$(BUILD_LIBFSKIT_FUSE)/%.o : %.c
+	@mkdir -p "$(shell dirname "$@")"
+	$(CC) $(CCFLAGS) -o "$@" $(INC) -c "$<" $(DEFS)
+
+$(BUILD_LIBFSKIT_FUSE)/%.o : %.cpp
+	@mkdir -p "$(shell dirname "$@")"
+	$(CXX) $(CXXFLAGS) -o "$@" $(INC) -c "$<" $(DEFS)
 
 .PHONY: clean
 clean:
-	$(RM_RF) $(OBJ) $(LIBFSKIT_FUSE_LIB) $(LIBFSKIT_FUSE_SO) $(LIBFSKIT_FUSE) $(PC_FILE)
+	rm -f $(OBJ) $(LIBFSKIT_FUSE_TARGET) $(LIBFSKIT_FUSE_SO_TARGET) $(LIBFSKIT_FUSE_LIB_TARGET) $(BUILD_HEADERS) $(PC_FILE)
+
+.PHONY: uninstall
+uninstall:
+	rm -f $(LIBFSKIT_FUSE_INSTALL_TARGET) $(LIBFSKIT_FUSE_SO_INSTALL_TARGET) $(LIBFSKIT_FUSE_LIB_INSTALL_TARGET) $(INSTALL_HEADERS) $(PC_FILE_INSTALL)
+
+print-%: ; @echo $*=$($*)
