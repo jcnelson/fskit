@@ -986,6 +986,11 @@ int fskit_run_user_detach( struct fskit_core* core, char const* path, struct fsk
 // NOTE: fent must be write-locked if is attached to the filesystem, or needlock must be true
 int fskit_entry_destroy( struct fskit_core* core, struct fskit_entry* fent, bool needlock ) {
 
+   // try to prevent double-frees
+   if( fent->type == FSKIT_ENTRY_TYPE_DEAD ) {
+      return 0;
+   }
+   
    if( needlock ) {
       fskit_entry_wlock( fent );
    }
