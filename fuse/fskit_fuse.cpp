@@ -19,7 +19,7 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-#include "fskit_fuse.h"
+#include <fskit/fuse/fskit_fuse.h>
 
 // get running state
 struct fskit_fuse_state* fskit_fuse_get_state() {
