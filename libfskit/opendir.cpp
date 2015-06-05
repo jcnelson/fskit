@@ -55,7 +55,11 @@ static struct fskit_dir_handle* fskit_dir_handle_create( struct fskit_entry* dir
 struct fskit_dir_handle* fskit_opendir( struct fskit_core* core, char const* _path, uint64_t user, uint64_t group, int* err ) {
 
    void* app_handle_data = NULL;
-
+   int rc = 0;
+   struct fskit_entry* dir = NULL;
+   struct fskit_dir_handle* dirh = NULL;
+   char path[PATH_MAX];
+   
    if( strlen(_path) >= PATH_MAX ) {
       // too long
       *err = -ENAMETOOLONG;
@@ -63,13 +67,12 @@ struct fskit_dir_handle* fskit_opendir( struct fskit_core* core, char const* _pa
    }
 
    // ensure path ends in /
-   char path[PATH_MAX];
    memset( path, 0, PATH_MAX );
    strncpy( path, _path, PATH_MAX - 1 );
 
    fskit_sanitize_path( path );
 
-   struct fskit_entry* dir = fskit_entry_resolve_path( core, path, user, group, true, err );
+   dir = fskit_entry_resolve_path( core, path, user, group, true, err );
    if( dir == NULL ) {
       // resolution error; err is set appropriately
       return NULL;
@@ -82,32 +85,40 @@ struct fskit_dir_handle* fskit_opendir( struct fskit_core* core, char const* _pa
       return NULL;
    }
 
+   // reference it--it cannot be unlinked 
+   fskit_entry_ref_entry( dir );
+   fskit_entry_unlock( dir );
+   
    // generate handle data
-   int rc = fskit_run_user_open( core, path, dir, 0, &app_handle_data );
+   rc = fskit_run_user_open( core, path, dir, 0, &app_handle_data );
+   
+   fskit_entry_wlock( dir );
+   
    if( rc != 0 ) {
 
       // user-run open code failed
       fskit_error("fskit_run_user_open(%s) rc = %d\n", path, rc );
-
       fskit_entry_unlock( dir );
       *err = rc;
+      
+      fskit_entry_unref( core, path, dir );
       return NULL;
    }
-
-   // open this directory
-   dir->open_count++;
-
+   
    // make a handle to it
-   struct fskit_dir_handle* dirh = fskit_dir_handle_create( dir, path, app_handle_data );
+   dirh = fskit_dir_handle_create( dir, path, app_handle_data );
    if( dirh == NULL ) {
       
       // OOM
-      dir->open_count--;
+      fskit_entry_unlock( dir );
+      fskit_entry_unref( core, path, dir );
       *err = -ENOMEM;
    }
 
-   // release the directory
-   fskit_entry_unlock( dir );
+   else {
+      // release the directory
+      fskit_entry_unlock( dir );
+   }
 
    return dirh;
 }
