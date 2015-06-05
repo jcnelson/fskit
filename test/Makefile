@@ -26,4 +26,4 @@ test-% : test-%.o $(COMMON_O)
 
 .PHONY: clean
 clean:
-	$(RM_RF) $(OBJ) $(TESTS)
+	rm -f $(OBJ) $(TESTS)

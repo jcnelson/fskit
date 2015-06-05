@@ -3,17 +3,21 @@ include ./buildconf.mk
 
 all:
 	$(MAKE) -C libfskit
-	$(MAKE) -C test
-ifeq ($(ENABLE_FUSE),1)
 	$(MAKE) -C fuse
-	$(MAKE) -C demo
-endif
 
 install:
 	$(MAKE) -C libfskit install
-ifeq ($(ENABLE_FUSE),1)
 	$(MAKE) -C fuse install
-endif
+
+test:
+	$(MAKE) -C test 
+
+fuse-demo:
+	$(MAKE) -C demo 
+
+uninstall:
+	$(MAKE) -C libfskit uninstall
+	$(MAKE) -C fuse uninstall
 
 clean:
 	$(MAKE) -C libfskit clean

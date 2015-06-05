@@ -23,4 +23,4 @@ $(FUSE_DEMO): $(OBJ)
 
 .PHONY: clean
 clean:
-	$(RM_RF) $(OBJ) $(FUSE_DEMO)
+	rm -f $(OBJ) $(FUSE_DEMO)
