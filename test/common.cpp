@@ -187,6 +187,8 @@ int fskit_test_mkdir_LR_recursive( struct fskit_core* core, char const* path, in
       return 0;
    }
 
+   fskit_debug("mkdir('%s')\n", path );
+   
    int rc = fskit_mkdir( core, path, 0755, 0, 0 );
    if( rc != 0 ) {
       fskit_error("fskit_mkdir('%s') rc = %d\n", path, rc );
