@@ -22,6 +22,25 @@
 #include <fskit/path.h>
 #include <fskit/util.h>
 
+struct fskit_path_iterator {
+   
+   struct fskit_core* core;
+   
+   char const* path;
+   
+   bool writelock;
+   
+   struct fskit_entry* prev_ent;
+   struct fskit_entry* cur_ent;
+   
+   char* name;          // pointer to next name in the path
+   size_t name_i;       // index of the next name in the path
+   
+   bool end_of_path;
+   
+   int rc;
+};
+
 // join two paths, writing the result to dest if dest is not NULL.
 // otherwise, allocate and return a buffer containing the joined paths.
 char* fskit_fullpath( char const* root, char const* path, char* dest ) {
@@ -487,20 +506,21 @@ struct fskit_entry* fskit_entry_resolve_path( struct fskit_core* core, char cons
 
 
 // start iterating on a path 
-// return an iterator 
-struct fskit_path_iterator fskit_path_begin( struct fskit_core* core, char const* path, bool writelock ) {
+// return an iterator, or NULL if OOM
+struct fskit_path_iterator* fskit_path_begin( struct fskit_core* core, char const* path, bool writelock ) {
    
    struct fskit_entry* root = NULL;
    
-   struct fskit_path_iterator ret;
-   
-   memset( &ret, 0, sizeof(struct fskit_path_iterator) );
+   struct fskit_path_iterator* ret = CALLOC_LIST( struct fskit_path_iterator, 1 );
+   if( ret == NULL ) {
+      return NULL;
+   }
    
    // find root 
    root = fskit_core_resolve_root( core, writelock );
    if( root == NULL ) {
       
-      ret.rc = -ENOENT;
+      ret->rc = -ENOENT;
       return ret;
    }
    
@@ -508,26 +528,27 @@ struct fskit_path_iterator fskit_path_begin( struct fskit_core* core, char const
    if( root->link_count == 0 || root->type == FSKIT_ENTRY_TYPE_DEAD ) {
       
       fskit_entry_unlock( root );
-      ret.rc = -ENOENT;
+      ret->rc = -ENOENT;
       return ret;
    }
    
-   ret.core = core;
-   ret.path = path;
-   ret.name_i = 0;
-   ret.writelock = writelock;
-   ret.cur_ent = root;
-   ret.prev_ent = NULL;
+   ret->core = core;
+   ret->path = path;
+   ret->name_i = 0;
+   ret->writelock = writelock;
+   ret->cur_ent = root;
+   ret->prev_ent = NULL;
    
-   ret.name = (char*)ret.path;
-   while( *ret.name != '\0' ) {
+   ret->name = (char*)ret->path;
+   while( *(ret->name) != '\0' ) {
       
-      if( *ret.name != '/' ) {
+      // advance ret.name to the first name, skipping '/''s
+      if( *(ret->name) != '/' ) {
          break;
       }
       
-      ret.name++;
-      ret.name_i++;
+      ret->name++;
+      ret->name_i++;
    }
    
    return ret;
@@ -559,7 +580,7 @@ bool fskit_path_end( struct fskit_path_iterator* itr ) {
 // set itr->rc to -ENOENT if the named entry does not exist in the filesystem
 void fskit_path_next( struct fskit_path_iterator* itr ) {
    
-   char* tmp = itr->name;
+   char* tmp = NULL;
    char* name_candidate = NULL;
    
    size_t len = 0;
@@ -578,13 +599,14 @@ void fskit_path_next( struct fskit_path_iterator* itr ) {
    itr->prev_ent = itr->cur_ent;
    itr->cur_ent = NULL;
    
-   // what's the next name?  Skip '.'
+   // what's the next name?
    tmp = itr->name;
    len = 0;             // total characters traversed in searching for the next non-"." name
    name_len = 0;        // candidate name length
    
+   // find the next non-'.' name
    while( true ) {
-         
+      
       name_candidate = tmp;
       name_len = 0;
       
@@ -592,6 +614,7 @@ void fskit_path_next( struct fskit_path_iterator* itr ) {
       while( *tmp != '\0' ) {
          
          if( *tmp == '/' ) {
+            // end of name
             break;
          }
          
@@ -611,9 +634,9 @@ void fskit_path_next( struct fskit_path_iterator* itr ) {
          len++;
       }
       
-      if( *tmp == '\0' || len == 0 || name_len == 0 || itr->prev_ent == NULL ) {
+      if( len == 0 || (*tmp == '\0' && name_len == 0) || itr->prev_ent == NULL ) {
          
-         // out of path 
+         // out of path
          itr->end_of_path = true;
          break;
       }
@@ -621,11 +644,12 @@ void fskit_path_next( struct fskit_path_iterator* itr ) {
          
          if( name_len == 1 && *name_candidate == '.' ) {
             
-            // skip
+            // skip--this name is '.'
             continue;
          }
          else {
             
+            // have name
             break;
          }
       }
@@ -692,6 +716,12 @@ int fskit_path_iterator_error( struct fskit_path_iterator* itr ) {
    return itr->rc;
 }
 
+// get the length of path iterated over 
+int fskit_path_iterator_length( struct fskit_path_iterator* itr ) {
+   
+   return itr->name_i;
+}
+
 // get an iterator's current entry 
 struct fskit_entry* fskit_path_iterator_entry( struct fskit_path_iterator* itr ) {
    
@@ -705,7 +735,7 @@ struct fskit_entry* fskit_path_iterator_entry_parent( struct fskit_path_iterator
 }
 
 
-// "release" an iterator (i.e. unlock its entries)
+// "release" an iterator (i.e. unlock its entries), and free it up
 void fskit_path_iterator_release( struct fskit_path_iterator* itr ) {
    
    if( itr->prev_ent != NULL ) {
@@ -720,6 +750,8 @@ void fskit_path_iterator_release( struct fskit_path_iterator* itr ) {
    
    itr->prev_ent = NULL;
    itr->cur_ent = NULL;
+   
+   fskit_safe_free( itr );
 }
 
 
@@ -738,7 +770,7 @@ char* fskit_path_iterator_path( struct fskit_path_iterator* itr ) {
       return NULL;
    }
    
-   strncpy( ret, itr->path, itr->name_i );
+   memcpy( ret, itr->path, itr->name_i );
    return ret;
 }
 
