@@ -834,9 +834,16 @@ int fskit_entry_init_common( struct fskit_entry* fent, uint8_t type, uint64_t fi
 }
 
 // high-level initializer: make a file
+// return 0 on success
+// return -EINVAL if name is NULL
+// return -ENOMEM on OOM
 int fskit_entry_init_file( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode ) {
 
    int rc = 0;
+   
+   if( name == NULL ) {
+      return -EINVAL;
+   }
 
    rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_FILE, file_id, name, owner, group, mode );
    if( rc != 0 ) {
@@ -850,9 +857,16 @@ int fskit_entry_init_file( struct fskit_entry* fent, uint64_t file_id, char cons
 
 
 // high-level initializer: make a directory
+// return 0 on success
+// return -EINVAL if name is NULL
+// return -ENOMEM on OOM
 int fskit_entry_init_dir( struct fskit_entry* fent, struct fskit_entry* parent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode ) {
 
    int rc = 0;
+   
+   if( name == NULL ) {
+      return -EINVAL;
+   }
 
    fskit_entry_set* children = fskit_entry_set_new( fent, parent );
    if( children == NULL ) {
@@ -871,9 +885,16 @@ int fskit_entry_init_dir( struct fskit_entry* fent, struct fskit_entry* parent, 
 }
 
 // high-level initializer: make a fifo
+// return 0 on success
+// return -EINVAL if name is NULL
+// return -ENOMEM on OOM
 int fskit_entry_init_fifo( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode ) {
 
    int rc = 0;
+   
+   if( name == NULL ) {
+      return -EINVAL;
+   }
 
    rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_FIFO, file_id, name, owner, group, mode );
    if( rc != 0 ) {
@@ -886,9 +907,16 @@ int fskit_entry_init_fifo( struct fskit_entry* fent, uint64_t file_id, char cons
 }
 
 // high-level initializer: make a UNIX domain socket
+// return 0 on success
+// return -EINVAL if name is NULL
+// return -ENOMEM on OOM
 int fskit_entry_init_sock( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode ) {
 
    int rc = 0;
+   
+   if( name == NULL ) {
+      return -EINVAL;
+   }
 
    rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_SOCK, file_id, name, owner, group, mode );
    if( rc != 0 ) {
@@ -901,9 +929,16 @@ int fskit_entry_init_sock( struct fskit_entry* fent, uint64_t file_id, char cons
 }
 
 // high-level initializer: make a character device
+// return 0 on success
+// return -EINVAL if name is NULL
+// return -ENOMEM on OOM
 int fskit_entry_init_chr( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode, dev_t dev ) {
 
    int rc = 0;
+   
+   if( name == NULL ) {
+      return -EINVAL;
+   }
 
    rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_CHR, file_id, name, owner, group, mode );
    if( rc != 0 ) {
@@ -916,9 +951,16 @@ int fskit_entry_init_chr( struct fskit_entry* fent, uint64_t file_id, char const
 }
 
 // high-level initializer: make a block device
+// return 0 on success
+// return -EINVAL if name is NULL
+// return -ENOMEM on OOM
 int fskit_entry_init_blk( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode, dev_t dev ) {
 
    int rc = 0;
+   
+   if( name == NULL ) {
+      return -EINVAL;
+   }
 
    rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_BLK, file_id, name, owner, group, mode );
    if( rc != 0 ) {
@@ -931,9 +973,17 @@ int fskit_entry_init_blk( struct fskit_entry* fent, uint64_t file_id, char const
 }
 
 // high-level initializer; make a symlink
+// return 0 on success
+// return -EINVAL if name or linkpath is NULL
+// return -ENOMEM on OOM
 int fskit_entry_init_symlink( struct fskit_entry* fent, uint64_t file_id, char const* name, char const* linkpath ) {
 
    int rc = 0;
+   
+   if( name == NULL || linkpath == NULL ) {
+      return -EINVAL;
+   }
+   
    char* symlink_target = strdup_or_null( linkpath );
    if( symlink_target == NULL ) {
       return -ENOMEM;
