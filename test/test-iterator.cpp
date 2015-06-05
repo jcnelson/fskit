@@ -26,7 +26,8 @@ int main( int argc, char** argv ) {
    struct fskit_core core;
    int rc;
    void* output;
-   struct fskit_path_iterator itr;
+   struct fskit_path_iterator* itr = NULL;
+   struct fskit_file_handle* fh = NULL;
 
    rc = fskit_test_begin( &core, NULL );
    if( rc != 0 ) {
@@ -39,56 +40,148 @@ int main( int argc, char** argv ) {
       exit(1);
    }
    
+   fh = fskit_create( &core, "/root/L/R/L/R/L/R/.foo", 0, 0, 0777, &rc );
+   if( fh == NULL ) {
+      fskit_error("fskit_create('/root/L/R/L/R/L/R/.foo') rc = %d\n", rc );
+      exit(1);
+   }
+   
+   fskit_close( &core, fh );
+   
+   fh = fskit_create( &core, "/bar.f", 0, 0, 0777, &rc );
+   if( fh == NULL ) {
+      fskit_error("fskit_create('/bar.f') rc = %d\n", rc );
+      exit(1);
+   }
+   
+   fskit_close( &core, fh );
+   
+   rc = fskit_mkdir( &core, "/bar.d", 0755, 0, 0 );
+   if( rc < 0 ) {
+      fskit_error("fskit_mkdir('/bar.d') rc = %d\n", rc );
+      exit(1);  
+   }
+   
    /////////////////////////////////////////////////////////////////////////////////////
    printf("\n\nIterate succeeds...\n\n");
    
-   for( itr = fskit_path_begin( &core, "././root/L/R//L//././/R/L//.///R", true ); !fskit_path_end( &itr ); fskit_path_next( &itr ) ) {
+   for( itr = fskit_path_begin( &core, "/root/L/R/L/R/L/R/.foo", true ); !fskit_path_end( itr ); fskit_path_next( itr ) ) {
       
-      struct fskit_entry* cur = fskit_path_iterator_entry( &itr );
-      char* cur_path = fskit_path_iterator_path( &itr );
+      struct fskit_entry* cur = fskit_path_iterator_entry( itr );
+      char* cur_path = fskit_path_iterator_path( itr );
       
-      printf("Entry %" PRIX64 " (%p): %s\n", fskit_entry_get_file_id( cur ), cur, cur_path );
+      printf("Entry %016" PRIX64 " (%p): %c %s\n", fskit_entry_get_file_id( cur ), cur, fskit_entry_get_type( cur ) == FSKIT_ENTRY_TYPE_FILE ? 'F' : 'D', cur_path );
+      
+      free( cur_path );
+   }
+   
+   printf("Iterator error: %d\n", fskit_path_iterator_error( itr ) );
+   
+   fskit_path_iterator_release( itr );
+   
+   
+   printf("\n\n");
+   
+   
+   for( itr = fskit_path_begin( &core, "/bar.f", true ); !fskit_path_end( itr ); fskit_path_next( itr ) ) {
+      
+      struct fskit_entry* cur = fskit_path_iterator_entry( itr );
+      char* cur_path = fskit_path_iterator_path( itr );
+      
+      printf("Entry %016" PRIX64 " (%p): %c %s\n", fskit_entry_get_file_id( cur ), cur, fskit_entry_get_type( cur ) == FSKIT_ENTRY_TYPE_FILE ? 'F' : 'D', cur_path );
+      
+      free( cur_path );
+   }
+   
+   printf("Iterator error: %d\n", fskit_path_iterator_error( itr ) );
+   
+   fskit_path_iterator_release( itr );
+   
+   
+   printf("\n\n");
+   
+   
+   for( itr = fskit_path_begin( &core, "/bar.d", true ); !fskit_path_end( itr ); fskit_path_next( itr ) ) {
+      
+      struct fskit_entry* cur = fskit_path_iterator_entry( itr );
+      char* cur_path = fskit_path_iterator_path( itr );
+      
+      printf("Entry %016" PRIX64 " (%p): %c %s\n", fskit_entry_get_file_id( cur ), cur, fskit_entry_get_type( cur ) == FSKIT_ENTRY_TYPE_FILE ? 'F' : 'D', cur_path );
+      
+      free( cur_path );
+   }
+   
+   printf("Iterator error: %d\n", fskit_path_iterator_error( itr ) );
+   
+   fskit_path_iterator_release( itr );
+   
+   
+   /////////////////////////////////////////////////////////////////////////////////////
+   printf("\n\nIterate succeeds on path with duplicate . and /...\n\n");
+   
+   for( itr = fskit_path_begin( &core, "././root/L/R//L//././/R/L//.///R", true ); !fskit_path_end( itr ); fskit_path_next( itr ) ) {
+      
+      struct fskit_entry* cur = fskit_path_iterator_entry( itr );
+      char* cur_path = fskit_path_iterator_path( itr );
+      
+      printf("Entry %016" PRIX64 " (%p): %c %s\n", fskit_entry_get_file_id( cur ), cur, fskit_entry_get_type( cur ) == FSKIT_ENTRY_TYPE_FILE ? 'F' : 'D', cur_path );
       
       free( cur_path );
    }
 
-   fskit_path_iterator_release( &itr );
+   printf("Iterator error: %d\n", fskit_path_iterator_error( itr ) );
+
+   fskit_path_iterator_release( itr );
+      
+   printf("\n\n");
    
-   printf("Iterator error: %d\n", fskit_path_iterator_error( &itr ) );
-   
+   for( itr = fskit_path_begin( &core, "/././root///././/.//.", true ); !fskit_path_end( itr ); fskit_path_next( itr ) ) {
+      
+      struct fskit_entry* cur = fskit_path_iterator_entry( itr );
+      char* cur_path = fskit_path_iterator_path( itr );
+      
+      printf("Entry %016" PRIX64 " (%p): %c %s\n", fskit_entry_get_file_id( cur ), cur, fskit_entry_get_type( cur ) == FSKIT_ENTRY_TYPE_FILE ? 'F' : 'D', cur_path );
+      
+      free( cur_path );
+   }
+
+   printf("Iterator error: %d\n", fskit_path_iterator_error( itr ) );
+
+   fskit_path_iterator_release( itr );
+      
    /////////////////////////////////////////////////////////////////////////////////////
    printf("\n\nIterate fails (path too long)...\n\n");
    
-   for( itr = fskit_path_begin( &core, "/root/L/R/L/R/L/R/L/R/L/R/L/R/L/R/L/R", true ); !fskit_path_end( &itr ); fskit_path_next( &itr ) ) {
+   for( itr = fskit_path_begin( &core, "/root/L/R/L/R/L/R/L/R/L/R/L/R/L/R/L/R", true ); !fskit_path_end( itr ); fskit_path_next( itr ) ) {
       
-      struct fskit_entry* cur = fskit_path_iterator_entry( &itr );
-      char* cur_path = fskit_path_iterator_path( &itr );
+      struct fskit_entry* cur = fskit_path_iterator_entry( itr );
+      char* cur_path = fskit_path_iterator_path( itr );
       
-      printf("Entry %" PRIX64 " (%p): %s\n", fskit_entry_get_file_id( cur ), cur, cur_path );
+      printf("Entry %016" PRIX64 " (%p): %c %s\n", fskit_entry_get_file_id( cur ), cur, fskit_entry_get_type( cur ) == FSKIT_ENTRY_TYPE_FILE ? 'F' : 'D', cur_path );
       
       free( cur_path );
    }
    
-   fskit_path_iterator_release( &itr );
+   printf("Iterator error: %d\n", fskit_path_iterator_error( itr ) );
    
-   printf("Iterator error: %d\n", fskit_path_iterator_error( &itr ) );
+   fskit_path_iterator_release( itr );
    
    /////////////////////////////////////////////////////////////////////////////////////
    printf("\n\nIterate fails (path does not exist)...\n\n");
    
-   for( itr = fskit_path_begin( &core, "/root/L/R/L/foo/L/R", true ); !fskit_path_end( &itr ); fskit_path_next( &itr ) ) {
+   for( itr = fskit_path_begin( &core, "/root/L/R/L/foo/L/R", true ); !fskit_path_end( itr ); fskit_path_next( itr ) ) {
       
-      struct fskit_entry* cur = fskit_path_iterator_entry( &itr );
-      char* cur_path = fskit_path_iterator_path( &itr );
+      struct fskit_entry* cur = fskit_path_iterator_entry( itr );
+      char* cur_path = fskit_path_iterator_path( itr );
       
-      printf("Entry %" PRIX64 " (%p): %s\n", fskit_entry_get_file_id( cur ), cur, cur_path );
+      printf("Entry %016" PRIX64 " (%p): %c %s\n", fskit_entry_get_file_id( cur ), cur, fskit_entry_get_type( cur ) == FSKIT_ENTRY_TYPE_FILE ? 'F' : 'D', cur_path );
       
       free( cur_path );
    }
    
-   fskit_path_iterator_release( &itr );
+   printf("Iterator error: %d\n\n\n", fskit_path_iterator_error( itr ) );
    
-   printf("Iterator error: %d\n\n\n", fskit_path_iterator_error( &itr ) );
+   fskit_path_iterator_release( itr );
    
    fskit_test_end( &core, &output );
 
