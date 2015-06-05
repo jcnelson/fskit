@@ -24,8 +24,8 @@
 
 #include "common.h"
 
-#define FSKIT_WHERESTR "%05d:%05d: [%16s:%04u] %s: "
-#define FSKIT_WHEREARG (int)getpid(), (int)pthread_self(), __FILE__, __LINE__, __func__
+#define FSKIT_WHERESTR "%05d:%016llX: [%16s:%04u] %s: "
+#define FSKIT_WHEREARG (int)getpid(), fskit_pthread_self(), __FILE__, __LINE__, __func__
 
 #define fskit_debug( format, ... ) \
    do { \
@@ -55,6 +55,11 @@ void fskit_set_debug_level( int d );
 void fskit_set_error_level( int e );
 int fskit_get_debug_level();
 int fskit_get_error_level();
+
+
+// portable cast pthread_t to uint64_t 
+unsigned long long int fskit_pthread_self(void);
+
 
 }
 

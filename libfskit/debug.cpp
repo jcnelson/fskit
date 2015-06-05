@@ -40,3 +40,15 @@ int fskit_get_debug_level() {
 int fskit_get_error_level() {
    return FSKIT_GLOBAL_ERROR_MESSAGES;
 }
+
+// portable cast pthread_t to uint64_t 
+unsigned long long int fskit_pthread_self(void) {
+   
+   union {
+      pthread_t t;
+      uint64_t i;
+   } fskit_thread;
+
+   fskit_thread.t = pthread_self();
+   return fskit_thread.i;
+}
