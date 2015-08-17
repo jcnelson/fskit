@@ -50,8 +50,8 @@ CXXFLAGS   := -Wall -g -fPIC -fstack-protector -fstack-protector-all -pthread -W
 INC      := -I. -I$(ROOT_DIR) -I$(BUILD_INCLUDEDIR) -I$(BUILD)
 DEFS     := -D_THREAD_SAFE -D__STDC_FORMAT_MACROS 
 LIBINC   := 
-CC       := gcc
-CPP      := g++
+CC       ?= cc
+CXX      ?= c++
 
 # build setup
 BUILD_DIRS   := $(sort $(BUILD_LIBFSKIT_DIRS) $(BUILD_LIBFSKIT_FUSE_DIRS) $(BUILD_PRIVATE_INCLUDEDIR)) 
