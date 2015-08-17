@@ -15,14 +15,14 @@ BUILD_PRIVATE_INCLUDEDIR := $(BUILD)/fskit_private
 BUILD_ETCDIR := $(BUILD)/etc
 
 # install environment
-PREFIX         ?=
-DESTDIR			?= /usr
-BINDIR         ?= $(DESTDIR)$(PREFIX)/bin
-SBINDIR			?= $(DESTDIR)$(PREFIX)/sbin
-LIBDIR         ?= $(DESTDIR)$(PREFIX)/lib
-INCLUDEDIR     ?= $(DESTDIR)$(PREFIX)/include
-PKGCONFIGDIR   ?= $(DESTDIR)$(PREFIX)/lib/pkgconfig
-ETCDIR			?= $(DESTDIR)$(PREFIX)/etc
+PREFIX         ?= /usr/local
+DESTDIR			?= /
+BINDIR         ?= $(PREFIX)/bin
+SBINDIR			?= $(PREFIX)/sbin
+LIBDIR         ?= $(PREFIX)/lib
+INCLUDEDIR     ?= $(PREFIX)/include
+PKGCONFIGDIR   ?= $(PREFIX)/lib/pkgconfig
+ETCDIR			?= $(PREFIX)/etc
 
 # libfskit 
 BUILD_LIBFSKIT := $(BUILD_USRLIB)
@@ -32,7 +32,7 @@ INSTALL_LIBFSKIT := $(LIBDIR)
 INSTALL_LIBFSKIT_HEADERS := $(INCLUDEDIR)/fskit
 LIBFSKIT_MAJOR := 1
 LIBFSKIT_MINOR := 0
-LIBFSKIT_PATCH := 1
+LIBFSKIT_PATCH := 2
 
 # libfskit_fuse
 BUILD_LIBFSKIT_FUSE := $(BUILD_USRLIB)
@@ -42,10 +42,10 @@ INSTALL_LIBFSKIT_FUSE := $(LIBDIR)
 INSTALL_LIBFSKIT_FUSE_HEADERS := $(INCLUDEDIR)/fskit/fuse
 LIBFSKIT_FUSE_MAJOR := 1
 LIBFSKIT_FUSE_MINOR := 0
-LIBFSKIT_FUSE_PATCH := 1
+LIBFSKIT_FUSE_PATCH := 2
 
 # compiler
-CCFLAGS     := -Wall -std=c99 -g -fPIC -fstack-protector -fstack-protector-all -pthread -Wno-unused-variable -Wno-unused-but-set-variable
+CCFLAGS     := -Wall -std=c11 -g -fPIC -fstack-protector -fstack-protector-all -pthread -Wno-unused-variable -Wno-unused-but-set-variable
 CXXFLAGS   := -Wall -g -fPIC -fstack-protector -fstack-protector-all -pthread -Wno-unused-variable -Wno-unused-but-set-variable
 INC      := -I. -I$(ROOT_DIR) -I$(BUILD_INCLUDEDIR) -I$(BUILD)
 DEFS     := -D_THREAD_SAFE -D__STDC_FORMAT_MACROS 
