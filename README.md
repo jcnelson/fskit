@@ -13,11 +13,11 @@ To eliminate these difficulties, we created fskit.  Fskit implements a featurefu
 
 Design Goals
 -------------
-* **Stable, extensible thread-safe API.**  Developers declare WSGI-style routes to I/O handlers and set the consistency discipline to be enforced when running them.  The data plane is fully defined by the developer.  We offer an extensible control-plane with POSIX filesystem semantics by default (balancing programmer freedom with the principle of least surprise).
+* **Stable, extensible thread-safe API.**  Developers declare WSGI-like routes to I/O handlers and set the consistency discipline to be enforced when running them.  The data plane is fully defined by the developer.  We offer an extensible control-plane with POSIX filesystem semantics by default (balancing programmer freedom with the principle of least surprise).
 * **Minimal runtime dependencies.**  Fskit should be amenable to static linking, if need be.
 * **Multi-threaded architecture.**  Fskit supports concurrent I/O by default.
 * **Portable architecture.**  Fskit should support all POSIX-y OSs that offer a way to run filesystems in userspace.
-* **C linkage.**  Despite being written in C++, fskit binaries will provide C linkage with the documented API.
+* **C linkage.**  fskit libraries provide C linkage with the documented API.
 
 Non-Goals
 ---------
@@ -29,10 +29,14 @@ Non-Goals
 
 Dependencies
 ------------
+
+For libfskit:
 * libc
 * libpthread
-* libstdc++
 * librt
+
+For libfskit_fuse:
+* libfskit
 * libfuse (patches alternative backends like 9P and puffs are welcome).
 
 Building
