@@ -5,3 +5,7 @@ Contributions:  main author
 Enrico Weigelt
 Contact:  enrico.weigelt@gr13.net
 Contributions:  pkg-config files; debian packaging; miscellaneous cleanups (whitespace, .gitignore, etc.)
+
+Kylie McClain
+Contact:  somasis@exherbo.org
+Contributions:  Makefile support for compiler alternatives
