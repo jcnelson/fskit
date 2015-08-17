@@ -25,7 +25,7 @@ Non-Goals
 * We're not going to tie ourselves to any particular OS or filesystem library--we will make every reasonable effort to accept patches that enhance portability.
 * We're not going to handle data persistence, caching, or holding onto application data.  It's the application's job to manage its data; it's fskit's job to organize it into a filesystem.
 * We're not going to keep metadata persistent across mounts.  However, we will help the application serialize it if it wants to do so itself.
-* We're not going to worry about network transparency.  There are just too many domain-specific aspects to doing this correctly for every application (examples: partition tolerance versus consistency versus availability trade-offs, write-conflict resolution, at-most-once versus at-least-once semantics, security and key distribution, etc.).  However, if the underlying IPC mechanism can handle it (e.g. 9P), we won't get in its way, nor will we get in the way of an application's approach to handling this.
+* We're not going to worry about network transparency.  There are just too many domain-specific aspects to doing this correctly for every application.  However, if the underlying IPC mechanism can handle it (e.g. 9P), we won't get in its way, nor will we get in the way of an application's approach to handling this.
 
 Dependencies
 ------------
