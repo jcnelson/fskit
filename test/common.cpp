@@ -70,6 +70,8 @@ int fskit_print_tree( FILE* out, struct fskit_entry* root ) {
    char* next_path = NULL;
    char type_str[10];
    int rc = 0;
+   fskit_entry_set_itr itr;
+   fskit_entry_set* child = NULL;
 
    vector< struct fskit_entry* > frontier;
    vector< char* > frontier_paths;
@@ -100,15 +102,15 @@ int fskit_print_tree( FILE* out, struct fskit_entry* root ) {
          }
 
          // explore children
-         for( unsigned int i = 0; i < node->children->size(); i++ ) {
+         for( child = fskit_entry_set_begin( node->children, &itr ); child != NULL; child = fskit_entry_set_next( &itr ) ) {
 
-            long child_name_hash = fskit_entry_set_name_hash_at( node->children, i );
-            struct fskit_entry* child = fskit_entry_set_child_at( node->children, i );
+            char const* name = fskit_entry_set_name_at( &itr );
+            struct fskit_entry* child = fskit_entry_set_child_at( &itr );
 
             if( child == NULL ) {
                continue;
             }
-            if( fskit_entry_name_hash(".") == child_name_hash || fskit_entry_name_hash("..") == child_name_hash ) {
+            if( strcmp(".", name) == 0 || strcmp("..", name) == 0 ) {
                continue;
             }
 
