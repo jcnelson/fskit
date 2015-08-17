@@ -22,14 +22,10 @@
 #ifndef _FSKIT_READLINK_H_
 #define _FSKIT_READLINK_H_
 
-#include "debug.h"
-#include "common.h"
-#include "entry.h"
-
-extern "C" {
+#include <fskit/debug.h>
+#include <fskit/common.h>
+#include <fskit/entry.h>
 
 ssize_t fskit_readlink( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, char* buf, size_t buflen );
-
-}
 
 #endif

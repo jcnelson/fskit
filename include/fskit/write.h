@@ -22,13 +22,10 @@
 #ifndef _FSKIT_WRITE_H_
 #define _FSKIT_WRITE_H_
 
-#include "debug.h"
-#include "common.h"
-
-extern "C" {
+#include <fskit/debug.h>
+#include <fskit/common.h>
+#include <fskit/entry.h>
 
 ssize_t fskit_write( struct fskit_core* core, struct fskit_file_handle* fh, char const* buf, size_t buflen, off_t offset );
-
-}
 
 #endif

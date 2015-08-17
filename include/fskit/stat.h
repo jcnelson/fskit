@@ -22,12 +22,10 @@
 #ifndef _FSKIT_STAT_H_
 #define _FSKIT_STAT_H_
 
-#include "fskit.h"
-#include "common.h"
+#include <fskit/common.h>
+#include <fskit/entry.h>
 
 #include <sys/stat.h>
-
-extern "C" {
 
 int fskit_entry_fstat( struct fskit_entry* fent, struct stat* sb );
 
@@ -35,7 +33,5 @@ int fskit_stat( struct fskit_core* core, char const* fs_path, uint64_t user, uin
 int fskit_fstat( struct fskit_core* core, char const* fs_path, struct fskit_entry* fent, struct stat* sb );
 
 mode_t fskit_fullmode( int fskit_type, mode_t mode );
-
-}
 
 #endif

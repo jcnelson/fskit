@@ -23,15 +23,11 @@
 #ifndef _FSKIT_RANDOM_H_
 #define _FSKIT_RANDOM_H_
 
-#include "debug.h"
+#include <fskit/debug.h>
 
 #define FSKIT_RANDOM_DEVICE_PATH "/dev/urandom"
 
-extern "C" {
-
 int fskit_random_init();
 uint32_t fskit_random32();
-
-}
 
 #endif

@@ -22,14 +22,10 @@
 #ifndef _FSKIT_SYMLINK_H_
 #define _FSKIT_SYMLINK_H_
 
-#include "debug.h"
-#include "entry.h"
-#include "common.h"
-
-extern "C" {
+#include <fskit/debug.h>
+#include <fskit/entry.h>
+#include <fskit/common.h>
 
 int fskit_symlink( struct fskit_core* core, char const* target, char const* linkpath, uint64_t user, uint64_t group );
-
-}
 
 #endif

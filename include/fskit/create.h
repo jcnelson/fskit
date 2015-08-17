@@ -23,17 +23,9 @@
 #ifndef _FSKIT_CREATE_H_
 #define _FSKIT_CREATE_H_
 
-#include "debug.h"
-#include "entry.h"
-
-// private--needed by open()
-int fskit_run_user_create( struct fskit_core* core, char const* path, struct fskit_entry* parent, struct fskit_entry* fent, mode_t mode, void** inode_data, void** handle_data );
-int fskit_do_create( struct fskit_core* core, struct fskit_entry* parent, char const* path, mode_t mode, uint64_t user, uint64_t group, struct fskit_entry** ret_child, void** handle_data );
-
-extern "C" {
+#include <fskit/debug.h>
+#include <fskit/entry.h>
 
 struct fskit_file_handle* fskit_create( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, mode_t mode, int* err );
-
-}
 
 #endif

@@ -22,15 +22,11 @@
 #ifndef _FSKIT_DEFERRED_H_
 #define _FSKIT_DEFERRED_H_
 
-#include "common.h"
-#include "debug.h"
-#include "entry.h"
-
-extern "C" {
+#include <fskit/common.h>
+#include <fskit/debug.h>
+#include <fskit/entry.h>
 
 int fskit_deferred_remove( struct fskit_core* core, char const* child_path, struct fskit_entry* child );
 int fskit_deferred_remove_all( struct fskit_core* core, char const* child_path, struct fskit_entry* child );
-
-}
 
 #endif

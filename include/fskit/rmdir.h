@@ -22,13 +22,9 @@
 #ifndef _FSKIT_RMDIR_H_
 #define _FSKIT_RMDIR_H_
 
-#include "debug.h"
-#include "entry.h"
-
-extern "C" {
+#include <fskit/debug.h>
+#include <fskit/entry.h>
 
 int fskit_rmdir( struct fskit_core* core, char const* _path, uint64_t user, uint64_t group );
-
-}
 
 #endif

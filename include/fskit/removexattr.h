@@ -22,17 +22,13 @@
 #ifndef _FSKIT_REMOVEXATTR_H_
 #define _FSKIT_REMOVEXATTR_H_
 
-#include "debug.h"
-#include "entry.h"
+#include <fskit/debug.h>
+#include <fskit/entry.h>
 
 #include <attr/xattr.h>
-
-extern "C" {
 
 int fskit_removexattr( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, char const* name );
 int fskit_fremovexattr( struct fskit_core* core, struct fskit_entry* fent, char const* name );
 int fskit_fremovexattr_all( struct fskit_core* core, struct fskit_entry* fent );
-
-}
 
 #endif

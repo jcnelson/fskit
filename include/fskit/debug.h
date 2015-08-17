@@ -22,7 +22,7 @@
 #ifndef _FSKIT_DEBUG_H_
 #define _FSKIT_DEBUG_H_
 
-#include "common.h"
+#include <fskit/common.h>
 
 #define FSKIT_WHERESTR "%05d:%016llX: [%16s:%04u] %s: "
 #define FSKIT_WHEREARG (int)getpid(), fskit_pthread_self(), __FILE__, __LINE__, __func__
@@ -31,7 +31,6 @@
    do { \
       if( FSKIT_GLOBAL_DEBUG_MESSAGES ) { \
          printf( FSKIT_WHERESTR format, FSKIT_WHEREARG, __VA_ARGS__ ); \
-         fflush(stdout); \
       } \
    } while(0)
 
@@ -40,12 +39,9 @@
    do { \
       if( FSKIT_GLOBAL_ERROR_MESSAGES ) { \
          fprintf(stderr, FSKIT_WHERESTR format, FSKIT_WHEREARG, __VA_ARGS__); \
-         fflush(stderr); \
       } \
    } while(0)
 
-
-extern "C" {
 
 extern int FSKIT_GLOBAL_DEBUG_LOCKS;
 extern int FSKIT_GLOBAL_DEBUG_MESSAGES;
@@ -56,11 +52,7 @@ void fskit_set_error_level( int e );
 int fskit_get_debug_level();
 int fskit_get_error_level();
 
-
 // portable cast pthread_t to uint64_t 
 unsigned long long int fskit_pthread_self(void);
-
-
-}
 
 #endif

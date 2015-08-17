@@ -22,12 +22,10 @@
 #ifndef _FSKIT_READDIR_H_
 #define _FSKIT_READDIR_H_
 
-#include "debug.h"
-#include "entry.h"
+#include <fskit/debug.h>
+#include <fskit/entry.h>
 
-extern "C" {
-
-struct fskit_dir_entry** fskit_readdir( struct fskit_core* core, struct fskit_dir_handle* dirh, uint64_t child_offset, uint64_t num_children, uint64_t* num_read, int* err );
+struct fskit_dir_entry** fskit_readdir( struct fskit_core* core, struct fskit_dir_handle* dirh, uint64_t num_children, uint64_t* num_read, int* err );
 struct fskit_dir_entry** fskit_listdir( struct fskit_core* core, struct fskit_dir_handle* dirh, uint64_t* num_read, int* err );
 
 void fskit_dir_entry_free_list( struct fskit_dir_entry** dir_ents );
@@ -35,6 +33,8 @@ void fskit_dir_entry_free( struct fskit_dir_entry* d_ent );
 
 int fskit_readdir_omit( struct fskit_dir_entry** dents, int i );
 
-}
+void fskit_seekdir( struct fskit_dir_handle* dirh, off_t loc );
+off_t fskit_telldir( struct fskit_dir_handle* dirh );
+void fskit_rewinddir( struct fskit_dir_handle* dirh );
 
 #endif

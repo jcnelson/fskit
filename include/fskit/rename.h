@@ -22,19 +22,11 @@
 #ifndef _FSKIT_RENAME_H_
 #define _FSKIT_RENAME_H_
 
-#include "debug.h"
-#include "entry.h"
-
-#include <set>
-
-using namespace std;
-
-extern "C" {
+#include <fskit/debug.h>
+#include <fskit/entry.h>
 
 int fskit_entry_rename_in_directory( struct fskit_entry* fent_parent, struct fskit_entry* fent, char const* new_name );
 
 int fskit_rename( struct fskit_core* core, char const* old_path, char const* new_path, uint64_t user, uint64_t group );
-
-}
 
 #endif

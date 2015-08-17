@@ -22,12 +22,8 @@
 #ifndef _FSKIT_SYNC_H_
 #define _FSKIT_SYNC_H_
 
-#include "entry.h"
-
-extern "C" {
+#include <fskit/entry.h>
 
 int fskit_fsync( struct fskit_core* core, struct fskit_file_handle* fh );
-
-}
 
 #endif

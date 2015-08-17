@@ -25,10 +25,7 @@
 #include <fskit/common.h>
 #include <fskit/debug.h>
 #include <fskit/sglib.h>
-
-#include <fskit/entry.h>
 #include <fskit/route.h>
-#include <fskit/wq.h>
 
 struct fskit_route_table_row;
 typedef struct fskit_route_table_row fskit_route_table;
@@ -49,7 +46,6 @@ struct fskit_xattr_set_entry;
 typedef struct fskit_xattr_set_entry fskit_xattr_set;
 
 #define FSKIT_XATTR_SET_ENTRY_CMP( x1, x2 ) (strcmp((x1)->name, (x2)->name))
-
 
 // fskit inode structure
 struct fskit_entry {
@@ -163,12 +159,6 @@ struct fskit_core {
 
    // lock governing access to the above fields of this structure
    pthread_rwlock_t route_lock;
-
-   /////////////////////////////////////////////////
-
-   // deferred work queue
-   struct fskit_wq* deferred;
-
 };
 
 // fskit workqueue request
@@ -212,6 +202,21 @@ struct fskit_wq {
    sem_t work_sem;
 };
 
+// route method type 
+union fskit_route_method {
+   fskit_entry_route_create_callback_t       create_cb;
+   fskit_entry_route_mknod_callback_t        mknod_cb;
+   fskit_entry_route_mkdir_callback_t        mkdir_cb;
+   fskit_entry_route_open_callback_t         open_cb;
+   fskit_entry_route_close_callback_t        close_cb;
+   fskit_entry_route_io_callback_t           io_cb;
+   fskit_entry_route_trunc_callback_t        trunc_cb;
+   fskit_entry_route_sync_callback_t         sync_cb;
+   fskit_entry_route_stat_callback_t         stat_cb;
+   fskit_entry_route_readdir_callback_t      readdir_cb;
+   fskit_entry_route_detach_callback_t       detach_cb;
+   fskit_entry_route_rename_callback_t       rename_cb;
+};
 
 // metadata about the patch matched to the route
 // TODO: union
@@ -269,29 +274,13 @@ struct fskit_path_route {
    int consistency_discipline;          // concurrent or sequential call?
 
    int route_type;                      // one of FSKIT_ROUTE_MATCH_*
-   fskit_route_method method;           // which method to call
+   union fskit_route_method method;           // which method to call
 
    pthread_rwlock_t lock;               // lock used to enforce the consistency discipline
 };
 
-// entry sets
-SGLIB_DEFINE_RBTREE_PROTOTYPES( fskit_entry_set, left, right, color, FSKIT_ENTRY_SET_ENTRY_CMP );
-typedef sglib_fskit_entry_set_iterator fskit_entry_set_itr;
-
-fskit_entry_set* fskit_entry_set_new( struct fskit_entry* node, struct fskit_entry* parent );
-int fskit_entry_set_free( fskit_entry_set* set );
-int fskit_entry_set_insert( fskit_entry_set** set, char const* name, struct fskit_entry* child );
-struct fskit_entry* fskit_entry_set_find_name( fskit_entry_set* set, char const* name );
-fskit_entry_set* fskit_entry_set_find_itr( fskit_entry_set* set, char const* name );
-bool fskit_entry_set_remove( fskit_entry_set** set, char const* name );
-bool fskit_entry_set_replace( fskit_entry_set* set, char const* name, struct fskit_entry* replacement );
-unsigned int fskit_entry_set_count( fskit_entry_set* set );
-
-// iteration 
-fskit_entry_set* fskit_entry_set_begin( fskit_entry_set_itr* itr, fskit_entry_set* dirents );
-fskit_entry_set* fskit_entry_set_next( fskit_entry_set_itr* itr );
-char const* fskit_entry_set_name_at( fskit_entry_set* dp );
-struct fskit_entry* fskit_entry_set_child_at( fskit_entry_set* dp );
+// garbage collection 
+int fskit_entry_try_garbage_collect( struct fskit_core* core, char const* path, struct fskit_entry* parent, struct fskit_entry* child );
 
 // private--needed by closedir()
 int fskit_run_user_close( struct fskit_core* core, char const* path, struct fskit_entry* fent, void* handle_data );
@@ -304,7 +293,10 @@ int fskit_do_create( struct fskit_core* core, struct fskit_entry* parent, char c
 int fskit_run_user_open( struct fskit_core* core, char const* path, struct fskit_entry* fent, int flags, void** handle_data );
 
 // private--needed by read
-ssize_t fskit_run_user_read( struct fs_core* core, char const* path, struct fskit_entry* fent, char* buf, size_t buflen, off_t offset );
+ssize_t fskit_run_user_read( struct fskit_core* core, char const* path, struct fskit_entry* fent, char* buf, size_t buflen, off_t offset, void* handle_data );
+
+// private--needed by any detach logic
+int fskit_run_user_detach( struct fskit_core* core, char const* path, struct fskit_entry* fent );
 
 // routes 
 typedef struct fskit_path_route* fskit_path_route_entry;
@@ -312,16 +304,16 @@ SGLIB_DEFINE_VECTOR_PROTOTYPES( fskit_path_route_entry );
 typedef struct sglib_fskit_path_route_entry_vector fskit_route_list_t;
 
 // route tables
-#define FSKIT_ROUTE_TABLE_ROW_CMP( r1, r2 ) ((r1)->route_type < (r2)->route_type)
+#define FSKIT_ROUTE_TABLE_ROW_CMP( r1, r2 ) ((r1)->route_type - (r2)->route_type)
 
 SGLIB_DEFINE_RBTREE_PROTOTYPES( fskit_route_table, left, right, color, FSKIT_ROUTE_TABLE_ROW_CMP );
 typedef struct sglib_fskit_route_table_iterator fskit_route_table_itr;
 
 fskit_route_table* fskit_route_table_new(void);
 int fskit_route_table_free( fskit_route_table* routes );
-int fskit_route_table_row_free( fskit_route_table_row* row );
+int fskit_route_table_row_free( struct fskit_route_table_row* row );
 int fskit_route_table_insert( fskit_route_table** routes, int route_type, struct fskit_path_route* route );
-fskit_route_table_row* fskit_route_table_get_row( fskit_route_table* routes, int route_type );
+struct fskit_route_table_row* fskit_route_table_get_row( fskit_route_table* routes, int route_type );
 struct fskit_path_route* fskit_route_table_find( fskit_route_table* routes, int route_type, int route_id );
 struct fskit_path_route* fskit_route_table_remove( fskit_route_table** route_table, int route_type, int route_id );
 

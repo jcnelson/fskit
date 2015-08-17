@@ -2,8 +2,7 @@
 include ../buildconf.mk
 
 C_SRCS:= $(wildcard *.c)
-CXSRCS:= $(wildcard *.cpp)
-OBJ   := $(patsubst %.c,$(BUILD_LIBFSKIT_FUSE)/%.o,$(C_SRCS)) $(patsubst %.cpp,$(BUILD_LIBFSKIT_FUSE)/%.o,$(CXSRCS))
+OBJ   := $(patsubst %.c,$(BUILD_LIBFSKIT_FUSE)/%.o,$(C_SRCS))
 LIBS  := -lpthread -lfuse
 DEFS  := $(DEFS) -D_FILE_OFFSET_BITS=64
 
@@ -45,7 +44,7 @@ $(PC_FILE):	$(PC_FILE_IN)
 
 $(LIBFSKIT_FUSE_LIB_TARGET): $(OBJ)
 	@mkdir -p "$(shell dirname "$@")"
-	$(CXX) $(CXXFLAGS) -shared -Wl,-soname,$(LIBFSKIT_FUSE_SO) -o $(LIBFSKIT_FUSE_LIB_TARGET) $(OBJ) $(LIBINC) $(LIBS)
+	$(CC) $(CCFLAGS) -shared -Wl,-soname,$(LIBFSKIT_FUSE_SO) -o $(LIBFSKIT_FUSE_LIB_TARGET) $(OBJ) $(LIBINC) $(LIBS)
 
 $(LIBFSKIT_FUSE_SO_TARGET): $(LIBFSKIT_FUSE_LIB_TARGET)
 	@mkdir -p "$(shell dirname "$@")"
@@ -62,10 +61,6 @@ $(BUILD_LIBFSKIT_FUSE_HEADERS)/%.h: %.h
 $(BUILD_LIBFSKIT_FUSE)/%.o : %.c $(BUILD_HEADERS)
 	@mkdir -p "$(shell dirname "$@")"
 	$(CC) $(CCFLAGS) -o "$@" $(INC) -c "$<" $(DEFS)
-
-$(BUILD_LIBFSKIT_FUSE)/%.o : %.cpp $(BUILD_HEADERS)
-	@mkdir -p "$(shell dirname "$@")"
-	$(CXX) $(CXXFLAGS) -o "$@" $(INC) -c "$<" $(DEFS)
 
 
 install: $(LIBFSKIT_FUSE_INSTALL_TARGET) $(LIBFSKIT_FUSE_SO_INSTALL_TARGET) $(LIBFSKIT_FUSE_LIB_INSTALL_TARGET) $(PC_FILE_INSTALL) $(INSTALL_HEADERS)

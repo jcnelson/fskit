@@ -22,17 +22,10 @@
 #ifndef _FSKIT_OPEN_H_
 #define _FSKIT_OPEN_H_
 
-#include "debug.h"
-#include "common.h"
-#include "entry.h"
-
-// private--needed by opendir()
-int fskit_run_user_open( struct fskit_core* core, char const* path, struct fskit_entry* fent, int flags, void** handle_data );
-
-extern "C" {
+#include <fskit/debug.h>
+#include <fskit/common.h>
+#include <fskit/entry.h>
 
 struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, int flags, mode_t mode, int* err );
-
-}
 
 #endif

@@ -22,53 +22,47 @@
 #ifndef _FSKIT_H_
 #define _FSKIT_H_
 
-#include "common.h"
-#include "debug.h"
-#include "deferred.h"
-#include "entry.h"
-#include "path.h"
-#include "random.h"
-#include "wq.h"
+#include <fskit/common.h>
+#include <fskit/debug.h>
+#include <fskit/entry.h>
+#include <fskit/path.h>
+#include <fskit/random.h>
+#include <fskit/wq.h>
 
-#include "access.h"
-#include "chmod.h"
-#include "chown.h"
-#include "close.h"
-#include "closedir.h"
-#include "create.h"
-#include "getxattr.h"
-#include "link.h"
-#include "listxattr.h"
-#include "mkdir.h"
-#include "mknod.h"
-#include "open.h"
-#include "opendir.h"
-#include "path.h"
-#include "read.h"
-#include "readdir.h"
-#include "readlink.h"
-#include "removexattr.h"
-#include "rename.h"
-#include "route.h"
-#include "rmdir.h"
-#include "setxattr.h"
-#include "stat.h"
-#include "statvfs.h"
-#include "symlink.h"
-#include "sync.h"
-#include "trunc.h"
-#include "unlink.h"
-#include "utime.h"
-#include "write.h"
+#include <fskit/access.h>
+#include <fskit/chmod.h>
+#include <fskit/chown.h>
+#include <fskit/close.h>
+#include <fskit/closedir.h>
+#include <fskit/create.h>
+#include <fskit/getxattr.h>
+#include <fskit/link.h>
+#include <fskit/listxattr.h>
+#include <fskit/mkdir.h>
+#include <fskit/mknod.h>
+#include <fskit/open.h>
+#include <fskit/opendir.h>
+#include <fskit/path.h>
+#include <fskit/read.h>
+#include <fskit/readdir.h>
+#include <fskit/readlink.h>
+#include <fskit/removexattr.h>
+#include <fskit/rename.h>
+#include <fskit/route.h>
+#include <fskit/rmdir.h>
+#include <fskit/setxattr.h>
+#include <fskit/stat.h>
+#include <fskit/statvfs.h>
+#include <fskit/symlink.h>
+#include <fskit/sync.h>
+#include <fskit/trunc.h>
+#include <fskit/unlink.h>
+#include <fskit/utime.h>
+#include <fskit/write.h>
 
 #define FSKIT_FILESYSTEM_TYPE 0x19880119
-#define FSKIT_FILESYSTEM_NAMEMAX 255
-
-extern "C" {
 
 int fskit_library_init();
 int fskit_library_shutdown();
-
-}
 
 #endif

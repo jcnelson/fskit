@@ -22,16 +22,12 @@
 #ifndef _FSKIT_GETXATTR_H_
 #define _FSKIT_GETXATTR_H_
 
-#include "debug.h"
-#include "entry.h"
+#include <fskit/debug.h>
+#include <fskit/entry.h>
 
 #include <attr/xattr.h>
 
-extern "C" {
-
 int fskit_getxattr( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, char const* name, char* value, size_t size );
 int fskit_fgetxattr( struct fskit_core* core, struct fskit_entry* fent, char const* name, char* value, size_t size );
-
-}
 
 #endif

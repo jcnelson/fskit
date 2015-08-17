@@ -22,14 +22,10 @@
 #ifndef _FSKIT_UNLINK_H_
 #define _FSKIT_UNLINK_H_
 
-#include "debug.h"
-#include "entry.h"
-
-extern "C" {
+#include <fskit/debug.h>
+#include <fskit/entry.h>
 
 int fskit_unlink( struct fskit_core* core, char const* path, uint64_t owner, uint64_t group );
 int fskit_unlink_nolock( struct fskit_core* core, char const* path, uint64_t owner, uint64_t group );
-
-}
 
 #endif

@@ -22,14 +22,11 @@
 #ifndef _FSKIT_LISTXATTR_H_
 #define _FSKIT_LISTXATTR_H_
 
-#include "debug.h"
-#include "entry.h"
-
-extern "C" {
+#include <fskit/debug.h>
+#include <fskit/entry.h>
 
 int fskit_listxattr( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, char* list, size_t size );
 int fskit_flistxattr( struct fskit_core* core, struct fskit_entry* fent, char* list, size_t size );
 
-}
 
 #endif

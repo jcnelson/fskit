@@ -22,14 +22,10 @@
 #ifndef _FSKIT_LINK_H_
 #define _FSKIT_LINK_H_
 
-#include "common.h"
-#include "debug.h"
-#include "entry.h"
-
-extern "C" {
+#include <fskit/common.h>
+#include <fskit/debug.h>
+#include <fskit/entry.h>
 
 int fskit_link( struct fskit_core* core, char const* from, char const* to, uint64_t uid, uint64_t gid );
-
-}
 
 #endif

@@ -22,21 +22,20 @@
 #ifndef _FSKIT_FUSE_H_
 #define _FSKIT_FUSE_H_
 
+#ifndef _BSD_SOURCE 
+#define _BSD_SOURCE 
+#endif 
+
 #include <fskit/fskit.h>
 
 #define FUSE_USE_VERSION 28
 
 #include <fuse.h>
 
-#include <map>
-#include <string>
-#include <set>
-
-using namespace std;
-
 // allow the filesystem process to call arbitrary methods on itself externally, bypassing permissions checks
 #define FSKIT_FUSE_SET_FS_ACCESS        0x1
 
+struct fskit_fuse_state;
 typedef int (*fskit_fuse_postmount_callback_t)( struct fskit_fuse_state*, void* );
 
 // private fuse state
@@ -64,8 +63,6 @@ struct fskit_fuse_file_info {
       struct fskit_dir_handle* dh;
    } handle;
 };
-
-extern "C" {
 
 // access to state
 struct fskit_fuse_state* fskit_fuse_get_state();
@@ -125,7 +122,5 @@ int fskit_fuse_main( struct fskit_fuse_state* state, int argc, char** argv );
 int fskit_fuse_shutdown( struct fskit_fuse_state* state, void** user_state );
 
 struct fskit_core* fskit_fuse_get_core( struct fskit_fuse_state* state );
-
-}
 
 #endif

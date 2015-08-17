@@ -22,13 +22,9 @@
 #ifndef _FSKIT_CLOSEDIR_H_
 #define _FSKIT_CLOSEDIR_H_
 
-#include "debug.h"
-#include "entry.h"
-
-extern "C" {
+#include <fskit/debug.h>
+#include <fskit/entry.h>
 
 int fskit_closedir( struct fskit_core* core, struct fskit_dir_handle* dirh );
-
-}
 
 #endif

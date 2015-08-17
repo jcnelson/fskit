@@ -22,15 +22,11 @@
 #ifndef _FSKIT_PATH_H_
 #define _FSKIT_PATH_H_
 
-#include "common.h"
-#include "debug.h"
-#include "entry.h"
-
-
-extern "C" {
+#include <fskit/common.h>
+#include <fskit/debug.h>
+#include <fskit/entry.h>
 
 // path utilities
-long fskit_entry_name_hash( char const* name );
 void fskit_sanitize_path( char* path );
 
 // public path utilities
@@ -66,6 +62,5 @@ struct fskit_entry* fskit_entry_ref( struct fskit_core* core, char const* fs_pat
 int fskit_entry_ref_entry( struct fskit_entry* fent );
 int fskit_entry_unref( struct fskit_core* core, char const* fs_path, struct fskit_entry* fent );
 
-}
 
 #endif

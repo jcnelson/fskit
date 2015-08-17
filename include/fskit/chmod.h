@@ -22,15 +22,11 @@
 #ifndef _FSKIT_CHMOD_H_
 #define _FSKIT_CHMOD_H_
 
-#include "debug.h"
-#include "entry.h"
-
-extern "C" {
+#include <fskit/debug.h>
+#include <fskit/entry.h>
 
 int fskit_entry_set_mode( struct fskit_entry* fent, mode_t mode );
 
 int fskit_chmod( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, mode_t mode );
-
-}
 
 #endif

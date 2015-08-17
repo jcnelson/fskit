@@ -22,13 +22,9 @@
 #ifndef _FSKIT_OPENDIR_H_
 #define _FSKIT_OPENDIR_H_
 
-#include "debug.h"
-#include "entry.h"
-
-extern "C" {
+#include <fskit/debug.h>
+#include <fskit/entry.h>
 
 struct fskit_dir_handle* fskit_opendir( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, int* err );
-
-}
 
 #endif

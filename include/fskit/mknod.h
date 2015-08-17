@@ -23,14 +23,10 @@
 #ifndef _FSKIT_MKNOD_H_
 #define _FSKIT_MKNOD_H_
 
-#include "debug.h"
-#include "common.h"
-#include "entry.h"
-
-extern "C" {
+#include <fskit/debug.h>
+#include <fskit/common.h>
+#include <fskit/entry.h>
 
 int fskit_mknod( struct fskit_core* core, char const* path, mode_t mode, dev_t dev, uint64_t user, uint64_t group );
-
-}
 
 #endif

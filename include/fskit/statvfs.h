@@ -22,17 +22,13 @@
 #ifndef _FSKIT_STATVFS_H_
 #define _FSKIT_STATVFS_H_
 
-#include "debug.h"
-#include "entry.h"
-#include "common.h"
+#include <fskit/debug.h>
+#include <fskit/entry.h>
+#include <fskit/common.h>
 
 #include <sys/statvfs.h>
 
-extern "C" {
-
 int fskit_statvfs( struct fskit_core* core, char const* fs_path, uint64_t user, uint64_t group, struct statvfs* vfs );
 int fskit_fstatvfs( struct fskit_core* core, struct fskit_entry* fent, struct statvfs* vfs );
-
-}
 
 #endif

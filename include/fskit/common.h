@@ -30,21 +30,25 @@
 #define __STDC_FORMAT_MACROS
 #endif
 
+#ifndef _XOPEN_SOURCE
+#define _XOPEN_SOURCE 700
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
 #include <string.h>
-#include <strings.h>
+// #include <strings.h>
 #include <dirent.h>
 #include <signal.h>
-#include <libgen.h>
+// #include <libgen.h>
 #include <regex.h>
 #include <stdint.h>
 #include <math.h>
 #include <inttypes.h>
 #include <stdarg.h>
-#include <ctype.h>
+// #include <ctype.h>
 #include <fcntl.h>
 #include <limits.h>
 
@@ -53,26 +57,20 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/stat.h>
-#include <sys/mman.h>
+// #include <sys/mman.h>
 
-#include <semaphore.h>
 #include <pthread.h>
+#include <semaphore.h>
 
 #include <utime.h>
 
-#include <iostream>
-#include <list>
-#include <map>
-#include <vector>
-#include <new>
 #include <attr/xattr.h>
+#include <stdbool.h>
 
 #ifndef ENOATTR
 #define ENODATTR ENODATA
 #endif
 
 #define MIN( x, y ) (x) > (y) ? (y) : (x)
-
-using namespace std;
 
 #endif
