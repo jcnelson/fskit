@@ -20,153 +20,167 @@
 */
 
 /*
- * This is a basic fskit-powered FUSE filesystem that stores data to disk.
- * Instead of storing data by path, it stores data by inode number.
+ * This is a basic fskit-powered tmpfs that counts the number of bytes transferred to/from each file.
+ * It exposes the information via xattrs.
  *
  * Usage:
- *    ./fuse-demo [fuse opts] storage_dir mountpoint_dir
+ *    ./fuse-demo [fuse opts] mountpoint_dir
  */
 
 #include "fuse-demo.h"
 
-// fskit file handle data
-struct demo_fd {
-   int fd;
+// fskit inode data 
+struct demo_inode {
+   char* buf;
+   size_t capacity;
+   size_t size;
 };
 
-// convert an inode to a 16-byte null-terminated string
-int inode_to_string( uint64_t inode_num, char* buf ) {
-
-   memset( buf, 0, 17 );
-   sprintf( buf, "%016" PRIX64, inode_num );
-   return 0;
-}
+// fskit file handle data
+struct demo_fd {
+   uint64_t num_reads;
+   uint64_t num_writes;
+};
 
 // file create callback
-// create the file $storage_dir/$inode
-// keep the file descriptor in a demo_fd.
+// create a file descriptor to a new file backed by RAM
 int create_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* fent, mode_t mode, void** inode_data, void** handle_data ) {
 
    char buf[17];
    char* path = NULL;
-   char* storage_root = (char*)fskit_core_get_user_data( core );
    int rc = 0;
+   
+   struct demo_inode* di = (struct demo_inode*)calloc( sizeof(struct demo_inode), 1 );
+
+   if( di == NULL ) {
+       return -ENOMEM;
+   }
+   
    struct demo_fd* dfd = (struct demo_fd*)calloc( sizeof(struct demo_fd), 1 );
-
-   inode_to_string( fent->file_id, buf );
-   path = fskit_fullpath( storage_root, buf, NULL );
-
-   dfd->fd = creat( path, mode );
-   rc = -errno;
-
-   free( path );
-
-   if( dfd->fd >= 0 ) {
-      *handle_data = (void*)dfd;
-      return 0;
+   
+   if( dfd == NULL ) {
+       free( di );
+       return -ENOMEM;
    }
-   else {
-      free( dfd );
-      return rc;
-   }
+   
+   *inode_data = (void*)di;
+   *handle_data = (void*)dfd;
+   
+   return rc;
 }
 
 // file open callback
-// open the file $storage_dir/$inode
-// keep the file descriptor in a demo_fd
+// create a file descriptor to an existing file backed by RAM
 int open_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* fent, int flags, void** handle_data ) {
 
    // only regular files
-   if( fent->type != FSKIT_ENTRY_TYPE_FILE ) {
+   if( fskit_entry_get_type( fent ) != FSKIT_ENTRY_TYPE_FILE ) {
       return 0;
    }
-
-   char buf[17];
-   char* path = NULL;
-   char* storage_root = (char*)fskit_core_get_user_data( core );
+   
    int rc = 0;
-   uint64_t inode_num = fskit_entry_get_file_id( fent );
    struct demo_fd* dfd = (struct demo_fd*)calloc( sizeof(struct demo_fd), 1 );
 
-   inode_to_string( inode_num, buf );
-   path = fskit_fullpath( storage_root, buf, NULL );
-
-   dfd->fd = open( path, flags );
-   rc = -errno;
-
-   free( path );
-
-   if( dfd->fd >= 0 ) {
-      *handle_data = (void*)dfd;
-      return 0;
+   if( dfd == NULL ) {
+       return -ENOMEM;
    }
-   else {
-      free( dfd );
-      return rc;
-   }
+   
+   *handle_data = dfd;
+   return rc;
 }
 
 // file close callback
-// close the file $storage_dir/$inode
 // free the demo_fd
 int close_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* fent, void* handle_data ) {
 
    // only regular files
-   if( fent->type != FSKIT_ENTRY_TYPE_FILE ) {
+   if( fskit_entry_get_type( fent ) != FSKIT_ENTRY_TYPE_FILE ) {
       return 0;
    }
 
    struct demo_fd* dfd = (struct demo_fd*)handle_data;
-   int rc = 0;
 
-   close( dfd->fd );
-   rc = -errno;
    free( dfd );
-   return rc;
+   return 0;
 }
 
 // file read callback
-// extract the actual file descriptor and call read(2)
+// copy out of the inode's buffer
 int read_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* fent, char* buf, size_t buflen, off_t offset, void* handle_data ) {
 
    struct demo_fd* dfd = (struct demo_fd*)handle_data;
-   lseek( dfd->fd, offset, SEEK_SET );
+   struct demo_inode* di = (struct demo_inode*)fskit_entry_get_user_data( fent );
+   
+   int max_read = 0;
+   
+   if( offset < 0 || (unsigned)offset >= di->size ) {
+       // EOF 
+       return 0;
+   }
+   
+   max_read = (offset + buflen > di->size ? (di->size - offset) : buflen );
+   
+   memcpy( buf, di->buf + offset, max_read );
+   
+   dfd->num_reads += max_read;
 
-   return read( dfd->fd, buf, buflen );
+   return max_read;
 }
 
 // file write callback
-// extract the actual file descriptor and call write(2)
+// fill in the inode's buffer
 int write_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* fent, char* buf, size_t buflen, off_t offset, void* handle_data ) {
 
    struct demo_fd* dfd = (struct demo_fd*)handle_data;
-   lseek( dfd->fd, offset, SEEK_SET );
+   struct demo_inode* di = (struct demo_inode*)fskit_entry_get_user_data( fent );
+   
+   if( buflen + offset > di->capacity ) {
+       
+       if( di->capacity == 0 ) {
+           di->capacity = 1;
+       }
+       
+       int exp = (int)(log2( buflen + offset )) + 1;
+       di->capacity = 1L << exp;
+       
+       char* tmp = (char*)realloc( di->buf, di->capacity );
+       if( tmp == NULL ) {
+           return -ENOMEM;
+       }
+       
+       di->buf = tmp;
+   }
+   
+   memcpy( di->buf, buf, buflen );
+   
+   dfd->num_writes += buflen;
+   
+   di->size = (di->size > buflen + offset ? di->size : buflen + offset);
 
-   return write( dfd->fd, buf, buflen );
+   return (int)buflen;
 }
 
 // file unlink callback
-// unlink $storage_dir/$inode
+// free memory 
 int detach_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* fent, void* inode_data ) {
 
-   char buf[17];
-   char* path = NULL;
-   int rc = 0;
-   char* storage_root = (char*)fskit_core_get_user_data( core );
-   uint64_t inode_num = fskit_entry_get_file_id( fent );
+   struct demo_inode* di = (struct demo_inode*)fskit_entry_get_user_data( fent );
+   
+   if( di == NULL ) {
+       return 0;
+   }
+   
+   if( di->buf != NULL ) {
+      free( di->buf );
+   }
+   
+   free( di );
 
-   inode_to_string( inode_num, buf );
-   path = fskit_fullpath( storage_root, buf, NULL );
-
-   unlink( path );
-   rc = -errno;
-
-   free( path );
-   return rc;
+   return 0;
 }
 
 void usage( char const* progname ) {
-   fprintf(stderr, "Usage: %s [FUSE options] STORAGE MOUNTPOINT\n", progname);
+   fprintf(stderr, "Usage: %s [FUSE options] MOUNTPOINT\n", progname);
 }
 
 int main( int argc, char** argv ) {
@@ -174,20 +188,17 @@ int main( int argc, char** argv ) {
    int rc = 0;
    struct fskit_fuse_state state;
    struct fskit_core* core = NULL;
-   char* storage_dir = NULL;
 
-   if( argc < 3 ) {
+   if( argc < 2 ) {
       usage( argv[0] );
       exit(1);
    }
 
-   storage_dir = argv[ argc - 2 ];
-   argv[ argc - 2 ] = argv[ argc - 1 ];
-   argv[ argc - 1 ] = NULL;
-   argc--;
-
+   fskit_set_debug_level( 1 );
+   fskit_set_error_level( 1 );
+   
    // set up
-   rc = fskit_fuse_init( &state, storage_dir );
+   rc = fskit_fuse_init( &state, NULL );
    if( rc != 0 ) {
       fprintf(stderr, "fskit_fuse_init rc = %d\n", rc );
       exit(1);
@@ -206,6 +217,7 @@ int main( int argc, char** argv ) {
 
    // set the root to be owned by the effective UID and GID of user
    fskit_chown( core, "/", 0, 0, geteuid(), getegid() );
+   fskit_chmod( core, "/", 0, 0, 0755 );
 
    // run
    rc = fskit_fuse_main( &state, argc, argv );
