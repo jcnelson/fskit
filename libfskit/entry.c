@@ -515,16 +515,16 @@ int fskit_core_destroy( struct fskit_core* core, void** app_fs_data ) {
 
 
 // queue a child for detach.  It must have been detached from a parent already (in fskit_detach_all_ex), but it may have children of its own.
-// child must be write-locked
+// NOTE: the child is not guaranteed to be locked
 // return 0 on success
 // return -ENOMEM on OOM
 // return -EPERM if the child is not fully unlinked
-int fskit_detach_queue_child( struct fskit_detach_ctx* ctx, char const* dir_path, struct fskit_entry* child ) {
+int fskit_detach_queue_child( struct fskit_detach_ctx* ctx, char const* dir_path, char const* name, struct fskit_entry* child ) {
 
    struct fskit_detach_entry* next = NULL;
    char* child_path = NULL;
    
-   child_path = fskit_fullpath( dir_path, child->name, NULL );
+   child_path = fskit_fullpath( dir_path, name, NULL );
    if( child_path == NULL ) {
 
       return -ENOMEM;
@@ -572,6 +572,8 @@ int fskit_detach_queue_children( struct fskit_detach_ctx* ctx, char const* dir_p
    struct fskit_detach_entry* erased = ctx->tail;
    struct fskit_detach_entry* tmp = NULL;
    
+   char erased_name[FSKIT_FILESYSTEM_NAMEMAX+1];
+   
    for( dirent = fskit_entry_set_begin( &itr, *dir_children ); dirent != NULL; dirent = fskit_entry_set_next( &itr ) ) {
     
       struct fskit_entry* child = fskit_entry_set_child_at( dirent );
@@ -597,11 +599,7 @@ int fskit_detach_queue_children( struct fskit_detach_ctx* ctx, char const* dir_p
          continue;
       }
       
-      fskit_entry_wlock( child );       // NOTE: don't care if this fails with EDEADLK, since that means the caller owns the lock anyway
-      
-      rc = fskit_detach_queue_child( ctx, dir_path, child );
-
-      fskit_entry_unlock( child );
+      rc = fskit_detach_queue_child( ctx, dir_path, name, child );
 
       if( rc != 0 ) {
          return rc;
@@ -611,11 +609,9 @@ int fskit_detach_queue_children( struct fskit_detach_ctx* ctx, char const* dir_p
    // go through all the children we enqueued and remove them from the dir_children set
    for( tmp = erased; tmp != NULL; tmp = tmp->next ) {
       
-      fskit_entry_wlock( tmp->ent );       // NOTE: don't care if this fails with EDEADLK, since that means the caller owns the lock anyway
+      fskit_dirname( tmp->path, erased_name );
       
-      fskit_entry_set_remove( dir_children, tmp->ent->name );
-      
-      fskit_entry_unlock( tmp->ent );
+      fskit_entry_set_remove( dir_children, erased_name );
    }
 
    return 0;
@@ -664,10 +660,10 @@ int fskit_detach_all_ex( struct fskit_core* core, char const* dir_path, fskit_en
 
          // garbage-collect: detach children from their parent, and mark them as garbage
          fskit_entry_set* children = NULL;
-         rc = fskit_entry_garbage_collect( fent, &children );
+         rc = fskit_entry_tag_garbage( fent, &children );
          if( rc != 0 ) {
             
-            fskit_error("fskit_entry_garbage_collect('%s') rc = %d\n", fent->name, rc);
+            fskit_error("fskit_entry_tag_garbage('%s') rc = %d\n", fent->name, rc);
             fskit_entry_unlock( fent );
             return rc;
          }
@@ -727,6 +723,11 @@ int fskit_detach_all_ex( struct fskit_core* core, char const* dir_path, fskit_en
 }
 
 
+// create a detach context 
+struct fskit_detach_ctx* fskit_detach_ctx_new() {
+   return CALLOC_LIST( struct fskit_detach_ctx, 1 );
+}
+
 // set up a detach context
 int fskit_detach_ctx_init( struct fskit_detach_ctx* ctx ) {
 
@@ -777,9 +778,9 @@ int fskit_detach_all( struct fskit_core* core, char const* root_path ) {
    }
    
    // swap out the children, and mark this directory as garbage-collectable
-   rc = fskit_entry_garbage_collect( dent, &dir_children );
+   rc = fskit_entry_tag_garbage( dent, &dir_children );
    if( rc != 0 ) {
-       fskit_error("fskit_entry_garbage_collect('%s') rc = %d\n", dent->name, rc );
+       fskit_error("fskit_entry_tag_garbage('%s') rc = %d\n", dent->name, rc );
        fskit_entry_unlock( dent );
        return rc;
    }
@@ -1460,7 +1461,7 @@ void fskit_entry_set_file_id( struct fskit_entry* ent, uint64_t file_id ) {
 // return 0 on success 
 // return -ENOMEM on OOM 
 // return -EIO if ent is a directory and lacks a .. entry.
-int fskit_entry_garbage_collect( struct fskit_entry* ent, fskit_entry_set** children ) {
+int fskit_entry_tag_garbage( struct fskit_entry* ent, fskit_entry_set** children ) {
     
     if( ent->type == FSKIT_ENTRY_TYPE_DIR ) {
         

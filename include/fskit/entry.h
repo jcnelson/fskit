@@ -139,8 +139,10 @@ int fskit_entry_init_symlink( struct fskit_entry* fent, uint64_t file_id, char c
 int fskit_entry_destroy( struct fskit_core* core, struct fskit_entry* fent, bool needlock );
 int fskit_entry_try_destroy_and_free( struct fskit_core* core, char const* fs_path, struct fskit_entry* fent );
 int fskit_entry_try_destroy( struct fskit_core* core, char const* fs_path, struct fskit_entry* fent );
+struct fskit_detach_ctx* fskit_detach_ctx_new();
 int fskit_detach_ctx_init( struct fskit_detach_ctx* ctx );
 int fskit_detach_ctx_free( struct fskit_detach_ctx* ctx );
+int fskit_entry_tag_garbage( struct fskit_entry* ent, fskit_entry_set** children );
 
 // locking
 int fskit_entry_rlock2( struct fskit_entry* fent, char const* from_str, int line_no );
@@ -206,7 +208,6 @@ void* fskit_dir_handle_get_user_data( struct fskit_dir_handle* fh );
 // setters
 int fskit_entry_set_user_data( struct fskit_entry* ent, void* app_data );
 void fskit_entry_set_file_id( struct fskit_entry* ent, uint64_t file_id );
-int fskit_entry_garbage_collect( struct fskit_entry* ent, fskit_entry_set** children );
 
 // accounting
 uint64_t fskit_file_count_update( struct fskit_core* core, int change );
