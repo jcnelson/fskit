@@ -28,7 +28,6 @@
 #include <fskit/random.h>
 #include <fskit/route.h>
 #include <fskit/util.h>
-#include <fskit/wq.h>
 
 struct fskit_entry_set_entry {
    
@@ -84,7 +83,6 @@ int fskit_entry_set_free( fskit_entry_set* dirents ) {
       
       fskit_safe_free( dp->name );
       dp->dirent = NULL;
-      
       
       old_dp = dp;
       dp = fskit_entry_set_next( &itr );
@@ -200,7 +198,7 @@ bool fskit_entry_set_remove( fskit_entry_set** set, char const* name ) {
    fskit_entry_set* member = NULL;
    
    // cannot remove . or .. 
-   if( strcmp(name, ".") == 0 || strcmp(name, "..") ) {
+   if( strcmp(name, ".") == 0 || strcmp(name, "..") == 0 ) {
        
       fskit_error("BUG: tried to remove '%s'\n", name);
       return false;
@@ -405,20 +403,6 @@ int fskit_entry_detach_lowlevel( struct fskit_entry* parent, struct fskit_entry*
    return fskit_entry_detach_lowlevel_ex( parent, child, true );
 }
 
-
-// change the number of files
-uint64_t fskit_file_count_update( struct fskit_core* core, int change ) {
-
-   fskit_core_wlock( core );
-
-   core->num_files += change;
-   uint64_t num_files = core->num_files;
-
-   fskit_core_unlock( core );
-
-   return num_files;
-}
-
 // default inode allocator: pick a random 64-bit number
 static uint64_t fskit_default_inode_alloc( struct fskit_entry* parent, struct fskit_entry* child_to_receive_inode, void* ignored ) {
    uint64_t upper = fskit_random32();
@@ -491,7 +475,7 @@ int fskit_core_destroy( struct fskit_core* core, void** app_fs_data ) {
    fskit_entry_wlock( &core->root );
    
    // forcibly detach core->root 
-   core->root.open_count = 0;
+   core->root.open_count = 1;   // for referencing
    core->root.link_count = 0;
    core->root.deletion_in_progress = true;
    fskit_run_user_detach( core, "/", &core->root );
@@ -927,12 +911,6 @@ int fskit_entry_init_common( struct fskit_entry* fent, uint8_t type, uint64_t fi
    int rc = 0;
    struct timespec now;
 
-   fskit_xattr_set* xattrs = CALLOC_LIST( fskit_xattr_set, 1 );
-
-   if( xattrs == NULL ) {
-      return -ENOMEM;
-   }
-
    rc = clock_gettime( CLOCK_REALTIME, &now );
    if( rc != 0 ) {
       fskit_error("clock_gettime rc = %d\n", rc );
@@ -947,7 +925,7 @@ int fskit_entry_init_common( struct fskit_entry* fent, uint8_t type, uint64_t fi
 
    pthread_rwlock_init( &fent->lock, NULL );
 
-   fent->xattrs = xattrs;
+   fent->xattrs = NULL;
 
    return 0;
 }
@@ -1209,7 +1187,19 @@ int fskit_entry_try_destroy( struct fskit_core* core, char const* fs_path, struc
 
    if( fent->link_count <= 0 && fent->open_count <= 0 ) {
 
+      if( fent->link_count < 0 ) {
+         fskit_error("BUG: entry %p has a negative link count (%d)\n", fent, fent->link_count );
+         exit(1);
+      }
+      
+      if( fent->open_count < 0 ) {
+         fskit_error("BUG: entry %p has a negative open count (%d)\n", fent, fent->open_count );
+         exit(1);
+      }
+      
       // do the detach--nothing references it anymore
+      // but, we should ref it ourselves, so this method won't succeed in another thread.
+      fent->open_count++;
       fskit_entry_unlock( fent );
       
       rc = fskit_run_user_detach( core, fs_path, fent );
@@ -1241,8 +1231,6 @@ int fskit_entry_try_destroy_and_free( struct fskit_core* core, char const* fs_pa
       
       // fent was unlocked and destroyed
       fskit_safe_free( fent );
-
-      fskit_file_count_update( core, -1 );
    }
 
    return rc;
@@ -1258,7 +1246,7 @@ int fskit_entry_try_destroy_and_free( struct fskit_core* core, char const* fs_pa
 int fskit_entry_try_garbage_collect( struct fskit_core* core, char const* path, struct fskit_entry* parent, struct fskit_entry* child ) {
 
    int rc = 0;
-   uint64_t child_inode = 0;
+   uint64_t child_inode_id = 0;
    char path_basename[ FSKIT_FILESYSTEM_NAMEMAX + 1 ];
 
    if( strlen(child->name) > FSKIT_FILESYSTEM_NAMEMAX ) {
@@ -1271,7 +1259,7 @@ int fskit_entry_try_garbage_collect( struct fskit_core* core, char const* path, 
 
       strcpy( path_basename, child->name );
       
-      child_inode = child->file_id;
+      child_inode_id = child->file_id;
 
       // detach from the parent, but don't update mtime (since it was already detached)
       rc = fskit_entry_detach_lowlevel_ex( parent, child, false );
@@ -1300,7 +1288,7 @@ int fskit_entry_try_garbage_collect( struct fskit_core* core, char const* path, 
                fskit_entry_set_remove( &parent->children, path_basename );
                parent->num_children--;
                
-               fskit_debug( "Garbage-collected %s (%" PRIX64 ")\n", path, child_inode );
+               fskit_debug( "Garbage-collected %s (%" PRIX64 ")\n", path, child_inode_id );
             }
          }
          else {
@@ -1484,6 +1472,7 @@ int fskit_entry_tag_garbage( struct fskit_entry* ent, fskit_entry_set** children
         // do the swap 
         *children = ent->children;
         ent->children = empty_children;
+        ent->num_children = 0;
     }
        
     ent->deletion_in_progress = true;
@@ -1659,21 +1648,28 @@ int fskit_xattr_set_insert( fskit_xattr_set** set, char const* name, char const*
    
    fskit_xattr_set lookup;
    
-   memset( &lookup, 0, sizeof(fskit_xattr_set) );
-   lookup.name = (char*)name;
-   
-   member = sglib_fskit_xattr_set_find_member( *set, &lookup );
-   
-   if( member != NULL && (flags & XATTR_CREATE) ) {
+   if( *set != NULL ) {
+       
+      memset( &lookup, 0, sizeof(fskit_xattr_set) );
+      lookup.name = (char*)name;
+    
+      member = sglib_fskit_xattr_set_find_member( *set, &lookup );
+    
+      if( member != NULL && (flags & XATTR_CREATE) ) {
+        
+          // can't exist yet
+          return -EEXIST;
+      }
+    
+      if( member == NULL && (flags & XATTR_REPLACE) ) {
+        
+          // needs to exist first 
+          return -ENOATTR;
+      }
       
-      // can't exist yet
-      return -EEXIST;
-   }
-   
-   if( member == NULL && (flags & XATTR_REPLACE) ) {
-      
-      // needs to exist first 
-      return -ENOATTR;
+      // remove 
+      fskit_xattr_set_remove( set, name );
+      member = NULL;
    }
    
    // put in place
@@ -1688,26 +1684,16 @@ int fskit_xattr_set_insert( fskit_xattr_set** set, char const* name, char const*
       fskit_safe_free( name_dup );
       return -ENOMEM;
    }
-   
-   if( member != NULL && (flags & XATTR_REPLACE) ) {
-      
-      // clear out old value
-      fskit_safe_free( member->value );
-      member->value = 0;
+
+   member = CALLOC_LIST( fskit_xattr_set, 1 );
+   if( member == NULL ) {
+        
+       fskit_safe_free( name_dup );
+       fskit_safe_free( value_dup );
+       return -ENOMEM;
    }
-   else if( member == NULL ) {
-      
-      member = CALLOC_LIST( fskit_xattr_set, 1 );
-      if( member == NULL ) {
-         
-         fskit_safe_free( name_dup );
-         fskit_safe_free( value_dup );
-         return -ENOMEM;
-      }
-      
-      member->name = name_dup;
-   }
-   
+    
+   member->name = name_dup;
    memcpy( value_dup, value, value_len );
    
    member->value = value_dup;
@@ -1752,12 +1738,13 @@ bool fskit_xattr_set_remove( fskit_xattr_set** set, char const* name ) {
    memset( &lookup, 0, sizeof(fskit_xattr_set));
    lookup.name = (char*)name;
    
-   rc = sglib_fskit_xattr_set_delete_if_member( set, &lookup, &member );
-   if( rc == 0 ) {
+   sglib_fskit_xattr_set_delete_if_member( set, &lookup, &member );
+   if( member != NULL ) {
       
       // free up 
       fskit_safe_free( member->name );
       fskit_safe_free( member->value );
+      fskit_safe_free( member );
       return true;
    }
    else {

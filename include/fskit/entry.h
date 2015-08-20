@@ -209,7 +209,4 @@ void* fskit_dir_handle_get_user_data( struct fskit_dir_handle* fh );
 int fskit_entry_set_user_data( struct fskit_entry* ent, void* app_data );
 void fskit_entry_set_file_id( struct fskit_entry* ent, uint64_t file_id );
 
-// accounting
-uint64_t fskit_file_count_update( struct fskit_core* core, int change );
-
 #endif
