@@ -161,47 +161,6 @@ struct fskit_core {
    pthread_rwlock_t route_lock;
 };
 
-// fskit workqueue request
-struct fskit_wreq {
-
-   // callback to do work
-   fskit_wq_func_t work;
-
-   // user-supplied arguments
-   void* work_data;
-
-   // flags controlling the lifecycle of this work request
-   int flags;
-
-   // promise semaphore, to wake up the caller.
-   // only initialized of FSKIT_WQ_PROMISE is specified
-   sem_t promise_sem;
-   int promise_ret;
-   
-   struct fskit_wreq* next;     // pointer to next work element
-};
-
-// fskit workqueue
-struct fskit_wq {
-
-   
-   // worker thread
-   pthread_t thread;
-
-   // is the thread running?
-   volatile bool running;
-
-   // things to do
-   struct fskit_wreq* work;
-   struct fskit_wreq* tail;
-
-   // lock governing access to work
-   pthread_mutex_t work_lock;
-
-   // semaphore to signal the availability of work
-   sem_t work_sem;
-};
-
 // route method type 
 union fskit_route_method {
    fskit_entry_route_create_callback_t       create_cb;
