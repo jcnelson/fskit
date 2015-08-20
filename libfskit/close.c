@@ -51,6 +51,7 @@ static int fskit_file_handle_destroy( struct fskit_file_handle* fh ) {
 // run the user-installed close handler
 // return 0 on success, or if there are no routes
 // return negative on callback failure
+// fent *cannot* be locked, but it must have a positive open count
 int fskit_run_user_close( struct fskit_core* core, char const* path, struct fskit_entry* fent, void* handle_data ) {
 
    // route?
@@ -106,7 +107,6 @@ int fskit_close( struct fskit_core* core, struct fskit_file_handle* fh ) {
       // failed to run user close
       fskit_error("fskit_run_user_close(%s) rc = %d\n", fh->path, rc );
 
-      fskit_entry_unlock( fh->fent );
       fskit_file_handle_unlock( fh );
       return rc;
    }
