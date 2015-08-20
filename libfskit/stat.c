@@ -39,7 +39,7 @@ int fskit_do_user_stat( struct fskit_core* core, char const* fs_path, struct fsk
       // no stat defined
       return 0;
    }
-   else {
+   else if( rc != 0 || cbrc != 0 ) {
        
       fskit_error("fskit_route_call_stat rc = %d, cbrc = %d\n", rc, cbrc );
    }
@@ -137,8 +137,7 @@ int fskit_entry_fstat( struct fskit_entry* fent, struct stat* sb ) {
 
 // stat an inode directly
 // fill in the stat buffer, and call the user route
-// NOTE: fent must be read-locked
-// returns the result of the user route
+// NOTE: fent must NOT be locked, but it must be ref'ed
 int fskit_fstat( struct fskit_core* core, char const* fs_path, struct fskit_entry* fent, struct stat* sb ) {
    
    // fill in defaults
