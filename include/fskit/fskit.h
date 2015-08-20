@@ -27,7 +27,6 @@
 #include <fskit/entry.h>
 #include <fskit/path.h>
 #include <fskit/random.h>
-#include <fskit/wq.h>
 
 #include <fskit/access.h>
 #include <fskit/chmod.h>
