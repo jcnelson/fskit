@@ -57,8 +57,6 @@ int fskit_run_user_mkdir( struct fskit_core* core, char const* path, struct fski
 }
 
 
-
-
 // low-level mkdir: create a child and insert it into the parent.
 // parent must be a directory
 // parent must be write-locked
@@ -90,7 +88,8 @@ static int fskit_mkdir_lowlevel( struct fskit_core* core, char const* path, stru
          child = NULL;
       }
       else {
-
+         
+         fskit_entry_unlock( child );
          if( err == -EEXIST ) {
 
             // still exists; can't be garbage-collected
@@ -124,7 +123,7 @@ static int fskit_mkdir_lowlevel( struct fskit_core* core, char const* path, stru
 
          return -EIO;
       }
-
+      
       // set up the directory
       err = fskit_entry_init_dir( child, parent, child_inode, path_basename, user, group, mode );
       if( err != 0 ) {
@@ -134,8 +133,14 @@ static int fskit_mkdir_lowlevel( struct fskit_core* core, char const* path, stru
          return err;
       }
 
+      // reference this directory, so it won't disappear during the user's route
+      child->open_count++;
+      
       // almost done.  run the route callback for this path if needed
       err = fskit_run_user_mkdir( core, path, parent, child, mode, &app_dir_data );
+      
+      child->open_count--;
+      
       if( err != 0 ) {
 
          // user route failed
@@ -150,9 +155,6 @@ static int fskit_mkdir_lowlevel( struct fskit_core* core, char const* path, stru
 
          // attach to parent
          fskit_entry_attach_lowlevel( parent, child );
-
-         // update the number of files
-         fskit_file_count_update( core, 1 );
       }
    }
 

@@ -216,12 +216,16 @@ int fskit_mknod( struct fskit_core* core, char const* fs_path, mode_t mode, dev_
          return -EIO;
       }
 
-      fskit_entry_wlock( child );
-
       child->file_id = file_id;
+      
+      // reference, so it won't disappear
+      child->open_count++;
 
       // perform any user-defined creations
       err = fskit_run_user_mknod( core, path, parent, child, mode, dev, &inode_data );
+      
+      child->open_count--;
+      
       if( err != 0 ) {
 
          // failed. abort creation
@@ -236,13 +240,12 @@ int fskit_mknod( struct fskit_core* core, char const* fs_path, mode_t mode, dev_
          return err;
       }
 
+      fskit_entry_wlock( child );
+      
       // attach the file
       fskit_entry_attach_lowlevel( parent, child );
 
       fskit_entry_unlock( child );
-
-      // update the number of files
-      fskit_file_count_update( core, 1 );
    }
    else {
       fskit_error("%s(%s) rc = %d\n", method_name, path, err );

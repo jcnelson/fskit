@@ -141,9 +141,6 @@ int fskit_do_create( struct fskit_core* core, struct fskit_entry* parent, char c
 
       *ret_child = child;
 
-      // update the number of files
-      fskit_file_count_update( core, 1 );
-
       return 0;
    }
 }
