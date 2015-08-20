@@ -67,6 +67,16 @@ int fskit_closedir( struct fskit_core* core, struct fskit_dir_handle* dirh ) {
       return -EBADF;
    }
 
+   // run user-given close route.  Note that this may unlock dirh->dent and re-lock it, but only if it is fully unlinked.
+   rc = fskit_run_user_close( core, dirh->path, dirh->dent, dirh->app_data );
+   if( rc != 0 ) {
+
+      fskit_error("fskit_run_user_close(%s) rc = %d\n", dirh->path, rc );
+      
+      fskit_dir_handle_unlock( dirh );
+      return rc;
+   }
+
    rc = fskit_entry_wlock( dirh->dent );
    if( rc != 0 ) {
 
@@ -76,30 +86,20 @@ int fskit_closedir( struct fskit_core* core, struct fskit_dir_handle* dirh ) {
       fskit_dir_handle_unlock( dirh );
       return rc;
    }
-
-   // run user-given close route.  Note that this may unlock dirh->dent and re-lock it, but only if it is fully unlinked.
-   rc = fskit_run_user_close( core, dirh->path, dirh->dent, dirh->app_data );
-   if( rc != 0 ) {
-
-      fskit_error("fskit_run_user_close(%s) rc = %d\n", dirh->path, rc );
-
-      fskit_entry_unlock( dirh->dent );
-      fskit_dir_handle_unlock( dirh );
-      return rc;
-   }
-
+   
    // no longer open
-   dirh->dent->open_count --;
+   dirh->dent->open_count--;
 
    // see if we can destroy this....
-   rc = fskit_entry_try_destroy( core, dirh->path, dirh->dent );
+   // NOTE: this may unlock and free dirh->dent
+   rc = fskit_entry_try_destroy_and_free( core, dirh->path, dirh->dent );
    if( rc > 0 ) {
 
       // dent was unlocked and destroyed
-      fskit_safe_free( dirh->dent );
+      dirh->dent = NULL;
       rc = 0;
    }
-   else if( rc < 0 ) {
+   if( rc < 0 ) {
 
       // some error occurred
       fskit_error("fskit_entry_try_destroy(%p) rc = %d\n", dirh->dent, rc );
@@ -108,6 +108,8 @@ int fskit_closedir( struct fskit_core* core, struct fskit_dir_handle* dirh ) {
       return rc;
    }
    else {
+      
+      // not destroyed.
       // done with this directory
       fskit_entry_unlock( dirh->dent );
    }
