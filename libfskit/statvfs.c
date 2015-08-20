@@ -54,14 +54,12 @@ int fskit_statvfs( struct fskit_core* core, char const* fs_path, uint64_t user, 
 // fill in the statvfs buffer (always succeeds)
 int fskit_fstatvfs( struct fskit_core* core, struct fskit_entry* fent, struct statvfs* vfs ) {
 
-   uint64_t num_files = fskit_file_count_update( core, 0 );
-
    vfs->f_bsize = 0;
    vfs->f_frsize = 0;
    vfs->f_blocks = 0;
    vfs->f_bfree = 0;
    vfs->f_bavail = 0;
-   vfs->f_files = num_files;
+   vfs->f_files = 0;
    vfs->f_ffree = 0;
    vfs->f_favail = 0;
    vfs->f_fsid = FSKIT_FILESYSTEM_TYPE;

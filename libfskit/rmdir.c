@@ -120,11 +120,12 @@ int fskit_rmdir( struct fskit_core* core, char const* _path, uint64_t user, uint
    }
 
    // try to destroy?
-   rc = fskit_entry_try_destroy( core, path, dent );
+   // NOTE: this will unlock and free dent if it succeeds
+   rc = fskit_entry_try_destroy_and_free( core, path, dent );
    if( rc > 0 ) {
 
       // destroyed
-      free( dent );
+      dent = NULL;
       rc = 0;
    }
    else if( rc < 0 ) {
@@ -134,16 +135,12 @@ int fskit_rmdir( struct fskit_core* core, char const* _path, uint64_t user, uint
    }
    else {
 
+      // not destroyed
       // done with this entry
       fskit_entry_unlock( dent );
    }
 
    fskit_entry_unlock( parent );
-
-   if( rc == 0 ) {
-      // update number of files
-      fskit_file_count_update( core, -1 );
-   }
 
    return rc;
 }

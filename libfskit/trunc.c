@@ -123,14 +123,12 @@ int fskit_trunc( struct fskit_core* core, char const* path, uint64_t user, uint6
    fent->open_count--;
 
    // need to free?  note that this may unlock and re-lock fent, but only if it cannot be resolved by any path
-   rc = fskit_entry_try_destroy( core, path, fent );
+   // NOTE: this may unlock and destroy the fent
+   rc = fskit_entry_try_destroy_and_free( core, path, fent );
    if( rc > 0 ) {
 
       // fent was unlocked and destroyed
-      fskit_safe_free( fent );
       rc = 0;
-
-      fskit_file_count_update( core, -1 );
    }
    else if( rc < 0 ) {
 
