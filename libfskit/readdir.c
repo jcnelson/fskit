@@ -478,6 +478,8 @@ struct fskit_dir_entry** fskit_readdir( struct fskit_core* core, struct fskit_di
    
    struct fskit_dir_entry** dents = fskit_readdir_lowlevel( core, dirh, num_children, num_read, err );
 
+   fskit_entry_unlock( dirh->dent );
+   
    if( dents != NULL ) {
       
       // run the user's readdir
@@ -507,8 +509,6 @@ struct fskit_dir_entry** fskit_readdir( struct fskit_core* core, struct fskit_di
          }
       }
    }
-
-   fskit_entry_unlock( dirh->dent );
 
    fskit_dir_handle_unlock( dirh );
 
