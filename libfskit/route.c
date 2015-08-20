@@ -436,6 +436,17 @@ static bool fskit_path_route_is_defined( struct fskit_path_route* route ) {
 static int fskit_route_enter( struct fskit_path_route* route, struct fskit_entry* fent ) {
 
    int rc = 0;
+   
+   if( fent == NULL ) {
+       fskit_error("%s", "BUG: entry is NULL\n");
+       exit(1);
+   }
+   
+   // the fent must be ref'ed before the route is called 
+   if( fent->open_count <= 0 ) {
+      fskit_error("\n\nBUG: entry %p is not ref'ed\n\n", fent);
+      exit(1);
+   }
 
    // enforce the consistency discipline for this route
    if( route->consistency_discipline == FSKIT_SEQUENTIAL ) {
@@ -447,13 +458,16 @@ static int fskit_route_enter( struct fskit_path_route* route, struct fskit_entry
    else if( route->consistency_discipline == FSKIT_INODE_SEQUENTIAL ) {
       rc = fskit_entry_wlock( fent );
    }
-
+   else if( route->consistency_discipline == FSKIT_INODE_CONCURRENT ) {
+      rc = fskit_entry_rlock( fent );
+   }
+   
    if( rc != 0 ) {
       // indicates deadlock
       fskit_error("BUG: locking route %s with discipline %d rc = %d\n", route->path_regex_str, route->consistency_discipline, rc );
       return rc;
    }
-
+   
    return 0;
 }
 
@@ -461,7 +475,7 @@ static int fskit_route_enter( struct fskit_path_route* route, struct fskit_entry
 // clean up from enforcing the consistency discipline
 static int fskit_route_leave( struct fskit_path_route* route, struct fskit_entry* fent ) {
    
-   if( route->consistency_discipline == FSKIT_INODE_SEQUENTIAL ) {
+   if( route->consistency_discipline == FSKIT_INODE_SEQUENTIAL || route->consistency_discipline == FSKIT_INODE_CONCURRENT ) {
       fskit_entry_unlock( fent );
    }
    else {
@@ -476,6 +490,7 @@ static int fskit_route_leave( struct fskit_path_route* route, struct fskit_entry
 // dispatch a route
 // return the result of the callback, or -ENOSYS if the callback is NULL
 // fent *cannot* be locked--its lock status will be set through the route's consistency discipline
+// however, fent must have a positive open count, so it won't disappear during the user-given route execution
 static int fskit_route_dispatch( struct fskit_core* core, struct fskit_route_metadata* route_metadata, struct fskit_path_route* route, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs ) {
 
    int rc = 0;
@@ -577,7 +592,7 @@ static int fskit_route_dispatch( struct fskit_core* core, struct fskit_route_met
 
    fskit_route_leave( route, fent );
    
-   if( rc != 0 ) {
+   if( rc < 0 ) {
        fskit_error("fskit_safe_dispatch(%d) rc = %d\n", route->route_type, rc );
    }
    return rc;
@@ -1172,7 +1187,7 @@ int fskit_unroute_sync( struct fskit_core* core, int route_handle ) {
 
 
 // declare a route for renaming a file or directory 
-// Note that for renames, the consistency cannot be FSKIT_INODE_SEQUENTIAL (since both the old and new inodes will be write-locked out of necessity)
+// Note that for renames, the consistency cannot be FSKIT_INODE_SEQUENTIAL or FSKIT_INODE_CONCURRENT (since both the old and new inodes will be write-locked out of necessity)
 // return >= 0 on success (the route handle)
 // return -EINVAL if we couldn't compile the regex 
 // return -EINVAL if consistency_discipline is FSKIT_INODE_SEQUENTIAL
@@ -1182,7 +1197,7 @@ int fskit_route_rename( struct fskit_core* core, char const* route_regex, fskit_
    union fskit_route_method method;
    method.rename_cb = rename_cb;
    
-   if( consistency_discipline == FSKIT_INODE_SEQUENTIAL ) {
+   if( consistency_discipline == FSKIT_INODE_SEQUENTIAL || consistency_discipline == FSKIT_INODE_CONCURRENT ) {
       return -EINVAL;
    }
    

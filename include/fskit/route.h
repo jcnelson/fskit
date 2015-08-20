@@ -52,6 +52,7 @@ struct fskit_path_route;
 #define FSKIT_SEQUENTIAL        1       // route method calls will be serialized
 #define FSKIT_CONCURRENT        2       // route method calls will be concurrent
 #define FSKIT_INODE_SEQUENTIAL  3       // route method calls on the same inode will be serialized
+#define FSKIT_INODE_CONCURRENT  4       // route method calls on the same inode will be concurrent, provided that they only read the inode (i.e. the inode will be read-locked)
 
 // common routes
 #define FSKIT_ROUTE_ANY         "/([^/]+[/]*)*"
