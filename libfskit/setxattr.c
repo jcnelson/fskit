@@ -32,7 +32,7 @@ int fskit_setxattr( struct fskit_core* core, char const* path, uint64_t user, ui
    int rc = 0;
 
    // get the fent
-   struct fskit_entry* fent = fskit_entry_resolve_path( core, path, user, group, false, &err );
+   struct fskit_entry* fent = fskit_entry_resolve_path( core, path, user, group, true, &err );
    if( fent == NULL || err != 0 ) {
       return err;
    }
