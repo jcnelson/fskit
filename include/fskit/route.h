@@ -57,6 +57,7 @@ struct fskit_path_route;
 // common routes
 #define FSKIT_ROUTE_ANY         "/([^/]+[/]*)*"
 
+FSKIT_C_LINKAGE_BEGIN
 
 // metadata about the patch matched to the route
 struct fskit_route_metadata;
@@ -124,5 +125,7 @@ char** fskit_route_metadata_get_match_groups( struct fskit_route_metadata* route
 struct fskit_entry* fskit_route_metadata_get_parent( struct fskit_route_metadata* route_metadata );
 char* fskit_route_metadata_new_get_path( struct fskit_route_metadata* route_metadata );
 struct fskit_entry* fskit_route_metadata_get_new_parent( struct fskit_route_metadata* route_metadata );
+
+FSKIT_C_LINKAGE_END 
 
 #endif

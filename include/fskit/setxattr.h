@@ -27,7 +27,11 @@
 
 #include <attr/xattr.h>
 
+FSKIT_C_LINKAGE_BEGIN 
+
 int fskit_setxattr( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, char const* name, char const* value, size_t value_len, int flags );
 int fskit_fsetxattr( struct fskit_core* core, struct fskit_entry* fent, char const* name, char const* value, size_t value_len, int flags );
+
+FSKIT_C_LINKAGE_END 
 
 #endif

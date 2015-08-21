@@ -25,8 +25,11 @@
 #include <fskit/debug.h>
 #include <fskit/entry.h>
 
+FSKIT_C_LINKAGE_BEGIN
+
 int fskit_listxattr( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, char* list, size_t size );
 int fskit_flistxattr( struct fskit_core* core, struct fskit_entry* fent, char* list, size_t size );
 
+FSKIT_C_LINKAGE_END 
 
 #endif

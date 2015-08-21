@@ -885,6 +885,11 @@ struct fskit_entry* fskit_core_resolve_root( struct fskit_core* core, bool write
    }
 }
 
+// allocate an fskit entry 
+struct fskit_entry* fskit_entry_new(void) {
+   return CALLOC_LIST( struct fskit_entry, 1 );
+}
+
 // initialize an fskit entry
 // this method does not fail.
 int fskit_entry_init_lowlevel( struct fskit_entry* fent, uint8_t type, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode ) {

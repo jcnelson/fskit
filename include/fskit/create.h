@@ -26,6 +26,10 @@
 #include <fskit/debug.h>
 #include <fskit/entry.h>
 
+FSKIT_C_LINKAGE_BEGIN 
+
 struct fskit_file_handle* fskit_create( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, mode_t mode, int* err );
+
+FSKIT_C_LINKAGE_END 
 
 #endif

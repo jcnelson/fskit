@@ -25,10 +25,14 @@
 #include <fskit/debug.h>
 #include <fskit/entry.h>
 
+FSKIT_C_LINKAGE_BEGIN  
+
 int fskit_entry_set_group( struct fskit_entry* fent, uint64_t new_group );
 int fskit_entry_set_owner( struct fskit_entry* fent, uint64_t new_user );
 int fskit_entry_set_owner_and_group( struct fskit_entry* fent, uint64_t new_user, uint64_t new_group );
 
 int fskit_chown( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, uint64_t new_user, uint64_t new_group );
+
+FSKIT_C_LINKAGE_END 
 
 #endif

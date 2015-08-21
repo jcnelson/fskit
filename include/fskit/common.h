@@ -34,21 +34,27 @@
 #define _XOPEN_SOURCE 700
 #endif
 
+#ifdef __cplusplus
+#define FSKIT_C_LINKAGE_BEGIN extern "C" {
+#define FSKIT_C_LINKAGE_END }
+#else
+#define FSKIT_C_LINKAGE_BEGIN 
+#define FSKIT_C_LINKAGE_END
+#endif 
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
 #include <string.h>
-// #include <strings.h>
 #include <dirent.h>
 #include <signal.h>
-// #include <libgen.h>
 #include <regex.h>
 #include <stdint.h>
 #include <math.h>
 #include <inttypes.h>
 #include <stdarg.h>
-// #include <ctype.h>
 #include <fcntl.h>
 #include <limits.h>
 
@@ -57,7 +63,6 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/stat.h>
-// #include <sys/mman.h>
 
 #include <pthread.h>
 #include <semaphore.h>

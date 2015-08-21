@@ -26,9 +26,13 @@
 #include <fskit/fskit.h>
 #include <fskit/common.h>
 
+FSKIT_C_LINKAGE_BEGIN 
+
 int fskit_entry_set_size( struct fskit_entry* fent, off_t size );
 
 int fskit_trunc( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, off_t new_size );
 int fskit_ftrunc( struct fskit_core* core, struct fskit_file_handle* fh, off_t new_size );
+
+FSKIT_C_LINKAGE_END 
 
 #endif

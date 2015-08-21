@@ -25,8 +25,12 @@
 #include <fskit/debug.h>
 #include <fskit/entry.h>
 
+FSKIT_C_LINKAGE_BEGIN 
+
 int fskit_entry_set_mode( struct fskit_entry* fent, mode_t mode );
 
 int fskit_chmod( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, mode_t mode );
+
+FSKIT_C_LINKAGE_END 
 
 #endif

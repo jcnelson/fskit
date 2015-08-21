@@ -43,6 +43,8 @@
    } while(0)
 
 
+FSKIT_C_LINKAGE_BEGIN 
+
 extern int FSKIT_GLOBAL_DEBUG_LOCKS;
 extern int FSKIT_GLOBAL_DEBUG_MESSAGES;
 extern int FSKIT_GLOBAL_ERROR_MESSAGES;
@@ -54,5 +56,7 @@ int fskit_get_error_level();
 
 // portable cast pthread_t to uint64_t 
 unsigned long long int fskit_pthread_self(void);
+
+FSKIT_C_LINKAGE_END 
 
 #endif

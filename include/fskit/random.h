@@ -27,7 +27,11 @@
 
 #define FSKIT_RANDOM_DEVICE_PATH "/dev/urandom"
 
+FSKIT_C_LINKAGE_BEGIN 
+
 int fskit_random_init();
 uint32_t fskit_random32();
+
+FSKIT_C_LINKAGE_END 
 
 #endif

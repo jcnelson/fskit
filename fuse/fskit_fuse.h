@@ -35,6 +35,8 @@
 // allow the filesystem process to call arbitrary methods on itself externally, bypassing permissions checks
 #define FSKIT_FUSE_SET_FS_ACCESS        0x1
 
+FSKIT_C_LINKAGE_BEGIN
+
 struct fskit_fuse_state;
 typedef int (*fskit_fuse_postmount_callback_t)( struct fskit_fuse_state*, void* );
 
@@ -122,5 +124,7 @@ int fskit_fuse_main( struct fskit_fuse_state* state, int argc, char** argv );
 int fskit_fuse_shutdown( struct fskit_fuse_state* state, void** user_state );
 
 struct fskit_core* fskit_fuse_get_core( struct fskit_fuse_state* state );
+
+FSKIT_C_LINKAGE_END 
 
 #endif

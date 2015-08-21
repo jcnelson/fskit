@@ -28,7 +28,11 @@
 
 #include <sys/statvfs.h>
 
+FSKIT_C_LINKAGE_BEGIN 
+
 int fskit_statvfs( struct fskit_core* core, char const* fs_path, uint64_t user, uint64_t group, struct statvfs* vfs );
 int fskit_fstatvfs( struct fskit_core* core, struct fskit_entry* fent, struct statvfs* vfs );
+
+FSKIT_C_LINKAGE_END 
 
 #endif

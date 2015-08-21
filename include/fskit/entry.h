@@ -28,13 +28,7 @@
 
 #define FSKIT_FILESYSTEM_NAMEMAX 255
 
-// entry set
-struct fskit_entry_set_entry;
-typedef struct fskit_entry_set_entry fskit_entry_set;
-struct fskit_detach_ctx;
-
 #define FSKIT_ENTRY_SET_ENTRY_CMP( s1, s2 ) (strcmp((s1)->name, (s2)->name))
-
 
 // inode types
 #define FSKIT_ENTRY_TYPE_DEAD         0
@@ -54,6 +48,13 @@ struct fskit_detach_ctx;
 #define FSKIT_ENTRY_IS_DIR_SEARCHABLE( mode, node_user, node_group, user, group ) ((user) == FSKIT_ROOT_USER_ID || ((mode) & S_IXOTH) || ((node_group) == (group) && ((mode) & S_IXGRP)) || ((node_user) == (user) && ((mode) & S_IXUSR)))
 #define FSKIT_ENTRY_IS_WRITEABLE( mode, node_user, node_group, user, group ) (((user) == FSKIT_ROOT_USER_ID || (mode) & S_IWOTH) || ((node_group) == (group) && ((mode) & S_IWGRP)) || ((node_user) == (user) && ((mode) & S_IWUSR)))
 #define FSKIT_ENTRY_IS_EXECUTABLE( mode, node_user, node_group, user, group ) FSKIT_ENTRY_IS_DIR_SEARCHABLE( mode, node_user, node_group, user, group )
+
+FSKIT_C_LINKAGE_BEGIN 
+
+// entry set
+struct fskit_entry_set_entry;
+typedef struct fskit_entry_set_entry fskit_entry_set;
+struct fskit_detach_ctx;
 
 // fskit inode structure
 struct fskit_entry;
@@ -125,6 +126,7 @@ char const* fskit_entry_set_name_at( fskit_entry_set* dp );
 struct fskit_entry* fskit_entry_set_child_at( fskit_entry_set* dp );
 
 // initialization
+struct fskit_entry* fskit_entry_new(void);
 int fskit_entry_init_lowlevel( struct fskit_entry* fent, uint8_t type, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode );
 int fskit_entry_init_common( struct fskit_entry* fent, uint8_t type, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode );
 int fskit_entry_init_file( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode );
@@ -208,5 +210,7 @@ void* fskit_dir_handle_get_user_data( struct fskit_dir_handle* fh );
 // setters
 int fskit_entry_set_user_data( struct fskit_entry* ent, void* app_data );
 void fskit_entry_set_file_id( struct fskit_entry* ent, uint64_t file_id );
+
+FSKIT_C_LINKAGE_END 
 
 #endif

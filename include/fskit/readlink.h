@@ -26,6 +26,10 @@
 #include <fskit/common.h>
 #include <fskit/entry.h>
 
+FSKIT_C_LINKAGE_BEGIN 
+
 ssize_t fskit_readlink( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, char* buf, size_t buflen );
+
+FSKIT_C_LINKAGE_END 
 
 #endif

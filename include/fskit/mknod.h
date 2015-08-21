@@ -27,6 +27,10 @@
 #include <fskit/common.h>
 #include <fskit/entry.h>
 
+FSKIT_C_LINKAGE_BEGIN 
+
 int fskit_mknod( struct fskit_core* core, char const* path, mode_t mode, dev_t dev, uint64_t user, uint64_t group );
+
+FSKIT_C_LINKAGE_END 
 
 #endif

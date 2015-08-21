@@ -25,8 +25,12 @@
 #include <fskit/debug.h>
 #include <fskit/entry.h>
 
+FSKIT_C_LINKAGE_BEGIN 
+
 int fskit_entry_rename_in_directory( struct fskit_entry* fent_parent, struct fskit_entry* fent, char const* new_name );
 
 int fskit_rename( struct fskit_core* core, char const* old_path, char const* new_path, uint64_t user, uint64_t group );
+
+FSKIT_C_LINKAGE_END 
 
 #endif

@@ -61,7 +61,11 @@
 
 #define FSKIT_FILESYSTEM_TYPE 0x19880119
 
+FSKIT_C_LINKAGE_BEGIN 
+
 int fskit_library_init();
 int fskit_library_shutdown();
+
+FSKIT_C_LINKAGE_END 
 
 #endif

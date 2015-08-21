@@ -26,6 +26,9 @@
 #include <fskit/common.h>
 #include <fskit/entry.h>
 
+FSKIT_C_LINKAGE_BEGIN 
+
 ssize_t fskit_write( struct fskit_core* core, struct fskit_file_handle* fh, char const* buf, size_t buflen, off_t offset );
 
+FSKIT_C_LINKAGE_END 
 #endif

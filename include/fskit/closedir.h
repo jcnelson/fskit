@@ -25,6 +25,10 @@
 #include <fskit/debug.h>
 #include <fskit/entry.h>
 
+FSKIT_C_LINKAGE_BEGIN 
+
 int fskit_closedir( struct fskit_core* core, struct fskit_dir_handle* dirh );
+
+FSKIT_C_LINKAGE_END
 
 #endif

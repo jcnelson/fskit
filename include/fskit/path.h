@@ -26,6 +26,8 @@
 #include <fskit/debug.h>
 #include <fskit/entry.h>
 
+FSKIT_C_LINKAGE_BEGIN 
+
 // path utilities
 void fskit_sanitize_path( char* path );
 
@@ -62,5 +64,6 @@ struct fskit_entry* fskit_entry_ref( struct fskit_core* core, char const* fs_pat
 int fskit_entry_ref_entry( struct fskit_entry* fent );
 int fskit_entry_unref( struct fskit_core* core, char const* fs_path, struct fskit_entry* fent );
 
+FSKIT_C_LINKAGE_END
 
 #endif
