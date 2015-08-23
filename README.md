@@ -34,10 +34,7 @@ For libfskit:
 * libc
 * libpthread
 * librt
-
-And xattr headers:
-* /usr/include/attr/xattr.h
-which in Devuan for instance are packaged as 'libattr1-dev'
+* libattr1-dev (for xattr.h)
 
 For libfskit_fuse:
 * libfskit
