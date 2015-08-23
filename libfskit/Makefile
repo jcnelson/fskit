@@ -29,7 +29,7 @@ PRIVATE_HEADERS := $(wildcard ../include/fskit_private/*.h)
 BUILD_HEADERS := $(patsubst ../include/fskit/%.h,$(BUILD_LIBFSKIT_HEADERS)/%.h,$(HEADERS))
 BUILD_PRIVATE_HEADERS := $(patsubst ../include/fskit_private/%.h,$(BUILD_PRIVATE_INCLUDEDIR)/%.h,$(PRIVATE_HEADERS))
 
-INSTALL_HEADERS := $(patsubst $(BUILD_LIBFSKIT_HEADERS)/%.h,$(DESTDIR)/$(INSTALL_LIBFSKIT_HEADERS)/%.h,$(BUILD_HEADERS))
+INSTALL_HEADERS := $(patsubst $(BUILD_LIBFSKIT_HEADERS)/%.h,$(INSTALL_LIBFSKIT_HEADERS)/%.h,$(BUILD_HEADERS))
 
 all: $(LIBFSKIT_TARGET) $(LIBFSKIT_SO_TARGET) $(LIBFSKIT_LIB_TARGET) $(BUILD_HEADERS) $(BUILD_PRIVATE_HEADERS) $(PC_FILE)
 
@@ -37,7 +37,7 @@ $(PC_FILE):	$(PC_FILE_IN)
 	@mkdir -p "$(shell dirname "$@")"
 	@cat "$<" | \
 		sed -e 's~@PREFIX@~$(PREFIX)~g;' | \
-		sed -e 's~@INCLUDEDIR@~$(INCDIR)~g;' | \
+		sed -e 's~@INCLUDEDIR@~$(INCLUDEDIR)~g;' | \
 		sed -e 's~@VERSION@~$(VERSION)~g; ' | \
 		sed -e 's~@LIBS@~$(LIBS)~g; ' | \
 		sed -e 's~@LIBDIR@~$(LIBDIR)~g; ' | \
@@ -73,29 +73,29 @@ $(BUILD_LIBFSKIT)/%.o : %.cpp $(BUILD_HEADERS) $(BUILD_PRIVATE_HEADERS)
 	@mkdir -p "$(shell dirname "$@")"
 	$(CC) $(CCFLAGS) -o "$@" $(INC) -c "$<" $(DEFS)
 
-libs-install: $(DESTDIR)/$(LIBFSKIT_INSTALL_TARGET) $(DESTDIR)/$(LIBFSKIT_SO_INSTALL_TARGET) $(DESTDIR)/$(LIBFSKIT_LIB_INSTALL_TARGET)
+libs-install: $(LIBFSKIT_INSTALL_TARGET) $(LIBFSKIT_SO_INSTALL_TARGET) $(LIBFSKIT_LIB_INSTALL_TARGET)
 
-headers-install: $(DESTDIR)/$(PC_FILE_INSTALL) $(INSTALL_HEADERS)
+headers-install: $(PC_FILE_INSTALL) $(INSTALL_HEADERS)
 
 install: libs-install headers-install
 
-$(DESTDIR)/$(LIBFSKIT_INSTALL_TARGET): $(LIBFSKIT_TARGET)
+$(LIBFSKIT_INSTALL_TARGET): $(LIBFSKIT_TARGET)
 	@mkdir -p "$(shell dirname "$@")"
 	cp -a "$<" "$@"
 
-$(DESTDIR)/$(LIBFSKIT_SO_INSTALL_TARGET): $(LIBFSKIT_SO_TARGET)
+$(LIBFSKIT_SO_INSTALL_TARGET): $(LIBFSKIT_SO_TARGET)
 	@mkdir -p "$(shell dirname "$@")"
 	cp -a "$<" "$@"
 
-$(DESTDIR)/$(LIBFSKIT_LIB_INSTALL_TARGET): $(LIBFSKIT_LIB_TARGET)
+$(LIBFSKIT_LIB_INSTALL_TARGET): $(LIBFSKIT_LIB_TARGET)
 	@mkdir -p "$(shell dirname "$@")"
 	cp -a "$<" "$@"
 
-$(DESTDIR)/$(PC_FILE_INSTALL): $(PC_FILE)
+$(PC_FILE_INSTALL): $(PC_FILE)
 	@mkdir -p "$(shell dirname "$@")"
 	cp -a "$<" "$@"
 
-$(DESTDIR)/$(INSTALL_LIBFSKIT_HEADERS)/%.h: $(BUILD_LIBFSKIT_HEADERS)/%.h
+$(INSTALL_LIBFSKIT_HEADERS)/%.h: $(BUILD_LIBFSKIT_HEADERS)/%.h
 	@mkdir -p "$(shell dirname "$@")"
 	cp -a "$<" "$@"
 
@@ -105,6 +105,6 @@ clean:
 
 .PHONY: uninstall
 uninstall:
-	rm -f "$(DESTDIR)/$(LIBFSKIT_INSTALL_TARGET)" "$(DESTDIR)/$(LIBFSKIT_SO_INSTALL_TARGET)" "$(DESTDIR)/$(LIBFSKIT_LIB_INSTALL_TARGET)" $(INSTALL_HEADERS) "$(DESTDIR)/$(PC_FILE_INSTALL)"
+	rm -f "$(LIBFSKIT_INSTALL_TARGET)" "$(LIBFSKIT_SO_INSTALL_TARGET)" "$(LIBFSKIT_LIB_INSTALL_TARGET)" $(INSTALL_HEADERS) "$(PC_FILE_INSTALL)"
 
 print-%: ; @echo $*=$($*)

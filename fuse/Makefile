@@ -34,7 +34,7 @@ $(PC_FILE):	$(PC_FILE_IN)
 	@mkdir -p "$(shell dirname "$@")"
 	@cat "$<" | \
 		sed -e 's~@PREFIX@~$(PREFIX)~g;' | \
-		sed -e 's~@INCLUDEDIR@~$(INCDIR)~g;' | \
+		sed -e 's~@INCLUDEDIR@~$(INCLUDEDIR)~g;' | \
 		sed -e 's~@VERSION@~$(VERSION)~g; ' | \
 		sed -e 's~@LIBS@~$(LIBS)~g; ' | \
 		sed -e 's~@LIBDIR@~$(LIBDIR)~g; ' | \

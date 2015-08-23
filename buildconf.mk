@@ -1,6 +1,7 @@
 # build environment
 ROOT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 BUILD    ?= $(ROOT_DIR)/build
+VERSION  ?= 0.2
 OS ?= LINUX
 BUILD_BINDIR := $(BUILD)/bin
 BUILD_SBINDIR := $(BUILD)/sbin
@@ -17,12 +18,13 @@ BUILD_ETCDIR := $(BUILD)/etc
 # install environment
 PREFIX         ?= /usr/local
 DESTDIR			?= /
-BINDIR         ?= $(PREFIX)/bin
-SBINDIR			?= $(PREFIX)/sbin
-LIBDIR         ?= $(PREFIX)/lib
-INCLUDEDIR     ?= $(PREFIX)/include
-PKGCONFIGDIR   ?= $(PREFIX)/lib/pkgconfig
-ETCDIR			?= $(PREFIX)/etc
+INCLUDE_PREFIX ?= /usr/local
+BINDIR         ?= $(DESTDIR)/$(PREFIX)/bin
+SBINDIR			?= $(DESTDIR)/$(PREFIX)/sbin
+LIBDIR         ?= $(DESTDIR)/$(PREFIX)/lib
+INCLUDEDIR     ?= $(DESTDIR)/$(INCLUDE_PREFIX)/include
+PKGCONFIGDIR   ?= $(DESTDIR)/$(PREFIX)/lib/pkgconfig
+ETCDIR			?= $(DESTDIR)/$(PREFIX)/etc
 
 # libfskit 
 BUILD_LIBFSKIT := $(BUILD_USRLIB)
