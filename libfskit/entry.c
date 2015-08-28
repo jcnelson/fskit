@@ -1441,6 +1441,19 @@ void fskit_entry_set_file_id( struct fskit_entry* ent, uint64_t file_id ) {
    ent->file_id = file_id;
 }
 
+// put a new set of children in place 
+fskit_entry_set* fskit_entry_swap_children( struct fskit_entry* ent, fskit_entry_set* new_children ) {
+   fskit_entry_set* old_children = ent->children;
+   ent->children = new_children;
+   return old_children;
+}
+
+// put a new set of xattrs in place 
+fskit_xattr_set* fskit_entry_swap_xattrs( struct fskit_entry* ent, fskit_xattr_set* new_xattrs ) {
+   fskit_xattr_set* old_xattrs = ent->xattrs;
+   ent->xattrs = new_xattrs;
+   return old_xattrs;
+}
 
 // Tag an inode for garbage-collection.  This cannot be undone.
 // If this is a directory, remove its child set (replacing with an empty one) and set it to *children.
@@ -1542,6 +1555,11 @@ char* fskit_entry_get_name( struct fskit_entry* ent ) {
 // get a pointer to the children 
 fskit_entry_set* fskit_entry_get_children( struct fskit_entry* ent ) {
    return ent->children;
+}
+
+// get a pointer to the xattrs 
+fskit_xattr_set* fskit_entry_get_xattrs( struct fskit_entry* ent ) {
+   return ent->xattrs;
 }
 
 // copy name (ent must be read-locked), or return -ERANGE if the buffer is too small 

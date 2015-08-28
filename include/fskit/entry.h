@@ -216,6 +216,7 @@ void fskit_entry_get_ctime( struct fskit_entry* ent, int64_t* ctime_sec, int32_t
 off_t fskit_entry_get_size( struct fskit_entry* ent ); 
 dev_t fskit_entry_get_rdev( struct fskit_entry* ent );
 fskit_entry_set* fskit_entry_get_children( struct fskit_entry* ent );
+fskit_xattr_set* fskit_entry_get_xattrs( struct fskit_entry* ent );
 int64_t fskit_entry_get_num_children( struct fskit_entry* ent );
 
 // file handle getters
@@ -231,6 +232,8 @@ void* fskit_dir_handle_get_user_data( struct fskit_dir_handle* fh );
 // setters
 int fskit_entry_set_user_data( struct fskit_entry* ent, void* app_data );
 void fskit_entry_set_file_id( struct fskit_entry* ent, uint64_t file_id );
+fskit_entry_set* fskit_entry_swap_children( struct fskit_entry* ent, fskit_entry_set* new_children );
+fskit_xattr_set* fskit_entry_swap_xattrs( struct fskit_entry* ent, fskit_xattr_set* new_xattrs );
 
 FSKIT_C_LINKAGE_END 
 
