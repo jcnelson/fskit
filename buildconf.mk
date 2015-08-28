@@ -17,14 +17,13 @@ BUILD_ETCDIR := $(BUILD)/etc
 
 # install environment
 PREFIX         ?= /usr/local
-DESTDIR			?= /
-INCLUDE_PREFIX ?= /usr/local
-BINDIR         ?= $(DESTDIR)/$(PREFIX)/bin
-SBINDIR			?= $(DESTDIR)/$(PREFIX)/sbin
-LIBDIR         ?= $(DESTDIR)/$(PREFIX)/lib
-INCLUDEDIR     ?= $(DESTDIR)/$(INCLUDE_PREFIX)/include
-PKGCONFIGDIR   ?= $(DESTDIR)/$(PREFIX)/lib/pkgconfig
-ETCDIR			?= $(DESTDIR)/$(PREFIX)/etc
+INCLUDE_PREFIX ?= $(PREFIX)
+BINDIR         ?= $(DESTDIR)$(PREFIX)/bin
+SBINDIR			?= $(DESTDIR)$(PREFIX)/sbin
+LIBDIR         ?= $(DESTDIR)$(PREFIX)/lib
+INCLUDEDIR     ?= $(DESTDIR)$(INCLUDE_PREFIX)/include
+PKGCONFIGDIR   ?= $(DESTDIR)$(PREFIX)/lib/pkgconfig
+ETCDIR			?= $(DESTDIR)$(PREFIX)/etc
 
 # libfskit 
 BUILD_LIBFSKIT := $(BUILD_USRLIB)
