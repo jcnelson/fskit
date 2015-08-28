@@ -29,6 +29,7 @@
 #define FSKIT_FILESYSTEM_NAMEMAX 255
 
 #define FSKIT_ENTRY_SET_ENTRY_CMP( s1, s2 ) (strcmp((s1)->name, (s2)->name))
+#define FSKIT_XATTR_SET_ENTRY_CMP( x1, x2 ) (strcmp((x1)->name, (x2)->name))
 
 // inode types
 #define FSKIT_ENTRY_TYPE_DEAD         0
@@ -78,7 +79,6 @@ typedef int (*fskit_inode_free_t)( uint64_t, void* );
 
 // routes
 struct fskit_path_route;
-struct fskit_wq;
 
 // fskit core structure
 struct fskit_core;
@@ -118,6 +118,27 @@ fskit_entry_set* fskit_entry_set_find_itr( fskit_entry_set* set, char const* nam
 bool fskit_entry_set_remove( fskit_entry_set** set, char const* name );
 bool fskit_entry_set_replace( fskit_entry_set* set, char const* name, struct fskit_entry* replacement );
 unsigned int fskit_entry_set_count( fskit_entry_set* set );
+
+// xattr sets 
+struct fskit_xattr_set_entry;
+typedef struct fskit_xattr_set_entry fskit_xattr_set;
+
+SGLIB_DEFINE_RBTREE_PROTOTYPES( fskit_xattr_set, left, right, color, FSKIT_XATTR_SET_ENTRY_CMP );
+typedef struct sglib_fskit_xattr_set_iterator fskit_xattr_set_itr;
+
+fskit_xattr_set* fskit_xattr_set_new(void);
+int fskit_xattr_set_free( fskit_xattr_set* xattrs );
+int fskit_xattr_set_insert( fskit_xattr_set** xattrs, char const* name, char const* value, size_t value_len, int flags );
+char const* fskit_xattr_set_find( fskit_xattr_set* xattrs, char const* name, size_t* len );
+bool fskit_xattr_set_remove( fskit_xattr_set** xattrs, char const* name );
+unsigned int fskit_xattr_set_count( fskit_xattr_set* xattrs );
+char const* fskit_xattr_set_name( fskit_xattr_set* xattrs );
+char const* fskit_xattr_set_value( fskit_xattr_set* xattrs );
+size_t fskit_xattr_set_value_len( fskit_xattr_set* xattrs );
+
+fskit_xattr_set* fskit_xattr_set_begin( fskit_xattr_set_itr* itr, fskit_xattr_set* xattrs );
+fskit_xattr_set* fskit_xattr_set_next( fskit_xattr_set_itr* itr );
+
 
 // iteration 
 fskit_entry_set* fskit_entry_set_begin( fskit_entry_set_itr* itr, fskit_entry_set* dirents );

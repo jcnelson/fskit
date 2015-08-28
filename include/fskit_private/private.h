@@ -30,6 +30,10 @@
 struct fskit_route_table_row;
 typedef struct fskit_route_table_row fskit_route_table;
 
+// xattrs
+struct fskit_xattr_set_entry;
+typedef struct fskit_xattr_set_entry fskit_xattr_set;
+
 struct fskit_xattr_set_entry {
    
    char* name;
@@ -40,12 +44,6 @@ struct fskit_xattr_set_entry {
    struct fskit_xattr_set_entry* right;
    char color;
 };
-
-// xattrs
-struct fskit_xattr_set_entry;
-typedef struct fskit_xattr_set_entry fskit_xattr_set;
-
-#define FSKIT_XATTR_SET_ENTRY_CMP( x1, x2 ) (strcmp((x1)->name, (x2)->name))
 
 // fskit inode structure
 struct fskit_entry {
@@ -275,23 +273,6 @@ int fskit_route_table_insert( fskit_route_table** routes, int route_type, struct
 struct fskit_route_table_row* fskit_route_table_get_row( fskit_route_table* routes, int route_type );
 struct fskit_path_route* fskit_route_table_find( fskit_route_table* routes, int route_type, int route_id );
 struct fskit_path_route* fskit_route_table_remove( fskit_route_table** route_table, int route_type, int route_id );
-
-// xattr 
-SGLIB_DEFINE_RBTREE_PROTOTYPES( fskit_xattr_set, left, right, color, FSKIT_XATTR_SET_ENTRY_CMP );
-typedef struct sglib_fskit_xattr_set_iterator fskit_xattr_set_itr;
-
-fskit_xattr_set* fskit_xattr_set_new(void);
-int fskit_xattr_set_free( fskit_xattr_set* xattrs );
-int fskit_xattr_set_insert( fskit_xattr_set** xattrs, char const* name, char const* value, size_t value_len, int flags );
-char const* fskit_xattr_set_find( fskit_xattr_set* xattrs, char const* name, size_t* len );
-bool fskit_xattr_set_remove( fskit_xattr_set** xattrs, char const* name );
-unsigned int fskit_xattr_set_count( fskit_xattr_set* xattrs );
-char const* fskit_xattr_set_name( fskit_xattr_set* xattrs );
-char const* fskit_xattr_set_value( fskit_xattr_set* xattrs );
-size_t fskit_xattr_set_value_len( fskit_xattr_set* xattrs );
-
-fskit_xattr_set* fskit_xattr_set_begin( fskit_xattr_set_itr* itr, fskit_xattr_set* xattrs );
-fskit_xattr_set* fskit_xattr_set_next( fskit_xattr_set_itr* itr );
 
 // populate route dispatch arguments (internal API)
 int fskit_route_create_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, mode_t mode );
