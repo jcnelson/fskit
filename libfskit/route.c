@@ -115,6 +115,9 @@ int fskit_route_table_row_free( struct fskit_route_table_row* row ) {
       for( unsigned long i = 0; i < fskit_route_table_row_len( row ); i++ ) {
          
          struct fskit_path_route* route = fskit_route_table_row_at_ref( row, i );
+         if( route == NULL ) {
+             continue;
+         }
          
          fskit_path_route_free( route );
          fskit_safe_free( route );
