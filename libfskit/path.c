@@ -811,12 +811,12 @@ int fskit_entry_unref( struct fskit_core* core, char const* fs_path, struct fski
    if( fent->open_count <= 0 && fent->link_count <= 0 ) {
       
       // blow it away 
-      rc = fskit_entry_try_destroy_and_free( core, fs_path, fent );
+      rc = fskit_entry_try_destroy_and_free( core, fs_path, NULL, fent );
 
       if( rc < 0 ) {
 
          // some error occurred
-         fskit_error("fskit_entry_try_destroy(%p) rc = %d\n", fent, rc );
+         fskit_error("fskit_entry_try_destroy_and_free(%p) rc = %d\n", fent, rc );
          fskit_entry_unlock( fent );
 
          return rc;

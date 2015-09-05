@@ -41,7 +41,7 @@ int fskit_access( struct fskit_core* core, char const* path, uint64_t user, uint
    // give the application a chance to process the stat buffer
    struct stat sb;
 
-   err = fskit_fstat( core, path, fent, &sb );
+   err = fskit_entry_fstat( fent, &sb );
    if( err == 0 ) {
 
       // check against stat buffer

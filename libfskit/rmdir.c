@@ -121,7 +121,7 @@ int fskit_rmdir( struct fskit_core* core, char const* _path, uint64_t user, uint
 
    // try to destroy?
    // NOTE: this will unlock and free dent if it succeeds
-   rc = fskit_entry_try_destroy_and_free( core, path, dent );
+   rc = fskit_entry_try_destroy_and_free( core, path, parent, dent );
    if( rc > 0 ) {
 
       // destroyed

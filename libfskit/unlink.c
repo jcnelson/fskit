@@ -72,32 +72,29 @@ int fskit_unlink( struct fskit_core* core, char const* path, uint64_t owner, uin
 
    // find the fent, and write-lock it
    struct fskit_entry* fent = fskit_entry_set_find_name( parent->children, path_basename );
-
    free( path_basename );
 
    if( fent == NULL ) {
 
       fskit_entry_unlock( parent );
-
       return -ENOENT;
    }
    
-   fskit_entry_wlock( fent );
-   
-   // detatch fent from parent
+   // detach fent from parent
    rc = fskit_entry_detach_lowlevel( parent, fent );
    if( rc != 0 && rc != -ENOENT ) {
 
       fskit_error("fskit_entry_detach_lowlevel(%p) rc = %d\n", fent, rc );
 
-      fskit_entry_unlock( fent );
       fskit_entry_unlock( parent );
       return rc;
    }
    
+   fskit_entry_wlock( fent );
+   
    // try to destroy fent
-   // note that this unlocks fent and re-locks it if it is fully unref'ed (i.e. no path resolves to it)
-   rc = fskit_entry_try_destroy_and_free( core, path, fent );
+   // note that this unlocks fent and destroys it if it is fully unref'ed
+   rc = fskit_entry_try_destroy_and_free( core, path, parent, fent );
    if( rc > 0 ) {
 
       // destroyed
@@ -107,7 +104,7 @@ int fskit_unlink( struct fskit_core* core, char const* path, uint64_t owner, uin
    else if( rc < 0 ) {
 
       // some error occurred
-      fskit_error("fskit_entry_try_destroy(%p) rc = %d\n", fent, rc );
+      fskit_error("fskit_entry_try_destroy_and_free(%p) rc = %d\n", fent, rc );
       fskit_entry_unlock( fent );
    }
    else {

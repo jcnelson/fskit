@@ -92,7 +92,7 @@ int fskit_closedir( struct fskit_core* core, struct fskit_dir_handle* dirh ) {
 
    // see if we can destroy this....
    // NOTE: this may unlock and free dirh->dent
-   rc = fskit_entry_try_destroy_and_free( core, dirh->path, dirh->dent );
+   rc = fskit_entry_try_destroy_and_free( core, dirh->path, NULL, dirh->dent );
    if( rc > 0 ) {
 
       // dent was unlocked and destroyed
@@ -102,7 +102,7 @@ int fskit_closedir( struct fskit_core* core, struct fskit_dir_handle* dirh ) {
    if( rc < 0 ) {
 
       // some error occurred
-      fskit_error("fskit_entry_try_destroy(%p) rc = %d\n", dirh->dent, rc );
+      fskit_error("fskit_entry_try_destroy_and_free(%p) rc = %d\n", dirh->dent, rc );
       fskit_entry_unlock( dirh->dent );
 
       return rc;

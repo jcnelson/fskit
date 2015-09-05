@@ -124,12 +124,12 @@ int fskit_close( struct fskit_core* core, struct fskit_file_handle* fh ) {
 
    // maybe this entry has been fully unref'ed?
    // this may unlock fh->fent and re-lock it, but only if fent is already fully unlinked
-   rc = fskit_entry_try_destroy_and_free( core, fh->path, fh->fent );
+   rc = fskit_entry_try_destroy_and_free( core, fh->path, NULL, fh->fent );
 
    if( rc < 0 ) {
 
       // some error occurred
-      fskit_error("fskit_entry_try_destroy(%p) rc = %d\n", fh->fent, rc );
+      fskit_error("fskit_entry_try_destroy_and_free(%p) rc = %d\n", fh->fent, rc );
       fskit_entry_unlock( fh->fent );
 
       return rc;

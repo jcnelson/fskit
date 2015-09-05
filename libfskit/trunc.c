@@ -124,7 +124,7 @@ int fskit_trunc( struct fskit_core* core, char const* path, uint64_t user, uint6
 
    // need to free?  note that this may unlock and re-lock fent, but only if it cannot be resolved by any path
    // NOTE: this may unlock and destroy the fent
-   rc = fskit_entry_try_destroy_and_free( core, path, fent );
+   rc = fskit_entry_try_destroy_and_free( core, path, NULL, fent );
    if( rc > 0 ) {
 
       // fent was unlocked and destroyed
@@ -133,7 +133,7 @@ int fskit_trunc( struct fskit_core* core, char const* path, uint64_t user, uint6
    else if( rc < 0 ) {
 
       // some error occurred
-      fskit_error("fskit_entry_try_destroy(%p) rc = %d\n", fent, rc );
+      fskit_error("fskit_entry_try_destroy_and_free(%p) rc = %d\n", fent, rc );
       fskit_entry_unlock( fent );
 
       return rc;
