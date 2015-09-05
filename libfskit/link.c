@@ -26,6 +26,30 @@
 
 #include "fskit_private/private.h"
 
+
+// user route to link 
+// NOTE: new_parent will be write-locked, but fent will not be locked at all
+// return the result of the callback, or 0 if there is no link callback defined
+static int fskit_run_user_link( struct fskit_core* core, char const* path, char const* new_path, struct fskit_entry* new_parent, struct fskit_entry* fent ) {
+   
+   int rc = 0;
+   int cbrc = 0;
+   
+   struct fskit_route_dispatch_args dargs;
+   
+   fskit_route_link_args( &dargs, new_path, new_parent );
+   
+   rc = fskit_route_call_link( core, path, fent, &dargs, &cbrc );
+   
+   if( rc == -EPERM || rc == -ENOSYS ) {
+      // no routes installed
+      return 0;
+   }
+
+   return cbrc;
+}
+
+
 // link the inode at "from" to the location "to".  Increment its link count on success.
 // return 0 on success.
 // return -ENOMEM if out-of-memory
@@ -96,9 +120,32 @@ int fskit_link( struct fskit_core* core, char const* from, char const* to, uint6
 
    // create the child as a hardlink
    fskit_entry_attach_lowlevel_ex( to_parent_fent, from_fent, to_child );
-
-   fskit_entry_unlock( to_parent_fent );
+   
+   // preserve across route...
+   fskit_entry_ref_entry( from_fent );
+   
    fskit_entry_unlock( from_fent );
+   
+   // do the route 
+   err = fskit_run_user_link( core, from, to, to_parent_fent, from_fent );
+   if( err != 0 ) {
+       
+       // undo 
+       fskit_entry_wlock( from_fent );
+       
+       fskit_entry_detach_lowlevel( to_parent_fent, from_fent );
+       
+       fskit_entry_unlock( from_fent );
+       
+       err = fskit_entry_unref( core, from, from_fent );
+       if( err < 0 ) {
+           
+           // shouldn't happen 
+           fskit_error("BUG: fskit_entry_unref('%s') rc = %d\n", from, err );
+       }
+   }
+   
+   fskit_entry_unlock( to_parent_fent );
 
-   return 0;
+   return err;
 }

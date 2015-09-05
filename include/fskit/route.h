@@ -46,7 +46,8 @@ struct fskit_path_route;
 #define FSKIT_ROUTE_MATCH_STAT                  10
 #define FSKIT_ROUTE_MATCH_SYNC                  11
 #define FSKIT_ROUTE_MATCH_RENAME                12
-#define FSKIT_ROUTE_NUM_ROUTE_TYPES             13
+#define FSKIT_ROUTE_MATCH_LINK                  13
+#define FSKIT_ROUTE_NUM_ROUTE_TYPES             14
 
 // route consistency disciplines
 #define FSKIT_SEQUENTIAL        1       // route method calls will be serialized
@@ -81,6 +82,7 @@ typedef int (*fskit_entry_route_stat_callback_t)( struct fskit_core*, struct fsk
 typedef int (*fskit_entry_route_readdir_callback_t)( struct fskit_core*, struct fskit_route_metadata*, struct fskit_entry*, struct fskit_dir_entry**, size_t );
 typedef int (*fskit_entry_route_detach_callback_t)( struct fskit_core*, struct fskit_route_metadata*, struct fskit_entry*, void* );             // unlink() and rmdir()
 typedef int (*fskit_entry_route_rename_callback_t)( struct fskit_core*, struct fskit_route_metadata*, struct fskit_entry*, char const*, struct fskit_entry* );
+typedef int (*fskit_entry_route_link_callback_t)( struct fskit_core*, struct fskit_route_metadata*, struct fskit_entry*, char const* );
 
 // I/O continuation for successful read/write/trunc (i.e. to be called with the route's consistency discipline enforced)
 typedef int (*fskit_route_io_continuation)( struct fskit_core*, struct fskit_entry*, off_t, ssize_t );
@@ -99,6 +101,7 @@ int fskit_route_detach( struct fskit_core* core, char const* route_regex, fskit_
 int fskit_route_stat( struct fskit_core* core, char const* route_regex, fskit_entry_route_stat_callback_t stat_cb, int consistency_discipline );
 int fskit_route_sync( struct fskit_core* core, char const* route_regex, fskit_entry_route_sync_callback_t sync_cb, int consistency_discipline );
 int fskit_route_rename( struct fskit_core* core, char const* route_regex, fskit_entry_route_rename_callback_t rename_cb, int consistency_discipline );
+int fskit_route_link( struct fskit_core* core, char const* route_regex, fskit_entry_route_link_callback_t link_cb, int consistency_discipline );
 
 // undefine various types of routes
 int fskit_unroute_create( struct fskit_core* core, int route_handle );
@@ -114,6 +117,7 @@ int fskit_unroute_detach( struct fskit_core* core, int route_handle );
 int fskit_unroute_stat( struct fskit_core* core, int route_handle );
 int fskit_unroute_sync( struct fskit_core* core, int route_handle );
 int fskit_unroute_rename( struct fskit_core* core, int route_handle );
+int fskit_unroute_link( struct fskit_core* core, int route_handle );
 
 // unroute everything 
 int fskit_unroute_all( struct fskit_core* core );

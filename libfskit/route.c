@@ -446,8 +446,8 @@ static int fskit_route_enter( struct fskit_path_route* route, struct fskit_entry
    }
    
    // the fent must be ref'ed before the route is called 
-   if( fent->open_count <= 0 ) {
-      fskit_error("\n\nBUG: entry %p is not ref'ed\n\n", fent);
+   if( fent->open_count <= 0 && fent->link_count <= 0 ) {
+      fskit_error("\n\nBUG: entry %p (%s) is not ref'ed (open = %d, link = %d)\n\n", fent, fent->name, fent->open_count, fent->link_count);
       exit(1);
    }
 
@@ -585,6 +585,11 @@ static int fskit_route_dispatch( struct fskit_core* core, struct fskit_route_met
       case FSKIT_ROUTE_MATCH_RENAME:
          
          rc = fskit_safe_dispatch( route->method.rename_cb, core, route_metadata, fent, dargs->new_path, dargs->dest );
+         break;
+         
+      case FSKIT_ROUTE_MATCH_LINK:
+         
+         rc = fskit_safe_dispatch( route->method.link_cb, core, route_metadata, fent, dargs->new_path );
          break;
          
       default:
@@ -812,6 +817,15 @@ int fskit_route_call_sync( struct fskit_core* core, char const* path, struct fsk
 // if dargs->dest exists, it will be write-locked
 int fskit_route_call_rename( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc ) {
    return fskit_route_call( core, FSKIT_ROUTE_MATCH_RENAME, path, fent, dargs, cbrc );
+}
+
+
+// call theroute to link 
+// return 0 if a route was called, or -EPERM if there are no routes 
+// set the route callback return code in *cbrc 
+// NOTE: fent *cannot* be locked--its lock status will be set through the route consistency discipline 
+int fskit_route_call_link( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc ) {
+    return fskit_route_call( core, FSKIT_ROUTE_MATCH_LINK, path, fent, dargs, cbrc );
 }
 
 
@@ -1190,17 +1204,17 @@ int fskit_unroute_sync( struct fskit_core* core, int route_handle ) {
 
 
 // declare a route for renaming a file or directory 
-// Note that for renames, the consistency cannot be FSKIT_INODE_SEQUENTIAL or FSKIT_INODE_CONCURRENT (since both the old and new inodes will be write-locked out of necessity)
+// Note that for renames, the consistency *must be* FSKIT_SEQUENTIAL or FSKIT_CONCURRENT, since both the source and dest inodes will be write-locked
 // return >= 0 on success (the route handle)
 // return -EINVAL if we couldn't compile the regex 
-// return -EINVAL if consistency_discipline is FSKIT_INODE_SEQUENTIAL
+// return -EINVAL if consistency_discipline is not supported
 // return -ENOMEM if out of memory 
 int fskit_route_rename( struct fskit_core* core, char const* route_regex, fskit_entry_route_rename_callback_t rename_cb, int consistency_discipline ) {
    
    union fskit_route_method method;
    method.rename_cb = rename_cb;
    
-   if( consistency_discipline == FSKIT_INODE_SEQUENTIAL || consistency_discipline == FSKIT_INODE_CONCURRENT ) {
+   if( consistency_discipline != FSKIT_CONCURRENT && consistency_discipline != FSKIT_SEQUENTIAL ) {
       return -EINVAL;
    }
    
@@ -1214,6 +1228,28 @@ int fskit_route_rename( struct fskit_core* core, char const* route_regex, fskit_
 int fskit_unroute_rename( struct fskit_core* core, int route_handle ) {
    
    return fskit_path_route_undecl( core, FSKIT_ROUTE_MATCH_RENAME, route_handle );
+}
+
+
+// declare a route for linking a file into a new directory 
+// return >=0 on success (the route hndle )
+// return -EINVAL if consistency_discipline is not supported
+// return -ENOMEM if out of memory 
+int fskit_route_link( struct fskit_core* core, char const* route_regex, fskit_entry_route_link_callback_t link_cb, int consistency_discipline ) {
+    
+   union fskit_route_method method;
+   method.link_cb = link_cb;
+   
+   return fskit_path_route_decl( core, route_regex, FSKIT_ROUTE_MATCH_LINK, method, consistency_discipline );
+}
+
+
+// undeclare a route for linking a file into a directory 
+// return 0 on success 
+// return -EINVAL if the route can't possibly exist 
+int fskit_unroute_link( struct fskit_core* core, int route_handle ) {
+    
+   return fskit_path_route_undecl( core, FSKIT_ROUTE_MATCH_LINK, route_handle );
 }
 
 // undeclare all routes 
@@ -1323,11 +1359,12 @@ int fskit_route_trunc_args( struct fskit_route_dispatch_args* dargs, off_t iooff
    return 0;
 }
 
-// set up dargs for unlink() and rmdir()
-int fskit_route_detach_args( struct fskit_route_dispatch_args* dargs, bool garbage_collect, void* inode_data ) {
+// set up dargs for unlink(), rmdir(), and general unref
+int fskit_route_detach_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, bool garbage_collect, void* inode_data ) {
 
    memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
 
+   dargs->parent = parent;
    dargs->garbage_collect = garbage_collect;
    dargs->inode_data = inode_data;
 
@@ -1361,6 +1398,17 @@ int fskit_route_rename_args( struct fskit_route_dispatch_args* dargs, struct fsk
    dargs->new_path = new_path;
    dargs->dest = dest;
    dargs->new_parent = new_parent;
+   
+   return 0;
+}
+
+// set up dargs for link()
+int fskit_route_link_args( struct fskit_route_dispatch_args* dargs, char const* new_path, struct fskit_entry* new_parent ) {
+   
+   memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
+   
+   dargs->new_parent = new_parent;
+   dargs->new_path = new_path;
    
    return 0;
 }
