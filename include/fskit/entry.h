@@ -160,8 +160,7 @@ int fskit_entry_init_symlink( struct fskit_entry* fent, uint64_t file_id, char c
 
 // destruction
 int fskit_entry_destroy( struct fskit_core* core, struct fskit_entry* fent, bool needlock );
-int fskit_entry_try_destroy_and_free( struct fskit_core* core, char const* fs_path, struct fskit_entry* fent );
-int fskit_entry_try_destroy( struct fskit_core* core, char const* fs_path, struct fskit_entry* fent );
+int fskit_entry_try_destroy_and_free( struct fskit_core* core, char const* fs_path, struct fskit_entry* parent, struct fskit_entry* fent );
 struct fskit_detach_ctx* fskit_detach_ctx_new();
 int fskit_detach_ctx_init( struct fskit_detach_ctx* ctx );
 int fskit_detach_ctx_free( struct fskit_detach_ctx* ctx );
@@ -234,6 +233,7 @@ int fskit_entry_set_user_data( struct fskit_entry* ent, void* app_data );
 void fskit_entry_set_file_id( struct fskit_entry* ent, uint64_t file_id );
 fskit_entry_set* fskit_entry_swap_children( struct fskit_entry* ent, fskit_entry_set* new_children );
 fskit_xattr_set* fskit_entry_swap_xattrs( struct fskit_entry* ent, fskit_xattr_set* new_xattrs );
+char* fskit_entry_swap_symlink_target( struct fskit_entry* ent, char* new_symlink_target );
 
 FSKIT_C_LINKAGE_END 
 

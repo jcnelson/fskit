@@ -75,6 +75,10 @@ fskit_entry_set* fskit_entry_set_next( fskit_entry_set_itr* itr ) {
 // don't free the contained entries
 int fskit_entry_set_free( fskit_entry_set* dirents ) {
    
+   if( dirents == NULL ) {
+       return 0;
+   }
+   
    fskit_entry_set_itr itr;   
    fskit_entry_set* dp = NULL;
    fskit_entry_set* old_dp = NULL;
@@ -478,9 +482,12 @@ int fskit_core_destroy( struct fskit_core* core, void** app_fs_data ) {
    core->root.open_count = 1;   // for referencing
    core->root.link_count = 0;
    core->root.deletion_in_progress = true;
-   fskit_run_user_detach( core, "/", &core->root );
    
-   fskit_entry_destroy( core, &core->root, false );
+   fskit_entry_unlock( &core->root );
+   
+   fskit_run_user_detach( core, "/", NULL, &core->root );
+   
+   fskit_entry_destroy( core, &core->root, true );
 
    fskit_route_table_free( core->routes );
 
@@ -674,7 +681,7 @@ int fskit_detach_all_ex( struct fskit_core* core, char const* dir_path, fskit_en
       fent->deletion_in_progress = true;
       
       // maybe this entry is fully unref'ed...
-      rc = fskit_entry_try_destroy_and_free( core, fent_path, fent );
+      rc = fskit_entry_try_destroy_and_free( core, fent_path, NULL, fent );
       if( rc >= 0 ) {
 
          if( rc == 0 ) {
@@ -1086,9 +1093,13 @@ int fskit_entry_init_symlink( struct fskit_entry* fent, uint64_t file_id, char c
       return -EINVAL;
    }
    
-   char* symlink_target = strdup_or_null( linkpath );
-   if( symlink_target == NULL ) {
-      return -ENOMEM;
+   char* symlink_target = NULL;
+   
+   if( linkpath != NULL ) {
+       symlink_target = strdup_or_null( linkpath );
+       if( symlink_target == NULL ) {
+           return -ENOMEM;
+       }
    }
 
    rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_LNK, file_id, name, 0, 0, 0777 );
@@ -1100,22 +1111,27 @@ int fskit_entry_init_symlink( struct fskit_entry* fent, uint64_t file_id, char c
    }
 
    fent->symlink_target = symlink_target;
-   fent->size = strlen( symlink_target );
-   fent->link_count = 1;
-
+   
+   if( symlink_target != NULL ) {
+       fent->size = strlen( symlink_target );
+   }
+   else {
+       fent->size = 0;
+   }
+   
    return 0;
 }
 
 // run user-supplied route callback to destroy this fent's inode data
 // mask -ENOSYS and -EPERM, i.e. the errors if no route exists or could be found
-// fent must be write-locked
-int fskit_run_user_detach( struct fskit_core* core, char const* path, struct fskit_entry* fent ) {
+// fent must *not* be locked!
+int fskit_run_user_detach( struct fskit_core* core, char const* path, struct fskit_entry* parent, struct fskit_entry* fent ) {
 
    int rc = 0;
    int cbrc = 0;
    struct fskit_route_dispatch_args dargs;
 
-   fskit_route_detach_args( &dargs, fent->deletion_in_progress, fent->app_data );
+   fskit_route_detach_args( &dargs, parent, fent->deletion_in_progress, fent->app_data );
 
    rc = fskit_route_call_detach( core, path, fent, &dargs, &cbrc );
 
@@ -1173,6 +1189,8 @@ int fskit_entry_destroy( struct fskit_core* core, struct fskit_entry* fent, bool
       fent->xattrs = NULL;
    }
    
+   (*core->fskit_inode_free)( fent->file_id, core->app_fs_data );
+   
    fskit_entry_unlock( fent );
    pthread_rwlock_destroy( &fent->lock );
 
@@ -1183,10 +1201,10 @@ int fskit_entry_destroy( struct fskit_core* core, struct fskit_entry* fent, bool
 // try to destroy an fskit entry, if it is unlinked and no longer open
 // return 0 if not destroyed
 // return 1 if destroyed (even if the user-given detach callback fails)
-// fent must be write-locked.  If it is fully unlinked (i.e. this call will destroy it), it will be unlocked.
+// fent and parent must be write-locked.  If it is fully unlinked (i.e. this call will destroy it), it will be unlocked.
 // NOTE: we mask any failures in the user callback.
 // NOTE: even if this method returns an error code, the entry will be destroyed if it is no longer linked.
-int fskit_entry_try_destroy( struct fskit_core* core, char const* fs_path, struct fskit_entry* fent ) {
+static int fskit_entry_try_destroy( struct fskit_core* core, char const* fs_path, struct fskit_entry* parent, struct fskit_entry* fent ) {
 
    int rc = 0;
 
@@ -1207,7 +1225,7 @@ int fskit_entry_try_destroy( struct fskit_core* core, char const* fs_path, struc
       fent->open_count++;
       fskit_entry_unlock( fent );
       
-      rc = fskit_run_user_detach( core, fs_path, fent );
+      rc = fskit_run_user_detach( core, fs_path, parent, fent );
       if( rc != 0 ) {
          fskit_error("WARN: fskit_run_user_detach(%s) rc = %d\n", fs_path, rc );
       }
@@ -1225,13 +1243,13 @@ int fskit_entry_try_destroy( struct fskit_core* core, char const* fs_path, struc
 // Free it and decrement the number of children in the filesystem if we succeed.
 // return 0 if not destroyed
 // return 1 if destroyed (even if the user-given detach callback fails)
-// fent must be write-locked
-int fskit_entry_try_destroy_and_free( struct fskit_core* core, char const* fs_path, struct fskit_entry* fent ) {
+// fent and parent must be write-locked
+int fskit_entry_try_destroy_and_free( struct fskit_core* core, char const* fs_path, struct fskit_entry* parent, struct fskit_entry* fent ) {
 
    int rc = 0;
    
    // see if we can destroy this....
-   rc = fskit_entry_try_destroy( core, fs_path, fent );
+   rc = fskit_entry_try_destroy( core, fs_path, parent, fent );
    if( rc > 0 ) {
       
       // fent was unlocked and destroyed
@@ -1284,7 +1302,7 @@ int fskit_entry_try_garbage_collect( struct fskit_core* core, char const* path, 
       if( rc == 0 ) {
          
          // detached. try to destroy
-         rc = fskit_entry_try_destroy_and_free( core, path, child );
+         rc = fskit_entry_try_destroy_and_free( core, path, parent, child );
          if( rc >= 0 ) {
 
             if( rc > 0 ) {
@@ -1453,6 +1471,26 @@ fskit_xattr_set* fskit_entry_swap_xattrs( struct fskit_entry* ent, fskit_xattr_s
    fskit_xattr_set* old_xattrs = ent->xattrs;
    ent->xattrs = new_xattrs;
    return old_xattrs;
+}
+
+// put a new symlink target, and replace the old one
+// returns NULL if not a symlink 
+char* fskit_entry_swap_symlink_target( struct fskit_entry* ent, char* new_symlink_target ) {
+   if( ent->type != FSKIT_ENTRY_TYPE_LNK ) {
+       return NULL;
+   }
+   
+   char* old_target = ent->symlink_target;
+   ent->symlink_target = new_symlink_target;
+   
+   if( new_symlink_target != NULL ) {
+      ent->size = strlen(new_symlink_target);
+   }
+   else {
+      ent->size = 0;
+   }
+   
+   return old_target;
 }
 
 // Tag an inode for garbage-collection.  This cannot be undone.
@@ -1635,6 +1673,10 @@ int64_t fskit_entry_get_num_children( struct fskit_entry* ent ) {
 // free up all xattrs in an fskit_xattr_set
 int fskit_xattr_set_free( fskit_xattr_set* xattrs ) {
    
+   if( xattrs == NULL ) {
+       return 0;
+   }
+   
    fskit_xattr_set_itr itr;   
    fskit_xattr_set* dp = NULL;
    fskit_xattr_set* old_dp = NULL;
@@ -1661,7 +1703,8 @@ fskit_xattr_set* fskit_xattr_set_new(void) {
 
 // insert an xattr
 // return 0 on success
-// return -EEXIST if the member is already present
+// return -EEXIST if the member is already present, and XATTR_CREATE is set in flags 
+// return -ENOATTR if the member is not present, and XATTR_REPLACE is set in flags
 // return -ENOMEM on OOM 
 int fskit_xattr_set_insert( fskit_xattr_set** set, char const* name, char const* value, size_t value_len, int flags ) {
    
