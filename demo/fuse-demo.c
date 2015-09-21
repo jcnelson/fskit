@@ -160,9 +160,9 @@ int write_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fsk
    return (int)buflen;
 }
 
-// file unlink callback
+// file destroy callback
 // free memory 
-int detach_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* fent, void* inode_data ) {
+int destroy_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* fent, void* inode_data ) {
 
    struct demo_inode* di = (struct demo_inode*)fskit_entry_get_user_data( fent );
    
@@ -208,12 +208,12 @@ int main( int argc, char** argv ) {
 
    // add handlers.  reads and writes must happen sequentially, since we seek and then perform I/O
    // NOTE: FSKIT_ROUTE_ANY matches any path, and is a macro for the regex "/([^/]+[/]*)*"
-   fskit_route_create( core, FSKIT_ROUTE_ANY, create_cb, FSKIT_CONCURRENT );
-   fskit_route_open(   core, FSKIT_ROUTE_ANY, open_cb,   FSKIT_CONCURRENT );
-   fskit_route_read(   core, FSKIT_ROUTE_ANY, read_cb,   FSKIT_SEQUENTIAL );
-   fskit_route_write(  core, FSKIT_ROUTE_ANY, write_cb,  FSKIT_SEQUENTIAL );
-   fskit_route_close(  core, FSKIT_ROUTE_ANY, close_cb,  FSKIT_CONCURRENT );
-   fskit_route_detach( core, FSKIT_ROUTE_ANY, detach_cb, FSKIT_CONCURRENT );
+   fskit_route_create( core, FSKIT_ROUTE_ANY, create_cb,  FSKIT_CONCURRENT );
+   fskit_route_open(   core, FSKIT_ROUTE_ANY, open_cb,    FSKIT_CONCURRENT );
+   fskit_route_read(   core, FSKIT_ROUTE_ANY, read_cb,    FSKIT_SEQUENTIAL );
+   fskit_route_write(  core, FSKIT_ROUTE_ANY, write_cb,   FSKIT_SEQUENTIAL );
+   fskit_route_close(  core, FSKIT_ROUTE_ANY, close_cb,   FSKIT_CONCURRENT );
+   fskit_route_destroy(core, FSKIT_ROUTE_ANY, destroy_cb, FSKIT_CONCURRENT );
 
    // set the root to be owned by the effective UID and GID of user
    fskit_chown( core, "/", 0, 0, geteuid(), getegid() );
