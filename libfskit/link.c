@@ -34,10 +34,14 @@ static int fskit_run_user_link( struct fskit_core* core, char const* path, char 
    
    int rc = 0;
    int cbrc = 0;
+   char name[FSKIT_FILESYSTEM_NAMEMAX+1];
    
    struct fskit_route_dispatch_args dargs;
    
-   fskit_route_link_args( &dargs, new_path, new_parent );
+   memset( name, 0, FSKIT_FILESYSTEM_NAMEMAX+1 );
+   fskit_basename( path, name );
+   
+   fskit_route_link_args( &dargs, name, new_path, new_parent );
    
    rc = fskit_route_call_link( core, path, fent, &dargs, &cbrc );
    
@@ -119,7 +123,7 @@ int fskit_link( struct fskit_core* core, char const* from, char const* to, uint6
    }
 
    // create the child as a hardlink
-   fskit_entry_attach_lowlevel_ex( to_parent_fent, from_fent, to_child );
+   fskit_entry_attach_lowlevel( to_parent_fent, from_fent, to_child );
    
    // preserve across route...
    fskit_entry_ref_entry( from_fent );
@@ -133,16 +137,16 @@ int fskit_link( struct fskit_core* core, char const* from, char const* to, uint6
        // undo 
        fskit_entry_wlock( from_fent );
        
-       fskit_entry_detach_lowlevel( to_parent_fent, from_fent );
+       fskit_entry_detach_lowlevel( to_parent_fent, to_child );
        
        fskit_entry_unlock( from_fent );
-       
-       err = fskit_entry_unref( core, from, from_fent );
-       if( err < 0 ) {
-           
-           // shouldn't happen 
-           fskit_error("BUG: fskit_entry_unref('%s') rc = %d\n", from, err );
-       }
+   }
+   
+   int unref_err = fskit_entry_unref( core, from, from_fent );
+   if( unref_err < 0 ) {
+        
+       // shouldn't happen 
+       fskit_error("BUG: fskit_entry_unref('%s') rc = %d\n", from, unref_err );
    }
    
    fskit_entry_unlock( to_parent_fent );

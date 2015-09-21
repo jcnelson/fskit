@@ -321,6 +321,12 @@ static int fskit_route_metadata_free( struct fskit_route_metadata* route_metadat
       fskit_safe_free( route_metadata->path );
       route_metadata->path = NULL;
    }
+   
+   if( route_metadata->name != NULL ) {
+      
+      fskit_safe_free( route_metadata->name );
+      route_metadata->name = NULL;
+   }
 
    memset( route_metadata, 0, sizeof(struct fskit_route_metadata) );
 
@@ -446,8 +452,8 @@ static int fskit_route_enter( struct fskit_path_route* route, struct fskit_entry
    }
    
    // the fent must be ref'ed before the route is called 
-   if( fent->open_count <= 0 && fent->link_count <= 0 ) {
-      fskit_error("\n\nBUG: entry %p (%s) is not ref'ed (open = %d, link = %d)\n\n", fent, fent->name, fent->open_count, fent->link_count);
+   if( route->route_type != FSKIT_ROUTE_MATCH_DETACH && route->route_type != FSKIT_ROUTE_MATCH_DESTROY && fent->open_count <= 0 && fent->link_count <= 0 ) {
+      fskit_error("\n\nBUG: entry %p is not ref'ed (open = %d, link = %d)\n\n", fent, fent->open_count, fent->link_count);
       exit(1);
    }
 
@@ -572,6 +578,11 @@ static int fskit_route_dispatch( struct fskit_core* core, struct fskit_route_met
          rc = fskit_safe_dispatch( route->method.detach_cb, core, route_metadata, fent, dargs->inode_data );
          break;
 
+      case FSKIT_ROUTE_MATCH_DESTROY:
+         
+         rc = fskit_safe_dispatch( route->method.destroy_cb, core, route_metadata, fent, dargs->inode_data );
+         break;
+         
       case FSKIT_ROUTE_MATCH_STAT:
 
          rc = fskit_safe_dispatch( route->method.stat_cb, core, route_metadata, fent, dargs->sb );
@@ -649,7 +660,15 @@ static struct fskit_path_route* fskit_route_match( fskit_route_table* route_tabl
 // return 0 on success
 static int fskit_route_metadata_populate( struct fskit_route_metadata* route_metadata, struct fskit_route_dispatch_args* dargs ) {
    
+   if( dargs->name != NULL ) {
+      route_metadata->name = strdup( dargs->name );
+      if( route_metadata->name == NULL ) {
+         return -ENOMEM;
+      }
+   }
+   
    route_metadata->parent = dargs->parent;
+   route_metadata->new_parent = dargs->new_parent;
    route_metadata->garbage_collect = dargs->garbage_collect;
    return 0;
 }
@@ -696,7 +715,10 @@ int fskit_route_call( struct fskit_core* core, int route_type, char const* path,
 
    fskit_core_route_unlock( core );
 
-   fskit_route_metadata_free( &route_metadata );
+   rc = fskit_route_metadata_free( &route_metadata );
+   if( rc != 0 ) {
+       return rc;
+   }
 
    return 0;
 }
@@ -791,6 +813,13 @@ int fskit_route_call_detach( struct fskit_core* core, char const* path, struct f
    return fskit_route_call( core, FSKIT_ROUTE_MATCH_DETACH, path, fent, dargs, cbrc );
 }
 
+// call the route to unlink or rmdir.
+// return 0 if a route was called, or -EPERM if there are no routes.
+// set the route callback return code in *cbrc
+// NOTE: fent *cannot* be locked--its lock status will be set through the route consistency discipline
+int fskit_route_call_destroy( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc ) {
+   return fskit_route_call( core, FSKIT_ROUTE_MATCH_DESTROY, path, fent, dargs, cbrc );
+}
 
 // call the route to stat
 // return 0 if a route was called, or -EPERM if there are no routes.
@@ -1162,6 +1191,26 @@ int fskit_unroute_detach( struct fskit_core* core, int route_handle ) {
    return fskit_path_route_undecl( core, FSKIT_ROUTE_MATCH_DETACH, route_handle );
 }
 
+// declare a route for destroying a file or directory
+// return >= 0 on success (the route handle)
+// return -EINVAL if we couldn't compile the regex
+// return -ENOMEM if out of memory
+int fskit_route_destroy( struct fskit_core* core, char const* route_regex, fskit_entry_route_destroy_callback_t destroy_cb, int consistency_discipline ) {
+
+   union fskit_route_method method;
+   method.destroy_cb = destroy_cb;
+
+   return fskit_path_route_decl( core, route_regex, FSKIT_ROUTE_MATCH_DESTROY, method, consistency_discipline );
+}
+
+// undeclare an existing route for detaching a file or directory
+// return 0 on success
+// return -EINVAL if the route can't possibly exist.
+int fskit_unroute_destroy( struct fskit_core* core, int route_handle ) {
+
+   return fskit_path_route_undecl( core, FSKIT_ROUTE_MATCH_DESTROY, route_handle );
+}
+
 // declare a route for stating a file or directory
 // return >= 0 on success (the route handle)
 // return -EINVAL if we couldn't compile the regex
@@ -1272,10 +1321,11 @@ int fskit_unroute_all( struct fskit_core* core ) {
 }
 
 // set up dargs for create()
-int fskit_route_create_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, mode_t mode ) {
+int fskit_route_create_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, char const* name, mode_t mode ) {
 
    memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
    
+   dargs->name = name;
    dargs->parent = parent;
    dargs->mode = mode;
 
@@ -1283,10 +1333,11 @@ int fskit_route_create_args( struct fskit_route_dispatch_args* dargs, struct fsk
 }
 
 // set up dargs for mknod()
-int fskit_route_mknod_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, mode_t mode, dev_t dev ) {
+int fskit_route_mknod_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, char const* name, mode_t mode, dev_t dev ) {
 
    memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
 
+   dargs->name = name;
    dargs->parent = parent;
    dargs->mode = mode;
    dargs->dev = dev;
@@ -1294,10 +1345,11 @@ int fskit_route_mknod_args( struct fskit_route_dispatch_args* dargs, struct fski
 }
 
 // set up dargs for mkdir()
-int fskit_route_mkdir_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, mode_t mode ) {
+int fskit_route_mkdir_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, char const* name, mode_t mode ) {
 
    memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
 
+   dargs->name = name;
    dargs->parent = parent;
    dargs->mode = mode;
 
@@ -1305,10 +1357,11 @@ int fskit_route_mkdir_args( struct fskit_route_dispatch_args* dargs, struct fski
 }
 
 // set up dargs for open() and opendir()
-int fskit_route_open_args( struct fskit_route_dispatch_args* dargs, int flags ) {
+int fskit_route_open_args( struct fskit_route_dispatch_args* dargs, char const* name, int flags ) {
 
    memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
 
+   dargs->name = name;
    dargs->flags = flags;
    return 0;
 }
@@ -1323,10 +1376,11 @@ int fskit_route_close_args( struct fskit_route_dispatch_args* dargs, void* handl
 }
 
 // set up dargs for readdir()
-int fskit_route_readdir_args( struct fskit_route_dispatch_args* dargs, struct fskit_dir_entry** dents, uint64_t num_dents ) {
+int fskit_route_readdir_args( struct fskit_route_dispatch_args* dargs, char const* name, struct fskit_dir_entry** dents, uint64_t num_dents ) {
 
    memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
 
+   dargs->name = name;
    dargs->dents = dents;
    dargs->num_dents = num_dents;
    return 0;
@@ -1348,10 +1402,11 @@ int fskit_route_io_args( struct fskit_route_dispatch_args* dargs, char* iobuf, s
 }
 
 // set up dargs for trunc
-int fskit_route_trunc_args( struct fskit_route_dispatch_args* dargs, off_t iooff, void* handle_data, fskit_route_io_continuation io_cont ) {
+int fskit_route_trunc_args( struct fskit_route_dispatch_args* dargs, char const* name, off_t iooff, void* handle_data, fskit_route_io_continuation io_cont ) {
 
    memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
 
+   dargs->name = name;
    dargs->iooff = iooff;
    dargs->handle_data = handle_data;
    dargs->io_cont = io_cont;
@@ -1359,11 +1414,12 @@ int fskit_route_trunc_args( struct fskit_route_dispatch_args* dargs, off_t iooff
    return 0;
 }
 
-// set up dargs for unlink(), rmdir(), and general unref
-int fskit_route_detach_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, bool garbage_collect, void* inode_data ) {
+// set up dargs for unlink(), where we only decrement the link count
+int fskit_route_detach_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, char const* name, bool garbage_collect, void* inode_data ) {
 
    memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
 
+   dargs->name = name;
    dargs->parent = parent;
    dargs->garbage_collect = garbage_collect;
    dargs->inode_data = inode_data;
@@ -1371,11 +1427,24 @@ int fskit_route_detach_args( struct fskit_route_dispatch_args* dargs, struct fsk
    return 0;
 }
 
-// set up dargs for stat()
-int fskit_route_stat_args( struct fskit_route_dispatch_args* dargs, struct stat* sb ) {
+// set up dargs for unlink(), rmdir(), and general destruction
+int fskit_route_destroy_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, char const* name, void* inode_data ) {
 
    memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
 
+   dargs->name = name;
+   dargs->parent = parent;
+   dargs->inode_data = inode_data;
+
+   return 0;
+}
+
+// set up dargs for stat()
+int fskit_route_stat_args( struct fskit_route_dispatch_args* dargs, char const* name, struct stat* sb ) {
+
+   memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
+
+   dargs->name = name;
    dargs->sb = sb;
 
    return 0;
@@ -1390,10 +1459,11 @@ int fskit_route_sync_args( struct fskit_route_dispatch_args* dargs ) {
 }
 
 // set up dargs for rename()
-int fskit_route_rename_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* old_parent, char const* new_path, struct fskit_entry* new_parent, struct fskit_entry* dest ) {
+int fskit_route_rename_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* old_parent, char const* old_name, char const* new_path, struct fskit_entry* new_parent, struct fskit_entry* dest ) {
    
    memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
    
+   dargs->name = old_name,
    dargs->parent = old_parent;
    dargs->new_path = new_path;
    dargs->dest = dest;
@@ -1403,10 +1473,11 @@ int fskit_route_rename_args( struct fskit_route_dispatch_args* dargs, struct fsk
 }
 
 // set up dargs for link()
-int fskit_route_link_args( struct fskit_route_dispatch_args* dargs, char const* new_path, struct fskit_entry* new_parent ) {
+int fskit_route_link_args( struct fskit_route_dispatch_args* dargs, char const* name, char const* new_path, struct fskit_entry* new_parent ) {
    
    memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
    
+   dargs->name = name;
    dargs->new_parent = new_parent;
    dargs->new_path = new_path;
    
@@ -1416,6 +1487,11 @@ int fskit_route_link_args( struct fskit_route_dispatch_args* dargs, char const* 
 // get the route metadata path 
 char* fskit_route_metadata_get_path( struct fskit_route_metadata* route_metadata ) {
    return route_metadata->path;
+}
+
+// get the route metadata name 
+char* fskit_route_metadata_get_name( struct fskit_route_metadata* route_metadata ) {
+   return route_metadata->name;
 }
 
 // get the number of match groups 

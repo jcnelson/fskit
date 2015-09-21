@@ -47,7 +47,8 @@ struct fskit_path_route;
 #define FSKIT_ROUTE_MATCH_SYNC                  11
 #define FSKIT_ROUTE_MATCH_RENAME                12
 #define FSKIT_ROUTE_MATCH_LINK                  13
-#define FSKIT_ROUTE_NUM_ROUTE_TYPES             14
+#define FSKIT_ROUTE_MATCH_DESTROY               14
+#define FSKIT_ROUTE_NUM_ROUTE_TYPES             15
 
 // route consistency disciplines
 #define FSKIT_SEQUENTIAL        1       // route method calls will be serialized
@@ -81,6 +82,7 @@ typedef int (*fskit_entry_route_sync_callback_t)( struct fskit_core*, struct fsk
 typedef int (*fskit_entry_route_stat_callback_t)( struct fskit_core*, struct fskit_route_metadata*, struct fskit_entry*, struct stat* );
 typedef int (*fskit_entry_route_readdir_callback_t)( struct fskit_core*, struct fskit_route_metadata*, struct fskit_entry*, struct fskit_dir_entry**, size_t );
 typedef int (*fskit_entry_route_detach_callback_t)( struct fskit_core*, struct fskit_route_metadata*, struct fskit_entry*, void* );             // unlink() and rmdir()
+typedef int (*fskit_entry_route_destroy_callback_t)( struct fskit_core*, struct fskit_route_metadata*, struct fskit_entry*, void* );             // unlink() and rmdir()
 typedef int (*fskit_entry_route_rename_callback_t)( struct fskit_core*, struct fskit_route_metadata*, struct fskit_entry*, char const*, struct fskit_entry* );
 typedef int (*fskit_entry_route_link_callback_t)( struct fskit_core*, struct fskit_route_metadata*, struct fskit_entry*, char const* );
 
@@ -98,6 +100,7 @@ int fskit_route_read( struct fskit_core* core, char const* route_regex, fskit_en
 int fskit_route_write( struct fskit_core* core, char const* route_regex, fskit_entry_route_io_callback_t io_cb, int consistency_discipline );
 int fskit_route_trunc( struct fskit_core* core, char const* route_regex, fskit_entry_route_trunc_callback_t io_cb, int consistency_discipline );
 int fskit_route_detach( struct fskit_core* core, char const* route_regex, fskit_entry_route_detach_callback_t detach_cb, int consistency_discipline );
+int fskit_route_destroy( struct fskit_core* core, char const* route_regex, fskit_entry_route_destroy_callback_t destroy_cb, int consistency_discipline );
 int fskit_route_stat( struct fskit_core* core, char const* route_regex, fskit_entry_route_stat_callback_t stat_cb, int consistency_discipline );
 int fskit_route_sync( struct fskit_core* core, char const* route_regex, fskit_entry_route_sync_callback_t sync_cb, int consistency_discipline );
 int fskit_route_rename( struct fskit_core* core, char const* route_regex, fskit_entry_route_rename_callback_t rename_cb, int consistency_discipline );
@@ -114,6 +117,7 @@ int fskit_unroute_read( struct fskit_core* core, int route_handle );
 int fskit_unroute_write( struct fskit_core* core, int route_handle );
 int fskit_unroute_trunc( struct fskit_core* core, int route_handle );
 int fskit_unroute_detach( struct fskit_core* core, int route_handle );
+int fskit_unroute_destroy( struct fskit_core* core, int route_handle );
 int fskit_unroute_stat( struct fskit_core* core, int route_handle );
 int fskit_unroute_sync( struct fskit_core* core, int route_handle );
 int fskit_unroute_rename( struct fskit_core* core, int route_handle );
@@ -124,10 +128,11 @@ int fskit_unroute_all( struct fskit_core* core );
 
 // access route metadata 
 char* fskit_route_metadata_get_path( struct fskit_route_metadata* route_metadata );
+char* fskit_route_metadata_get_name( struct fskit_route_metadata* route_metadata );
 int fskit_route_metadata_num_match_groups( struct fskit_route_metadata* route_metadata );
 char** fskit_route_metadata_get_match_groups( struct fskit_route_metadata* route_metadata );
 struct fskit_entry* fskit_route_metadata_get_parent( struct fskit_route_metadata* route_metadata );
-char* fskit_route_metadata_new_get_path( struct fskit_route_metadata* route_metadata );
+char* fskit_route_metadata_get_new_path( struct fskit_route_metadata* route_metadata );
 struct fskit_entry* fskit_route_metadata_get_new_parent( struct fskit_route_metadata* route_metadata );
 
 FSKIT_C_LINKAGE_END 
