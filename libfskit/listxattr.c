@@ -77,6 +77,8 @@ static void fskit_listxattr_copy_names( fskit_xattr_set* xattrs, char* list, siz
       
       memcpy( list + offset, name, strlen(name) );
       
+      offset += strlen(name);
+      
       *(list + offset) = '\0';
       
       offset++;
