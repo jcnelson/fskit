@@ -110,7 +110,7 @@ int fskit_rmdir( struct fskit_core* core, char const* _path, uint64_t user, uint
    }
 
    // empty. Detach from the filesystem
-   rc = fskit_entry_detach_lowlevel( parent, dent );
+   rc = fskit_entry_detach_lowlevel( parent, path_basename );
    if( rc != 0 ) {
       fskit_error("fskit_entry_detach_lowlevel(%p) rc = %d\n", dent, rc );
 

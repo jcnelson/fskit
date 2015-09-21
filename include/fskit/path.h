@@ -57,6 +57,7 @@ struct fskit_entry* fskit_path_iterator_entry( struct fskit_path_iterator* itr )
 struct fskit_entry* fskit_path_iterator_entry_parent( struct fskit_path_iterator* itr );
 void fskit_path_iterator_release( struct fskit_path_iterator* itr );
 char* fskit_path_iterator_path( struct fskit_path_iterator* itr );
+char* fskit_path_iterator_name( struct fskit_path_iterator* itr );
 int fskit_path_iterator_length( struct fskit_path_iterator* itr );
 
 // referencing 

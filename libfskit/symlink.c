@@ -95,7 +95,7 @@ int fskit_symlink( struct fskit_core* core, char const* target, char const* link
    }
 
    // populate
-   rc = fskit_entry_init_symlink( child, file_id, child_name, target );
+   rc = fskit_entry_init_symlink( child, file_id, target );
    if( rc != 0 ) {
 
       fskit_entry_destroy( core, child, true );
@@ -106,7 +106,7 @@ int fskit_symlink( struct fskit_core* core, char const* target, char const* link
    }
 
    // insert
-   rc = fskit_entry_attach_lowlevel( parent, child );
+   rc = fskit_entry_attach_lowlevel( parent, child, child_name );
    if( rc != 0 ) {
 
       fskit_entry_destroy( core, child, true );

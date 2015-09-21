@@ -157,10 +157,14 @@ static int fskit_run_user_rename( struct fskit_core* core, char const* path, str
    
    int rc = 0;
    int cbrc = 0;
+   char name[FSKIT_FILESYSTEM_NAMEMAX+1];
    
    struct fskit_route_dispatch_args dargs;
    
-   fskit_route_rename_args( &dargs, old_fent, new_path, new_parent, dest );
+   memset( name, 0, FSKIT_FILESYSTEM_NAMEMAX+1 );
+   fskit_basename( path, name );
+   
+   fskit_route_rename_args( &dargs, old_fent, name, new_path, new_parent, dest );
    
    rc = fskit_route_call_rename( core, path, old_fent, &dargs, &cbrc );
    
@@ -177,21 +181,23 @@ static int fskit_run_user_rename( struct fskit_core* core, char const* path, str
 // return 0 on success
 // NOTE: fent_common_parent must be write-locked, as must fent
 // does NOT call the user route
-int fskit_entry_rename_in_directory( struct fskit_entry* fent_parent, struct fskit_entry* fent, char const* new_name ) {
+// return -ENOMEM on OOM 
+// return -ENOENT of fent is not present in fent_parent
+int fskit_entry_rename_in_directory( struct fskit_entry* fent_parent, struct fskit_entry* fent, char const* old_name, char const* new_name ) {
+   
+   if( fskit_entry_set_find_name( fent_parent->children, old_name ) != fent ) {
+      return -ENOENT;
+   }
    
    char* name_dup = strdup( new_name );
    if( name_dup == NULL ) {
       return -ENOMEM;
    }
    
-   fskit_entry_set_remove( &fent_parent->children, fent->name );
-
-   // rename this fskit_entry
-   fskit_safe_free( fent->name );
-   fent->name = name_dup;
+   fskit_entry_set_remove( &fent_parent->children, old_name );
    
    fskit_entry_set_remove( &fent_parent->children, new_name );
-   fskit_entry_set_insert( &fent_parent->children, fent->name, fent );
+   fskit_entry_set_insert( &fent_parent->children, new_name, fent );
    
    return 0;
 }
@@ -413,34 +419,30 @@ int fskit_rename( struct fskit_core* core, char const* old_path, char const* new
       // dealing with entries in the same directory
       dest_parent = fent_common_parent;
       
-      fskit_entry_detach_lowlevel( fent_common_parent, fent_old );
+      fskit_entry_detach_lowlevel( fent_common_parent, old_path_basename );
       
       // rename this fskit_entry
-      fskit_safe_free( fent_old->name );
-      fent_old->name = new_path_basename;
-
       if( fent_new != NULL ) {
-         fskit_entry_detach_lowlevel( fent_common_parent, fent_new );
+         fskit_entry_detach_lowlevel( fent_common_parent, new_path_basename );
       }
 
-      fskit_entry_attach_lowlevel( fent_common_parent, fent_old );
+      fskit_entry_attach_lowlevel( fent_common_parent, fent_old, new_path_basename );
+      fskit_safe_free( new_path_basename );
    }
    else {
 
       // dealing with entries in different directories
       dest_parent = fent_new_parent;
 
-      fskit_entry_detach_lowlevel( fent_old_parent, fent_old );
+      fskit_entry_detach_lowlevel( fent_old_parent, old_path_basename );
 
       // rename this fskit_entry
-      fskit_safe_free( fent_old->name );
-      fent_old->name = new_path_basename;
-
       if( fent_new != NULL ) {
-         fskit_entry_detach_lowlevel( fent_new_parent, fent_new );
+         fskit_entry_detach_lowlevel( fent_new_parent, new_path_basename );
       }
 
-      fskit_entry_attach_lowlevel( fent_new_parent, fent_old );
+      fskit_entry_attach_lowlevel( fent_new_parent, fent_old, new_path_basename );
+      fskit_safe_free( new_path_basename );
    }
    
    fskit_entry_unlock( fent_old );

@@ -33,8 +33,12 @@ int fskit_run_user_mkdir( struct fskit_core* core, char const* path, struct fski
    int rc = 0;
    int cbrc = 0;
    struct fskit_route_dispatch_args dargs;
-
-   fskit_route_mkdir_args( &dargs, parent, mode );
+   char name[FSKIT_FILESYSTEM_NAMEMAX+1];
+   
+   memset( name, 0, FSKIT_FILESYSTEM_NAMEMAX+1 );
+   fskit_basename( path, name );
+   
+   fskit_route_mkdir_args( &dargs, parent, name, mode );
 
    rc = fskit_route_call_mkdir( core, path, fent, &dargs, &cbrc );
 
@@ -125,7 +129,7 @@ static int fskit_mkdir_lowlevel( struct fskit_core* core, char const* path, stru
       }
       
       // set up the directory
-      err = fskit_entry_init_dir( child, parent, child_inode, path_basename, user, group, mode );
+      err = fskit_entry_init_dir( child, parent, child_inode, user, group, mode );
       if( err != 0 ) {
          fskit_error("fskit_entry_init_dir(%s) rc = %d\n", path, err );
 
@@ -154,7 +158,7 @@ static int fskit_mkdir_lowlevel( struct fskit_core* core, char const* path, stru
          fskit_entry_set_user_data( child, app_dir_data );
 
          // attach to parent
-         fskit_entry_attach_lowlevel( parent, child );
+         fskit_entry_attach_lowlevel( parent, child, path_basename );
       }
    }
 

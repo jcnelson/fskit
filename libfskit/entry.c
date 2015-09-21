@@ -167,13 +167,7 @@ fskit_entry_set* fskit_entry_set_find_itr( fskit_entry_set* set, char const* nam
    memset( &lookup, 0, sizeof( fskit_entry_set ) );
    lookup.name = (char*)name;
    
-   member = sglib_fskit_entry_set_find_member( set, &lookup );
-   if( member == NULL ) {
-      return NULL;
-   }
-   else {
-      return member;
-   }
+   return sglib_fskit_entry_set_find_member( set, &lookup );
 }
 
 
@@ -293,35 +287,12 @@ struct fskit_entry* fskit_dir_find_by_name( struct fskit_entry* dir, char const*
 }
 
 
-// add or replace a child by name
-// do not run user-given routes 
-// return 0 on success, and if a child was replaced, set it in *old_child
-// return -ENOENT on OOM 
-// return -ENOTDIR if dent isn't a dir
-// NOTE: dent must be write-locked
-int fskit_dir_add_child_by_name( struct fskit_entry* dent, struct fskit_entry* child, struct fskit_entry** ret_old_child ) {
-   
-   if( dent->children == NULL ) {
-      return -ENOTDIR;
-   }
-   
-   struct fskit_entry* old_child = NULL;
-   
-   old_child = fskit_entry_set_find_name( dent->children, child->name );
-   
-   fskit_entry_set_insert( &dent->children, child->name, child );
-   
-   *ret_old_child = old_child;
-   
-   return 0;
-}
-
 // attach an entry as a child directly
 // both fskit_entry structures must be write-locked
 // return 0 on success 
 // return -ENOMEM on OOM
 // NOTE: parent must be write-locked, as well as fent
-int fskit_entry_attach_lowlevel_ex( struct fskit_entry* parent, struct fskit_entry* fent, char const* name ) {
+int fskit_entry_attach_lowlevel( struct fskit_entry* parent, struct fskit_entry* fent, char const* name ) {
 
    if( parent != fent ) {
       fent->link_count++;
@@ -337,13 +308,6 @@ int fskit_entry_attach_lowlevel_ex( struct fskit_entry* parent, struct fskit_ent
    return fskit_entry_set_insert( &parent->children, name, fent );
 }
 
-// simplified fskit_entry_attach_lowlevel_ex: attach using the fent's name 
-// return 0 on success
-// return -ENOMEM on OOM 
-// NOTE: parent and fent must be write-locked
-int fskit_entry_attach_lowlevel( struct fskit_entry* parent, struct fskit_entry* fent ) {
-   return fskit_entry_attach_lowlevel_ex( parent, fent, fent->name );
-}
 
 // detach an entry from a parent.
 // both entries must be write-locked.
@@ -351,18 +315,20 @@ int fskit_entry_attach_lowlevel( struct fskit_entry* parent, struct fskit_entry*
 // parent must be write-locked
 // child must be write-locked, or otherwise inaccessible
 // the child will not be destroyed even if its link count reaches zero; the caller must take care of that.
-static int fskit_entry_detach_lowlevel_ex( struct fskit_entry* parent, struct fskit_entry* child, bool update_mtime ) {
+static int fskit_entry_detach_lowlevel_ex( struct fskit_entry* parent, char const* child_name, bool update_mtime ) {
 
+   struct fskit_entry* child = fskit_entry_set_find_name( parent->children, child_name );
+   if( child == NULL ) {
+      
+      fskit_error("fskit_entry_set_find_name(%p, '%s') == NULL\n", parent, child_name );
+      return -ENOENT;
+   }
+   
    if( parent == child ) {
       // tried to detach .
       return -ENOTEMPTY;
    }
-
-   if( child == NULL ) {
-      // no entry found
-      return -ENOENT;
-   }
-
+   
    // if the child is a directory, and it's not empty, then don't proceed
    if( child->type == FSKIT_ENTRY_TYPE_DIR && fskit_entry_get_num_children( child ) > 2 ) {
       // not empty
@@ -370,10 +336,10 @@ static int fskit_entry_detach_lowlevel_ex( struct fskit_entry* parent, struct fs
    }
 
    // unlink
-   bool rc = fskit_entry_set_remove( &parent->children, child->name );
+   bool rc = fskit_entry_set_remove( &parent->children, child_name );
    if( !rc ) {
       
-      fskit_error("fskit_entry_set_remove('%s', '%s') rc = false\n", parent->name, child->name );
+      fskit_error("fskit_entry_set_remove(%" PRIX64 ", '%s') rc = false\n", parent->file_id, child_name );
       return -ENOENT;
    }
    
@@ -389,7 +355,7 @@ static int fskit_entry_detach_lowlevel_ex( struct fskit_entry* parent, struct fs
 
       // should *never* happen
       if( child->link_count < 0 ) {
-         fskit_error("BUG: negative link count on %" PRIX64 " ('%s')\n", child->file_id, child->name );
+         fskit_error("BUG: negative link count on %" PRIX64 " ('%s')\n", child->file_id, child_name );
          child->link_count = 0;
       }
    }
@@ -403,8 +369,8 @@ static int fskit_entry_detach_lowlevel_ex( struct fskit_entry* parent, struct fs
 // child's link count will be decremented
 // parent must be write-locked, so it won't matter if the child is not.
 // the child will not be destroyed even if its link count reaches zero; the caller must take care of that.
-int fskit_entry_detach_lowlevel( struct fskit_entry* parent, struct fskit_entry* child ) {
-   return fskit_entry_detach_lowlevel_ex( parent, child, true );
+int fskit_entry_detach_lowlevel( struct fskit_entry* parent, char const* child_name ) {
+   return fskit_entry_detach_lowlevel_ex( parent, child_name, true );
 }
 
 // default inode allocator: pick a random 64-bit number
@@ -444,7 +410,7 @@ int fskit_core_init( struct fskit_core* core, void* app_fs_data ) {
       return -ENOMEM;
    }
 
-   rc = fskit_entry_init_dir( &core->root, &core->root, 0, "/", 0, 0, 0755 );
+   rc = fskit_entry_init_dir( &core->root, &core->root, 0, 0, 0, 0755 );
    if( rc != 0 ) {
       fskit_error("fskit_entry_init_dir(/) rc = %d\n", rc );
 
@@ -472,10 +438,8 @@ int fskit_core_init( struct fskit_core* core, void* app_fs_data ) {
 // return the app_fs_data from core upon distruction
 int fskit_core_destroy( struct fskit_core* core, void** app_fs_data ) {
 
-   void* fs_data = core->app_fs_data;
-
-   core->app_fs_data = NULL;
-
+   void* fs_data = NULL;
+   
    fskit_entry_wlock( &core->root );
    
    // forcibly detach core->root 
@@ -490,6 +454,9 @@ int fskit_core_destroy( struct fskit_core* core, void** app_fs_data ) {
    fskit_entry_destroy( core, &core->root, true );
 
    fskit_route_table_free( core->routes );
+   
+   fs_data = core->app_fs_data;
+   core->app_fs_data = NULL;
 
    pthread_rwlock_unlock( &core->lock );
    pthread_rwlock_destroy( &core->lock );
@@ -654,7 +621,7 @@ int fskit_detach_all_ex( struct fskit_core* core, char const* dir_path, fskit_en
          rc = fskit_entry_tag_garbage( fent, &children );
          if( rc != 0 ) {
             
-            fskit_error("fskit_entry_tag_garbage('%s') rc = %d\n", fent->name, rc);
+            fskit_error("fskit_entry_tag_garbage('%" PRIX64 "') rc = %d\n", fent->file_id, rc);
             fskit_entry_unlock( fent );
             return rc;
          }
@@ -678,7 +645,10 @@ int fskit_detach_all_ex( struct fskit_core* core, char const* dir_path, fskit_en
       // mark this entry for garbage-collection.
       // it was detached from exactly one parent by this method.
       fent->link_count--;
-      fent->deletion_in_progress = true;
+      
+      if( fent->type == FSKIT_ENTRY_TYPE_DIR ) {
+         fent->deletion_in_progress = true;
+      }
       
       // maybe this entry is fully unref'ed...
       rc = fskit_entry_try_destroy_and_free( core, fent_path, NULL, fent );
@@ -771,7 +741,7 @@ int fskit_detach_all( struct fskit_core* core, char const* root_path ) {
    // swap out the children, and mark this directory as garbage-collectable
    rc = fskit_entry_tag_garbage( dent, &dir_children );
    if( rc != 0 ) {
-       fskit_error("fskit_entry_tag_garbage('%s') rc = %d\n", dent->name, rc );
+       fskit_error("fskit_entry_tag_garbage('%" PRIX64 "') rc = %d\n", dent->file_id, rc );
        fskit_entry_unlock( dent );
        return rc;
    }
@@ -899,7 +869,7 @@ struct fskit_entry* fskit_entry_new(void) {
 
 // initialize an fskit entry
 // this method does not fail.
-int fskit_entry_init_lowlevel( struct fskit_entry* fent, uint8_t type, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode ) {
+int fskit_entry_init_lowlevel( struct fskit_entry* fent, uint8_t type, uint64_t file_id, uint64_t owner, uint64_t group, mode_t mode ) {
 
    int rc = 0;
 
@@ -907,7 +877,6 @@ int fskit_entry_init_lowlevel( struct fskit_entry* fent, uint8_t type, uint64_t 
 
    fent->type = type;
    fent->file_id = file_id;
-   fent->name = strdup(name);
    fent->owner = owner;
    fent->group = group;
    fent->mode = mode;
@@ -918,7 +887,7 @@ int fskit_entry_init_lowlevel( struct fskit_entry* fent, uint8_t type, uint64_t 
 
 
 // common high-level initializer
-int fskit_entry_init_common( struct fskit_entry* fent, uint8_t type, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode ) {
+int fskit_entry_init_common( struct fskit_entry* fent, uint8_t type, uint64_t file_id, uint64_t owner, uint64_t group, mode_t mode ) {
 
    int rc = 0;
    struct timespec now;
@@ -929,7 +898,7 @@ int fskit_entry_init_common( struct fskit_entry* fent, uint8_t type, uint64_t fi
       return rc;
    }
 
-   fskit_entry_init_lowlevel( fent, type, file_id, name, owner, group, mode );
+   fskit_entry_init_lowlevel( fent, type, file_id, owner, group, mode );
 
    fskit_entry_set_atime( fent, &now );
    fskit_entry_set_ctime( fent, &now );
@@ -944,19 +913,14 @@ int fskit_entry_init_common( struct fskit_entry* fent, uint8_t type, uint64_t fi
 
 // high-level initializer: make a file
 // return 0 on success
-// return -EINVAL if name is NULL
 // return -ENOMEM on OOM
-int fskit_entry_init_file( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode ) {
+int fskit_entry_init_file( struct fskit_entry* fent, uint64_t file_id, uint64_t owner, uint64_t group, mode_t mode ) {
 
    int rc = 0;
    
-   if( name == NULL ) {
-      return -EINVAL;
-   }
-
-   rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_FILE, file_id, name, owner, group, mode );
+   rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_FILE, file_id, owner, group, mode );
    if( rc != 0 ) {
-      fskit_error("fskit_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
+      fskit_error("fskit_entry_init_common(%" PRIX64 ") rc = %d\n", file_id, rc );
       return rc;
    }
 
@@ -967,24 +931,19 @@ int fskit_entry_init_file( struct fskit_entry* fent, uint64_t file_id, char cons
 
 // high-level initializer: make a directory
 // return 0 on success
-// return -EINVAL if name is NULL
 // return -ENOMEM on OOM
-int fskit_entry_init_dir( struct fskit_entry* fent, struct fskit_entry* parent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode ) {
+int fskit_entry_init_dir( struct fskit_entry* fent, struct fskit_entry* parent, uint64_t file_id, uint64_t owner, uint64_t group, mode_t mode ) {
 
    int rc = 0;
    
-   if( name == NULL ) {
-      return -EINVAL;
-   }
-
    fskit_entry_set* children = fskit_entry_set_new( fent, parent );
    if( children == NULL ) {
       return -ENOMEM;
    }
 
-   rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_DIR, file_id, name, owner, group, mode );
+   rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_DIR, file_id, owner, group, mode );
    if( rc != 0 ) {
-      fskit_error("fskit_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
+      fskit_error("fskit_entry_init_common(%" PRIX64 ") rc = %d\n", file_id, rc );
       fskit_safe_free( children );
       return rc;
    }
@@ -995,19 +954,14 @@ int fskit_entry_init_dir( struct fskit_entry* fent, struct fskit_entry* parent, 
 
 // high-level initializer: make a fifo
 // return 0 on success
-// return -EINVAL if name is NULL
 // return -ENOMEM on OOM
-int fskit_entry_init_fifo( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode ) {
+int fskit_entry_init_fifo( struct fskit_entry* fent, uint64_t file_id, uint64_t owner, uint64_t group, mode_t mode ) {
 
    int rc = 0;
    
-   if( name == NULL ) {
-      return -EINVAL;
-   }
-
-   rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_FIFO, file_id, name, owner, group, mode );
+   rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_FIFO, file_id, owner, group, mode );
    if( rc != 0 ) {
-      fskit_error("fskit_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
+      fskit_error("fskit_entry_init_common(%" PRIX64 ") rc = %d\n", file_id, rc );
       return rc;
    }
 
@@ -1017,19 +971,14 @@ int fskit_entry_init_fifo( struct fskit_entry* fent, uint64_t file_id, char cons
 
 // high-level initializer: make a UNIX domain socket
 // return 0 on success
-// return -EINVAL if name is NULL
 // return -ENOMEM on OOM
-int fskit_entry_init_sock( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode ) {
+int fskit_entry_init_sock( struct fskit_entry* fent, uint64_t file_id, uint64_t owner, uint64_t group, mode_t mode ) {
 
    int rc = 0;
-   
-   if( name == NULL ) {
-      return -EINVAL;
-   }
 
-   rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_SOCK, file_id, name, owner, group, mode );
+   rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_SOCK, file_id, owner, group, mode );
    if( rc != 0 ) {
-      fskit_error("fskit_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
+      fskit_error("fskit_entry_init_common(%" PRIX64 ") rc = %d\n", file_id, rc );
       return rc;
    }
 
@@ -1039,19 +988,14 @@ int fskit_entry_init_sock( struct fskit_entry* fent, uint64_t file_id, char cons
 
 // high-level initializer: make a character device
 // return 0 on success
-// return -EINVAL if name is NULL
 // return -ENOMEM on OOM
-int fskit_entry_init_chr( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode, dev_t dev ) {
+int fskit_entry_init_chr( struct fskit_entry* fent, uint64_t file_id, uint64_t owner, uint64_t group, mode_t mode, dev_t dev ) {
 
    int rc = 0;
    
-   if( name == NULL ) {
-      return -EINVAL;
-   }
-
-   rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_CHR, file_id, name, owner, group, mode );
+   rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_CHR, file_id, owner, group, mode );
    if( rc != 0 ) {
-      fskit_error("fskit_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
+      fskit_error("fskit_entry_init_common(%" PRIX64 ") rc = %d\n", file_id, rc );
       return rc;
    }
 
@@ -1061,19 +1005,14 @@ int fskit_entry_init_chr( struct fskit_entry* fent, uint64_t file_id, char const
 
 // high-level initializer: make a block device
 // return 0 on success
-// return -EINVAL if name is NULL
 // return -ENOMEM on OOM
-int fskit_entry_init_blk( struct fskit_entry* fent, uint64_t file_id, char const* name, uint64_t owner, uint64_t group, mode_t mode, dev_t dev ) {
+int fskit_entry_init_blk( struct fskit_entry* fent, uint64_t file_id, uint64_t owner, uint64_t group, mode_t mode, dev_t dev ) {
 
    int rc = 0;
-   
-   if( name == NULL ) {
-      return -EINVAL;
-   }
 
-   rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_BLK, file_id, name, owner, group, mode );
+   rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_BLK, file_id, owner, group, mode );
    if( rc != 0 ) {
-      fskit_error("fskit_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
+      fskit_error("fskit_entry_init_common(%" PRIX64 ") rc = %d\n", file_id, rc );
       return rc;
    }
 
@@ -1083,13 +1022,13 @@ int fskit_entry_init_blk( struct fskit_entry* fent, uint64_t file_id, char const
 
 // high-level initializer; make a symlink
 // return 0 on success
-// return -EINVAL if name or linkpath is NULL
+// return -EINVAL if linkpath is NULL
 // return -ENOMEM on OOM
-int fskit_entry_init_symlink( struct fskit_entry* fent, uint64_t file_id, char const* name, char const* linkpath ) {
+int fskit_entry_init_symlink( struct fskit_entry* fent, uint64_t file_id, char const* linkpath ) {
 
    int rc = 0;
    
-   if( name == NULL || linkpath == NULL ) {
+   if( linkpath == NULL ) {
       return -EINVAL;
    }
    
@@ -1102,9 +1041,9 @@ int fskit_entry_init_symlink( struct fskit_entry* fent, uint64_t file_id, char c
        }
    }
 
-   rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_LNK, file_id, name, 0, 0, 0777 );
+   rc = fskit_entry_init_common( fent, FSKIT_ENTRY_TYPE_LNK, file_id, 0, 0, 0777 );
    if( rc != 0 ) {
-      fskit_error("fskit_entry_init_common(%" PRIX64 " %s) rc = %d\n", file_id, name, rc );
+      fskit_error("fskit_entry_init_common(%" PRIX64 ") rc = %d\n", file_id, rc );
 
       fskit_safe_free( symlink_target );
       return rc;
@@ -1122,7 +1061,7 @@ int fskit_entry_init_symlink( struct fskit_entry* fent, uint64_t file_id, char c
    return 0;
 }
 
-// run user-supplied route callback to destroy this fent's inode data
+// run user-supplied route callback to detach this fent
 // mask -ENOSYS and -EPERM, i.e. the errors if no route exists or could be found
 // fent must *not* be locked!
 int fskit_run_user_detach( struct fskit_core* core, char const* path, struct fskit_entry* parent, struct fskit_entry* fent ) {
@@ -1130,10 +1069,48 @@ int fskit_run_user_detach( struct fskit_core* core, char const* path, struct fsk
    int rc = 0;
    int cbrc = 0;
    struct fskit_route_dispatch_args dargs;
+   char name[FSKIT_FILESYSTEM_NAMEMAX+1];
+   
+   memset( name, 0, FSKIT_FILESYSTEM_NAMEMAX+1 );
+   fskit_basename( path, name );
 
-   fskit_route_detach_args( &dargs, parent, fent->deletion_in_progress, fent->app_data );
+   fskit_route_detach_args( &dargs, parent, name, fent->deletion_in_progress, fent->app_data );
 
    rc = fskit_route_call_detach( core, path, fent, &dargs, &cbrc );
+
+   if( rc == -EPERM || rc == -ENOSYS ) {
+      // no routes
+      return 0;
+   }
+
+   else if( cbrc != 0 ) {
+      // callback failed
+      return cbrc;
+   }
+
+   else {
+      // callback succeded
+      return 0;
+   }
+}
+
+
+// run user-supplied route callback to destroy this fent's inode data
+// mask -ENOSYS and -EPERM, i.e. the errors if no route exists or could be found
+// fent must *not* be locked!
+int fskit_run_user_destroy( struct fskit_core* core, char const* path, struct fskit_entry* parent, struct fskit_entry* fent ) {
+
+   int rc = 0;
+   int cbrc = 0;
+   struct fskit_route_dispatch_args dargs;
+   char name[FSKIT_FILESYSTEM_NAMEMAX+1];
+   
+   memset( name, 0, FSKIT_FILESYSTEM_NAMEMAX+1 );
+   fskit_basename( path, name );
+
+   fskit_route_destroy_args( &dargs, parent, name, fent->app_data );
+
+   rc = fskit_route_call_destroy( core, path, fent, &dargs, &cbrc );
 
    if( rc == -EPERM || rc == -ENOSYS ) {
       // no routes
@@ -1169,11 +1146,6 @@ int fskit_entry_destroy( struct fskit_core* core, struct fskit_entry* fent, bool
    fent->type = FSKIT_ENTRY_TYPE_DEAD;      // next thread to hold this lock knows this is a dead entry
 
    // free common fields
-   if( fent->name != NULL ) {
-      fskit_safe_free( fent->name );
-      fent->name = NULL;
-   }
-
    if( fent->children != NULL ) {
       fskit_entry_set_free( fent->children );
       fent->children = NULL;
@@ -1225,9 +1197,9 @@ static int fskit_entry_try_destroy( struct fskit_core* core, char const* fs_path
       fent->open_count++;
       fskit_entry_unlock( fent );
       
-      rc = fskit_run_user_detach( core, fs_path, parent, fent );
+      rc = fskit_run_user_destroy( core, fs_path, parent, fent );
       if( rc != 0 ) {
-         fskit_error("WARN: fskit_run_user_detach(%s) rc = %d\n", fs_path, rc );
+         fskit_error("WARN: fskit_run_user_destroy(%s) rc = %d\n", fs_path, rc );
       }
 
       fskit_entry_destroy( core, fent, false );
@@ -1264,7 +1236,6 @@ int fskit_entry_try_destroy_and_free( struct fskit_core* core, char const* fs_pa
 // return 0 if detached but not destroyed
 // return 1 if detached and destroyed (even if the user-given detach callback fails)
 // return -EEXIST if the entry can't be garbage collected
-// return -ENAMETOOLONG if the child's name is more than FSKIT_FILESYSTEM_NAMEMAX characters long
 // NOTE: parent and child must be write-locked
 int fskit_entry_try_garbage_collect( struct fskit_core* core, char const* path, struct fskit_entry* parent, struct fskit_entry* child ) {
 
@@ -1272,20 +1243,15 @@ int fskit_entry_try_garbage_collect( struct fskit_core* core, char const* path, 
    uint64_t child_inode_id = 0;
    char path_basename[ FSKIT_FILESYSTEM_NAMEMAX + 1 ];
 
-   if( strlen(child->name) > FSKIT_FILESYSTEM_NAMEMAX ) {
-      // shouldn't happen, but you never know
-      return -ENAMETOOLONG;
-   }
-
    // marked as garbage-collectable?
    if( child->deletion_in_progress ) {
 
-      strcpy( path_basename, child->name );
+      fskit_basename( path, path_basename );
       
       child_inode_id = child->file_id;
 
       // detach from the parent, but don't update mtime (since it was already detached)
-      rc = fskit_entry_detach_lowlevel_ex( parent, child, false );
+      rc = fskit_entry_detach_lowlevel_ex( parent, path_basename, false );
       if( rc < 0 ) {
          
          if( rc == -ENOENT ) {
@@ -1335,7 +1301,7 @@ int fskit_entry_try_garbage_collect( struct fskit_core* core, char const* path, 
 // lock a file for reading
 int fskit_entry_rlock2( struct fskit_entry* fent, char const* from_str, int line_no ) {
    if( FSKIT_GLOBAL_DEBUG_LOCKS ) {
-      fskit_debug( "%p: %s, from %s:%d\n", fent, fent->name, from_str, line_no );
+      fskit_debug( "%p: %" PRIX64 ", from %s:%d\n", fent, fent->file_id, from_str, line_no );
    }
 
    int rc = pthread_rwlock_rdlock( &fent->lock );
@@ -1354,7 +1320,7 @@ int fskit_entry_rlock2( struct fskit_entry* fent, char const* from_str, int line
 // lock a file for writing
 int fskit_entry_wlock2( struct fskit_entry* fent, char const* from_str, int line_no ) {
    if( FSKIT_GLOBAL_DEBUG_LOCKS ) {
-      fskit_debug( "%p: %s, from %s:%d\n", fent, fent->name, from_str, line_no );
+      fskit_debug( "%p: %" PRIX64 ", from %s:%d\n", fent, fent->file_id, from_str, line_no );
    }
 
    int rc = pthread_rwlock_wrlock( &fent->lock );
@@ -1375,7 +1341,7 @@ int fskit_entry_unlock2( struct fskit_entry* fent, char const* from_str, int lin
    int rc = pthread_rwlock_unlock( &fent->lock );
    if( rc == 0 ) {
       if( FSKIT_GLOBAL_DEBUG_LOCKS ) {
-         fskit_debug( "%p: %s, from %s:%d\n", fent, fent->name, from_str, line_no );
+         fskit_debug( "%p: %" PRIX64 ", from %s:%d\n", fent, fent->file_id, from_str, line_no );
       }
    }
    else {
@@ -1507,6 +1473,8 @@ char* fskit_entry_swap_symlink_target( struct fskit_entry* ent, char* new_symlin
 // return -EIO if ent is a directory and lacks a .. entry.
 int fskit_entry_tag_garbage( struct fskit_entry* ent, fskit_entry_set** children ) {
     
+    fskit_debug("Tag %" PRIX64 " as garbage\n", ent->file_id );
+    
     if( ent->type == FSKIT_ENTRY_TYPE_DIR ) {
         
         // new, empty child set 
@@ -1514,7 +1482,7 @@ int fskit_entry_tag_garbage( struct fskit_entry* ent, fskit_entry_set** children
         if( parent == NULL ) {
             
             // should *never* happen 
-            fskit_error("BUG: directory %" PRIX64 " (%s) does not have a parent entry\n", ent->file_id, ent->name );
+            fskit_error("BUG: directory %" PRIX64 " does not have a parent entry\n", ent->file_id );
             return -EIO;
         }
         
@@ -1529,9 +1497,8 @@ int fskit_entry_tag_garbage( struct fskit_entry* ent, fskit_entry_set** children
         *children = ent->children;
         ent->children = empty_children;
         ent->num_children = 0;
+        ent->deletion_in_progress = true;
     }
-       
-    ent->deletion_in_progress = true;
     return 0;
 }
 
@@ -1585,11 +1552,6 @@ uint8_t fskit_entry_get_type( struct fskit_entry* ent ) {
    return ent->type;
 }
 
-// get duplicate of name (ent must be read-locked)
-char* fskit_entry_get_name( struct fskit_entry* ent ) {
-   return strdup( ent->name );
-}
-
 // get a pointer to the children 
 fskit_entry_set* fskit_entry_get_children( struct fskit_entry* ent ) {
    return ent->children;
@@ -1598,19 +1560,6 @@ fskit_entry_set* fskit_entry_get_children( struct fskit_entry* ent ) {
 // get a pointer to the xattrs 
 fskit_xattr_set* fskit_entry_get_xattrs( struct fskit_entry* ent ) {
    return ent->xattrs;
-}
-
-// copy name (ent must be read-locked), or return -ERANGE if the buffer is too small 
-int fskit_entry_copy_name( struct fskit_entry* ent, char* buf, size_t buf_len ) {
-    
-    if( strlen(ent->name) + 1 >= buf_len ) {
-        return -ERANGE;
-    }
-    else {
-        memset( buf, 0, buf_len );
-        strcpy( buf, ent->name );
-        return 0;
-    }
 }
 
 // get owner (ent must be read-locked)
@@ -1654,6 +1603,11 @@ dev_t fskit_entry_get_rdev( struct fskit_entry* ent ) {
 // get permission bits 
 mode_t fskit_entry_get_mode( struct fskit_entry* ent ) {
    return ent->mode;
+}
+
+// get link count 
+int32_t fskit_entry_get_link_count( struct fskit_entry* ent ) {
+   return ent->link_count;
 }
 
 // get number of children.  if this is not a directory, return -1

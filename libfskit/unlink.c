@@ -72,22 +72,32 @@ int fskit_unlink( struct fskit_core* core, char const* path, uint64_t owner, uin
 
    // find the fent, and write-lock it
    struct fskit_entry* fent = fskit_entry_set_find_name( parent->children, path_basename );
-   free( path_basename );
 
    if( fent == NULL ) {
 
       fskit_entry_unlock( parent );
+      free( path_basename );
       return -ENOENT;
    }
    
    // detach fent from parent
-   rc = fskit_entry_detach_lowlevel( parent, fent );
+   rc = fskit_entry_detach_lowlevel( parent, path_basename );
+   free( path_basename );
+   
    if( rc != 0 && rc != -ENOENT ) {
 
       fskit_error("fskit_entry_detach_lowlevel(%p) rc = %d\n", fent, rc );
 
       fskit_entry_unlock( parent );
       return rc;
+   }
+
+   // user detach handler
+   rc = fskit_run_user_detach( core, path, parent, fent );
+   if( rc < 0 ) {
+        
+       fskit_error("fskit_run_user_detach('%s') rc = %d\n", path, rc );
+       rc = 0;
    }
    
    fskit_entry_wlock( fent );
@@ -109,7 +119,6 @@ int fskit_unlink( struct fskit_core* core, char const* path, uint64_t owner, uin
    }
    else {
 
-      // not destroyed
       // done with this entry
       fskit_entry_unlock( fent );
    }

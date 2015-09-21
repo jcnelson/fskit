@@ -49,7 +49,6 @@ struct fskit_xattr_set_entry {
 struct fskit_entry {
    uint64_t file_id;             // inode number
    uint8_t type;                 // type of inode
-   char* name;
 
    uint64_t owner;
    uint64_t group;
@@ -70,7 +69,7 @@ struct fskit_entry {
 
    off_t size;          // number of bytes in this file
 
-   bool deletion_in_progress;   // set to true if this node is flagged for garbage-collection
+   bool deletion_in_progress;   // set to true if this node is flagged for garbage-collection.  valid only for directories
 
    // if this is a directory, this is allocated and points to a fskit_entry_set
    int64_t num_children;
@@ -172,6 +171,7 @@ union fskit_route_method {
    fskit_entry_route_stat_callback_t         stat_cb;
    fskit_entry_route_readdir_callback_t      readdir_cb;
    fskit_entry_route_detach_callback_t       detach_cb;
+   fskit_entry_route_destroy_callback_t      destroy_cb;
    fskit_entry_route_rename_callback_t       rename_cb;
    fskit_entry_route_link_callback_t         link_cb;
 };
@@ -184,6 +184,7 @@ struct fskit_route_metadata {
    char** argv;                 // each matched string in the path regex
    
    struct fskit_entry* parent;  // parent entry (creat(), mknod(), mkdir(), rename() only)
+   char* name;
    
    struct fskit_entry* new_parent;      // parent entry of the destination (rename(), link())
    char* new_path;                      // path to rename/link to (rename(), link())
@@ -211,6 +212,7 @@ struct fskit_route_dispatch_args {
    struct fskit_dir_entry** dents;        // readdir() only
    uint64_t num_dents;
 
+   char const* name;
    struct stat* sb;      // stat() only
    
    struct fskit_entry* parent;  // create(), mkdir(), mknod(), rename(), link(), rmdir(), unlink() (guaranteed to be write-locked if non-NULL)
@@ -276,19 +278,20 @@ struct fskit_path_route* fskit_route_table_find( fskit_route_table* routes, int 
 struct fskit_path_route* fskit_route_table_remove( fskit_route_table** route_table, int route_type, int route_id );
 
 // populate route dispatch arguments (internal API)
-int fskit_route_create_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, mode_t mode );
-int fskit_route_mknod_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, mode_t mode, dev_t dev );
-int fskit_route_mkdir_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, mode_t mode );
-int fskit_route_open_args( struct fskit_route_dispatch_args* dargs, int flags );
+int fskit_route_create_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, char const* name, mode_t mode );
+int fskit_route_mknod_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, char const* name, mode_t mode, dev_t dev );
+int fskit_route_mkdir_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, char const* name, mode_t mode );
+int fskit_route_open_args( struct fskit_route_dispatch_args* dargs, char const* name, int flags );
 int fskit_route_close_args( struct fskit_route_dispatch_args* dargs, void* handle_data );
-int fskit_route_readdir_args( struct fskit_route_dispatch_args* dargs, struct fskit_dir_entry** dents, uint64_t num_dents );
+int fskit_route_readdir_args( struct fskit_route_dispatch_args* dargs, char const* name, struct fskit_dir_entry** dents, uint64_t num_dents );
 int fskit_route_io_args( struct fskit_route_dispatch_args* dargs, char* iobuf, size_t iolen, off_t iooff, void* handle_data, fskit_route_io_continuation io_cont );
-int fskit_route_trunc_args( struct fskit_route_dispatch_args* dargs, off_t iooff, void* handle_data, fskit_route_io_continuation io_cont );
-int fskit_route_detach_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, bool garbage_collect, void* inode_data );
-int fskit_route_stat_args( struct fskit_route_dispatch_args* dargs, struct stat* sb );
+int fskit_route_trunc_args( struct fskit_route_dispatch_args* dargs, char const* name, off_t iooff, void* handle_data, fskit_route_io_continuation io_cont );
+int fskit_route_detach_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, char const* name, bool garbage_collect, void* inode_data );
+int fskit_route_destroy_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, char const* name, void* inode_data );
+int fskit_route_stat_args( struct fskit_route_dispatch_args* dargs, char const* name, struct stat* sb );
 int fskit_route_sync_args( struct fskit_route_dispatch_args* dargs );
-int fskit_route_rename_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* old_parent, char const* new_path, struct fskit_entry* new_parent, struct fskit_entry* dest );
-int fskit_route_link_args( struct fskit_route_dispatch_args* dargs, char const* new_path, struct fskit_entry* new_parent );
+int fskit_route_rename_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* old_parent, char const* old_name, char const* new_path, struct fskit_entry* new_parent, struct fskit_entry* dest );
+int fskit_route_link_args( struct fskit_route_dispatch_args* dargs, char const* name, char const* new_path, struct fskit_entry* new_parent );
 
 // call user-supplied routes (internal API)
 int fskit_route_call_create( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
@@ -301,6 +304,7 @@ int fskit_route_call_read( struct fskit_core* core, char const* path, struct fsk
 int fskit_route_call_write( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
 int fskit_route_call_trunc( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
 int fskit_route_call_detach( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
+int fskit_route_call_destroy( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
 int fskit_route_call_stat( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
 int fskit_route_call_sync( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
 int fskit_route_call_rename( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );

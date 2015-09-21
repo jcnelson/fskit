@@ -32,9 +32,13 @@ int fskit_run_user_mknod( struct fskit_core* core, char const* path, struct fski
 
    int rc = 0;
    int cbrc = 0;
+   char name[FSKIT_FILESYSTEM_NAMEMAX+1];
    struct fskit_route_dispatch_args dargs;
+   
+   memset( name, 0, FSKIT_FILESYSTEM_NAMEMAX+1 );
+   fskit_basename( path, name );
 
-   fskit_route_mknod_args( &dargs, parent, mode, dev );
+   fskit_route_mknod_args( &dargs, parent, name, mode, dev );
 
    rc = fskit_route_call_mknod( core, path, fent, &dargs, &cbrc );
 
@@ -152,7 +156,7 @@ int fskit_mknod( struct fskit_core* core, char const* fs_path, mode_t mode, dev_
       mmode = (mode & 0777) | S_IFREG;
       method_name = "fskit_entry_init_file";
 
-      err = fskit_entry_init_file( child, 0, path_basename, user, group, mmode );
+      err = fskit_entry_init_file( child, 0, user, group, mmode );
    }
    else if( S_ISFIFO(mode) ) {
 
@@ -160,7 +164,7 @@ int fskit_mknod( struct fskit_core* core, char const* fs_path, mode_t mode, dev_
       mmode = (mode & 0777) | S_IFIFO;
       method_name = "fskit_entry_init_fifo";
 
-      err = fskit_entry_init_fifo( child, 0, path_basename, user, group, mmode );
+      err = fskit_entry_init_fifo( child, 0, user, group, mmode );
    }
    else if( S_ISSOCK(mode) ) {
 
@@ -168,7 +172,7 @@ int fskit_mknod( struct fskit_core* core, char const* fs_path, mode_t mode, dev_
       mmode = (mode & 0777) | S_IFSOCK;
       method_name = "fskit_entry_init_sock";
 
-      err = fskit_entry_init_sock( child, 0, path_basename, user, group, mmode );
+      err = fskit_entry_init_sock( child, 0, user, group, mmode );
    }
    else if( S_ISCHR(mode) ) {
 
@@ -176,7 +180,7 @@ int fskit_mknod( struct fskit_core* core, char const* fs_path, mode_t mode, dev_
       mmode = (mode & 0777) | S_IFCHR;
       method_name = "fskit_entry_init_chr";
 
-      err = fskit_entry_init_chr( child, 0, path_basename, user, group, mmode, dev );
+      err = fskit_entry_init_chr( child, 0, user, group, mmode, dev );
    }
    else if( S_ISBLK(mode) ) {
 
@@ -184,7 +188,7 @@ int fskit_mknod( struct fskit_core* core, char const* fs_path, mode_t mode, dev_
       mmode = (mode & 0777) | S_IFBLK;
       method_name = "fskit_entry_init_blk";
 
-      err = fskit_entry_init_blk( child, 0, path_basename, user, group, mmode, dev );
+      err = fskit_entry_init_blk( child, 0, user, group, mmode, dev );
    }
    else {
 
@@ -243,7 +247,7 @@ int fskit_mknod( struct fskit_core* core, char const* fs_path, mode_t mode, dev_
       fskit_entry_wlock( child );
       
       // attach the file
-      fskit_entry_attach_lowlevel( parent, child );
+      fskit_entry_attach_lowlevel( parent, child, path_basename );
 
       fskit_entry_unlock( child );
    }

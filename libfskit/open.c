@@ -57,8 +57,12 @@ int fskit_run_user_open( struct fskit_core* core, char const* path, struct fskit
    int rc = 0;
    int cbrc = 0;
    struct fskit_route_dispatch_args dargs;
+   char name[FSKIT_FILESYSTEM_NAMEMAX+1];
+   
+   memset( name, 0, FSKIT_FILESYSTEM_NAMEMAX+1 );
+   fskit_basename( path, name );
 
-   fskit_route_open_args( &dargs, flags );
+   fskit_route_open_args( &dargs, name, flags );
 
    rc = fskit_route_call_open( core, path, fent, &dargs, &cbrc );
 

@@ -34,8 +34,12 @@ int fskit_run_user_create( struct fskit_core* core, char const* path, struct fsk
    int rc = 0;
    int cbrc = 0;
    struct fskit_route_dispatch_args dargs;
+   char name[FSKIT_FILESYSTEM_NAMEMAX+1];
+   
+   memset( name, 0, FSKIT_FILESYSTEM_NAMEMAX+1 );
+   fskit_basename( path, name );
 
-   fskit_route_create_args( &dargs, parent, mode );
+   fskit_route_create_args( &dargs, parent, name, mode );
 
    rc = fskit_route_call_create( core, path, fent, &dargs, &cbrc );
 
@@ -85,7 +89,7 @@ int fskit_do_create( struct fskit_core* core, struct fskit_entry* parent, char c
       return -ENOMEM;
    }
 
-   rc = fskit_entry_init_file( child, 0, path_basename, user, group, mode );
+   rc = fskit_entry_init_file( child, 0, user, group, mode );
 
    if( rc != 0 ) {
       fskit_error("fskit_entry_init_file(%s) rc = %d\n", path, rc );
@@ -135,7 +139,7 @@ int fskit_do_create( struct fskit_core* core, struct fskit_entry* parent, char c
       // insert it into the filesystem
       fskit_entry_wlock( child );
       
-      fskit_entry_attach_lowlevel( parent, child );
+      fskit_entry_attach_lowlevel( parent, child, path_basename );
 
       fskit_entry_unlock( child );
 
