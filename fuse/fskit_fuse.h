@@ -40,22 +40,6 @@ FSKIT_C_LINKAGE_BEGIN
 struct fskit_fuse_state;
 typedef int (*fskit_fuse_postmount_callback_t)( struct fskit_fuse_state*, void* );
 
-// private fuse state
-struct fskit_fuse_state {
-
-   struct fskit_core* core;
-   uint64_t settings;           // bitmask of FSKIT_FUSE_SET_*
-
-   char* mountpoint;    // mountpoint
-
-   // post-mount callback, to be called before processing any FUSE requests
-   fskit_fuse_postmount_callback_t postmount;
-   void* postmount_cls;
-   
-   // operations 
-   struct fuse_operations ops;
-};
-
 // fskit fuse file handle
 struct fskit_fuse_file_info {
 
@@ -67,6 +51,8 @@ struct fskit_fuse_file_info {
 };
 
 // access to state
+struct fskit_fuse_state* fskit_fuse_state_new();
+void fskit_fuse_state_free( struct fskit_fuse_state* );
 struct fskit_fuse_state* fskit_fuse_get_state();
 uid_t fskit_fuse_get_uid( struct fskit_fuse_state* state );
 gid_t fskit_fuse_get_gid( struct fskit_fuse_state* state );
@@ -76,6 +62,7 @@ mode_t fskit_fuse_get_umask();
 int fskit_fuse_setting_enable( struct fskit_fuse_state* state, uint64_t flag );
 int fskit_fuse_setting_disable( struct fskit_fuse_state* state, uint64_t flag );
 
+char const* fskit_fuse_get_mountpoint( struct fskit_fuse_state* state );
 int fskit_fuse_postmount_callback( struct fskit_fuse_state* state, fskit_fuse_postmount_callback_t cb, void* cb_cls );
 
 // default fs methods

@@ -22,6 +22,32 @@
 #include <fskit/fuse/fskit_fuse.h>
 #include <sys/types.h>
 
+struct fskit_fuse_state {
+
+   struct fskit_core* core;
+   uint64_t settings;           // bitmask of FSKIT_FUSE_SET_*
+
+   char* mountpoint;    // mountpoint
+
+   // post-mount callback, to be called before processing any FUSE requests
+   fskit_fuse_postmount_callback_t postmount;
+   void* postmount_cls;
+   
+   // operations 
+   struct fuse_operations ops;
+};
+
+
+struct fskit_fuse_state* fskit_fuse_state_new() {
+   return (struct fskit_fuse_state*)calloc( sizeof( struct fskit_fuse_state ), 1 );
+}
+
+void fskit_fuse_state_free( struct fskit_fuse_state* state ) {
+   if( state != NULL ) {
+       free( state );
+   }
+}
+
 // get running state
 struct fskit_fuse_state* fskit_fuse_get_state() {
    return (struct fskit_fuse_state*)fuse_get_context()->private_data;
@@ -60,6 +86,11 @@ pid_t fskit_fuse_get_pid() {
 // get caller umask
 mode_t fskit_fuse_get_umask() {
    return fuse_get_context()->umask;
+}
+
+// get filesystem mountpoint 
+char const* fskit_fuse_get_mountpoint( struct fskit_fuse_state* state ) {
+   return state->mountpoint;
 }
 
 // enable a setting
@@ -239,10 +270,16 @@ int fskit_fuse_rename(const char *path, const char *newpath) {
 int fskit_fuse_link(const char *path, const char *newpath) {
 
    fskit_debug("link(%s, %s)\n", path, newpath );
-   // not supported by fskit
-   fskit_debug("link(%s, %s) rc = %d\n", path, newpath, -ENOSYS );
+   
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   uid_t uid = fskit_fuse_get_uid( state );
+   gid_t gid = fskit_fuse_get_gid( state );
 
-   return -ENOSYS;
+   int rc = fskit_link( state->core, path, newpath, uid, gid );
+
+   fskit_debug("link(%s, %s) rc = %d\n", path, newpath, rc );
+
+   return 0;
 }
 
 int fskit_fuse_chmod(const char *path, mode_t mode) {
