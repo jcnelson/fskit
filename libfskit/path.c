@@ -118,6 +118,10 @@ char* fskit_dirname( char const* path, char* dest ) {
 
 // determine how long the basename of a path is
 size_t fskit_basename_len( char const* path ) {
+   // special case: /
+   if( strcmp(path, "/") == 0 ) {
+      return 1;
+   }
    int delim_i = strlen(path) - 1;
    if( delim_i <= 0 ) {
       return 0;
@@ -272,13 +276,10 @@ void fskit_sanitize_path( char* path ) {
 // if the eval function fails, both cur_ent and prev_ent will be unlocked
 static int fskit_entry_ent_eval( struct fskit_entry* prev_ent, struct fskit_entry* cur_ent, int (*ent_eval)( struct fskit_entry*, void* ), void* cls ) {
    
-   char name[FSKIT_FILESYSTEM_NAMEMAX+1];
-   strcpy( name, cur_ent->name );
-   
    int eval_rc = (*ent_eval)( cur_ent, cls );
    if( eval_rc != 0 ) {
 
-      fskit_debug("ent_eval(%" PRIX64 " (%s)) rc = %d\n", cur_ent->file_id, name, eval_rc );
+      fskit_debug("ent_eval(%" PRIX64 ") rc = %d\n", cur_ent->file_id, eval_rc );
    }
    
    return eval_rc;
@@ -766,6 +767,17 @@ char* fskit_path_iterator_path( struct fskit_path_iterator* itr ) {
    return ret;
 }
 
+// what's the name we're on?
+// return a malloc'ed copy of the name of this entry the iterator represents 
+// return NULL on OOM, or if the iterator was not initialized
+char* fskit_path_iterator_name( struct fskit_path_iterator* itr ) {
+   
+   if( itr->path == NULL || itr->name == NULL ) {
+      return NULL;
+   }
+   
+   return strdup( itr->name );
+}
 
 // reference an fskit_entry 
 // resolve it, increment its open count, unlock it, and return a pointer to it.

@@ -91,8 +91,12 @@ int fskit_run_user_readdir( struct fskit_core* core, char const* path, struct fs
    int rc = 0;
    int cbrc = 0;
    struct fskit_route_dispatch_args dargs;
+   char name[FSKIT_FILESYSTEM_NAMEMAX+1];
+   
+   memset( name, 0, FSKIT_FILESYSTEM_NAMEMAX+1 );
+   fskit_basename( path, name );
 
-   fskit_route_readdir_args( &dargs, dents, num_dents );
+   fskit_route_readdir_args( &dargs, name, dents, num_dents );
 
    rc = fskit_route_call_readdir( core, path, fent, &dargs, &cbrc );
 
@@ -122,9 +126,7 @@ static int fskit_readdir_find_start( struct fskit_dir_handle* dirh, fskit_entry_
             
             // if we reached the point where the names are lexicographically greater than where we left off last, then 
             // that's the new read point 
-            char sought_name[ FSKIT_FILESYSTEM_NAMEMAX+1 ];
-            fskit_entry_copy_name( fskit_entry_set_child_at( sought ), sought_name, FSKIT_FILESYSTEM_NAMEMAX );
-            
+            char const* sought_name = fskit_entry_set_name_at( sought );
             if( strcmp(dirh->curr_name, sought_name) < 0 ) {
                 
                 break;
@@ -176,7 +178,7 @@ static struct fskit_dir_entry** fskit_readdir_lowlevel( struct fskit_core* core,
        
        // haven't begun reading yet 
        read_start = fskit_entry_set_begin( &read_itr, dent->children );
-       fskit_entry_copy_name( fskit_entry_set_child_at( read_start ), dirh->curr_name, FSKIT_FILESYSTEM_NAMEMAX );
+       strncpy( dirh->curr_name, fskit_entry_set_name_at( read_start ), FSKIT_FILESYSTEM_NAMEMAX );
    }
    else {
        
@@ -274,7 +276,7 @@ static struct fskit_dir_entry** fskit_readdir_lowlevel( struct fskit_core* core,
          }
          
          // snapshot this entry
-         dir_ent = fskit_make_dir_entry( fent, fent->name );
+         dir_ent = fskit_make_dir_entry( fent, fskit_name );
 
          fskit_entry_unlock( fent );
          
@@ -328,7 +330,7 @@ void fskit_seekdir( struct fskit_dir_handle* dirh, off_t loc ) {
             if( read_start != NULL ) {
                 
                 // advance directory pointer 
-                fskit_entry_copy_name( fskit_entry_set_child_at( read_start ), dirh->curr_name, FSKIT_FILESYSTEM_NAMEMAX );
+                strncpy( dirh->curr_name, fskit_entry_set_name_at( read_start ), FSKIT_FILESYSTEM_NAMEMAX );
             }
         }
     }
@@ -379,7 +381,7 @@ void fskit_rewinddir( struct fskit_dir_handle* dirh ) {
     fskit_dir_handle_wlock( dirh );
     
     fskit_entry_set* start = fskit_entry_set_begin( &read_itr, dirh->dent->children );
-    fskit_entry_copy_name( fskit_entry_set_child_at( start ), dirh->curr_name, FSKIT_FILESYSTEM_NAMEMAX );
+    strncpy( dirh->curr_name, fskit_entry_set_name_at( start ), FSKIT_FILESYSTEM_NAMEMAX );
     
     fskit_dir_handle_unlock( dirh );
 } 

@@ -50,8 +50,12 @@ int fskit_run_user_trunc( struct fskit_core* core, char const* path, struct fski
    int rc = 0;
    int cbrc = 0;
    struct fskit_route_dispatch_args dargs;
+   char name[FSKIT_FILESYSTEM_NAMEMAX+1];
+   
+   memset( name, 0, FSKIT_FILESYSTEM_NAMEMAX+1 );
+   fskit_basename( path, name );
 
-   fskit_route_trunc_args( &dargs, new_size, handle_data, fskit_trunc_cont );
+   fskit_route_trunc_args( &dargs, name, new_size, handle_data, fskit_trunc_cont );
 
    rc = fskit_route_call_trunc( core, path, fent, &dargs, &cbrc );
 

@@ -29,10 +29,14 @@ int fskit_do_user_stat( struct fskit_core* core, char const* fs_path, struct fsk
 
    int rc = 0;
    int cbrc = 0;
-
+   char name[FSKIT_FILESYSTEM_NAMEMAX+1];
+   
    struct fskit_route_dispatch_args dargs;
 
-   fskit_route_stat_args( &dargs, sb );
+   memset( name, 0, FSKIT_FILESYSTEM_NAMEMAX+1 );
+   fskit_basename( fs_path, name );
+   
+   fskit_route_stat_args( &dargs, name, sb );
 
    rc = fskit_route_call_stat( core, fs_path, fent, &dargs, &cbrc );
 
