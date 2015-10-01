@@ -912,22 +912,17 @@ int fskit_path_route_free( struct fskit_path_route* route ) {
 // remove all routes from a given route table, freeing them and destroying them 
 // return 0 on success
 // return -EINVAL if there are no routes defined for this type
-static int fskit_path_route_erase_all( fskit_route_table* route_table, int route_type ) {
+static int fskit_path_route_erase_all( fskit_route_table** route_table, int route_type ) {
    
-   struct fskit_route_table_row* row = fskit_route_table_get_row( route_table, route_type );
+   struct fskit_route_table_row* row = fskit_route_table_get_row( *route_table, route_type );
    if( row == NULL ) {
-   
       return -EINVAL;
    }
    
    // clear it out 
-   for( unsigned long i = 0; i < fskit_route_table_row_len( row ); i++ ) {
-      
-      struct fskit_path_route* route = fskit_route_table_row_at_ref( row, i );
-      
-      fskit_path_route_free( route );
-      fskit_safe_free( route );
-   }
+   sglib_fskit_route_table_delete( route_table, row );
+   fskit_route_table_row_free( row );
+   fskit_safe_free( row );
    
    return 0;
 }
@@ -954,7 +949,6 @@ static int fskit_path_route_decl( struct fskit_core* core, char const* route_reg
    // atomically update route table
    fskit_core_route_wlock( core );
 
-   // rc = fskit_path_route_add( core->routes, &route );
    rc = fskit_route_table_insert( &core->routes, route_type, route );
 
    fskit_core_route_unlock( core );
@@ -1312,7 +1306,7 @@ int fskit_unroute_all( struct fskit_core* core ) {
 
    for( int i = 0; i < FSKIT_ROUTE_NUM_ROUTE_TYPES; i++ ) {
       
-      fskit_path_route_erase_all( core->routes, i );
+      fskit_path_route_erase_all( &core->routes, i );
    }
    
    fskit_core_route_unlock( core );
