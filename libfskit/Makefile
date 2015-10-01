@@ -36,14 +36,14 @@ all: $(LIBFSKIT_TARGET) $(LIBFSKIT_SO_TARGET) $(LIBFSKIT_LIB_TARGET) $(BUILD_HEA
 $(PC_FILE):	$(PC_FILE_IN)
 	@mkdir -p "$(shell dirname "$@")"
 	@cat "$<" | \
-		sed -e 's~@PREFIX@~$(PREFIX)~g;' | \
-		sed -e 's~@INCLUDEDIR@~$(INCLUDEDIR)~g;' | \
-		sed -e 's~@VERSION@~$(VERSION)~g; ' | \
-		sed -e 's~@LIBS@~$(LIBS)~g; ' | \
-		sed -e 's~@LIBDIR@~$(LIBDIR)~g; ' | \
-	   sed -e 's~@VERSION_MAJOR@~$(LIBFSKIT_MAJOR)~g; ' | \
-	   sed -e 's~@VERSION_MINOR@~$(LIBFSKIT_MINOR)~g; ' | \
-	   sed -e 's~@VERSION_PATCH@~$(LIBFSKIT_PATCH)~g; '	> "$@"
+		sed -e 's~@PREFIX@~$(PREFIX)~g;' \
+			 -e 's~@INCLUDEDIR@~$(INCLUDEDIR)~g;' \
+			 -e 's~@VERSION@~$(VERSION)~g; ' \
+			 -e 's~@LIBS@~$(LIBS)~g; ' \
+			 -e 's~@LIBDIR@~$(LIBDIR)~g; ' \
+			 -e 's~@VERSION_MAJOR@~$(LIBFSKIT_MAJOR)~g; ' \
+			 -e 's~@VERSION_MINOR@~$(LIBFSKIT_MINOR)~g; ' \
+			 -e 's~@VERSION_PATCH@~$(LIBFSKIT_PATCH)~g; '	> "$@"
 
 $(LIBFSKIT_LIB_TARGET): $(OBJ)
 	@mkdir -p "$(shell dirname "$@")"
