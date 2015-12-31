@@ -21,6 +21,9 @@
 
 #include "common.h"
 
+#include <vector>
+using namespace std;
+
 // type to type string
 void fskit_type_to_string( int type, char type_buf[10] ) {
 
@@ -77,7 +80,7 @@ int fskit_print_tree( FILE* out, struct fskit_entry* root ) {
    vector< char* > frontier_paths;
 
    frontier.push_back( root );
-   frontier_paths.push_back( strdup(root->name) );
+   frontier_paths.push_back( strdup("/") );
 
    while( frontier.size() > 0 ) {
 
@@ -87,14 +90,17 @@ int fskit_print_tree( FILE* out, struct fskit_entry* root ) {
       frontier.erase( frontier.begin() );
       frontier_paths.erase( frontier_paths.begin() );
 
-      fskit_type_to_string( node->type, type_str );
+      fskit_type_to_string( fskit_entry_get_type( node ), type_str );
 
+      /*
       fprintf( out, "%s: inode=%" PRIX64 " size=%jd mode=%o user=%" PRIu64 " group=%" PRIu64 " ctime=(%" PRId64 ".%" PRId32 ") mtime=(%" PRId64 ".%" PRId32 ") atime=(%" PRId64 ".%" PRId32 ") mem=%p \"%s\"\n",
                     type_str, node->file_id, node->size, node->mode, node->owner, node->group, node->ctime_sec, node->ctime_nsec, node->mtime_sec, node->mtime_nsec, node->atime_sec, node->atime_nsec, node, next_path );
 
-      if( node->type == FSKIT_ENTRY_TYPE_DIR ) {
+      */
+      if( fskit_entry_get_type( node ) == FSKIT_ENTRY_TYPE_DIR ) {
 
-         if( node->children == NULL ) {
+         fskit_entry_set* children = fskit_entry_get_children( node );
+         if( children == NULL ) {
             fskit_error("ERR: children of %p == NULL\n", node );
 
             rc = -EINVAL;
@@ -102,10 +108,10 @@ int fskit_print_tree( FILE* out, struct fskit_entry* root ) {
          }
 
          // explore children
-         for( child = fskit_entry_set_begin( node->children, &itr ); child != NULL; child = fskit_entry_set_next( &itr ) ) {
+         for( child = fskit_entry_set_begin( &itr, children ); child != NULL; child = fskit_entry_set_next( &itr ) ) {
 
-            char const* name = fskit_entry_set_name_at( &itr );
-            struct fskit_entry* child = fskit_entry_set_child_at( &itr );
+            char const* name = fskit_entry_set_name_at( child );
+            struct fskit_entry* child = fskit_entry_set_child_at( child );
 
             if( child == NULL ) {
                continue;
@@ -115,7 +121,7 @@ int fskit_print_tree( FILE* out, struct fskit_entry* root ) {
             }
 
             frontier.push_back( child );
-            frontier_paths.push_back( fskit_fullpath( next_path, child->name, NULL ) );
+            frontier_paths.push_back( fskit_fullpath( next_path, name, NULL ) );
          }
       }
 
@@ -163,7 +169,7 @@ int fskit_test_end( struct fskit_core* core, void** test_data ) {
 
    int rc = 0;
 
-   rc = fskit_detach_all( core, "/", core->root.children );
+   rc = fskit_detach_all( core, "/" );
    if( rc != 0 ) {
       fskit_error("fskit_detach_all(\"/\") rc = %d\n", rc );
       return rc;
