@@ -52,6 +52,10 @@ static int fskit_listxattr_len( fskit_xattr_set* xattrs ) {
    char const* name = NULL;
    fskit_xattr_set_itr itr;
    fskit_xattr_set* xattr = NULL;
+
+   if( xattrs == NULL ) {
+      return 0;
+   }
    
    for( xattr = fskit_xattr_set_begin( &itr, xattrs ); xattr != NULL; xattr = fskit_xattr_set_next( &itr ) ) {
       
