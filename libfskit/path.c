@@ -38,6 +38,9 @@ struct fskit_path_iterator {
    char* name;          // pointer to next name in the path
    size_t name_i;       // index of the next name in the path
    
+   // current name
+   char cur_name[FSKIT_FILESYSTEM_NAMEMAX+1];
+   
    bool end_of_path;
    
    int rc;
@@ -677,6 +680,9 @@ void fskit_path_next( struct fskit_path_iterator* itr ) {
    itr->name = tmp;
    itr->name_i += len;
    
+   memset( itr->cur_name, 0, FSKIT_FILESYSTEM_NAMEMAX+1 );
+   strncpy( itr->cur_name, name_candidate, name_len );
+   
    // look up the next entry in prev_ent 
    itr->cur_ent = fskit_entry_set_find_name( itr->prev_ent->children, next_name );
    
@@ -776,7 +782,7 @@ char* fskit_path_iterator_name( struct fskit_path_iterator* itr ) {
       return NULL;
    }
    
-   return strdup( itr->name );
+   return strdup( itr->cur_name );
 }
 
 // reference an fskit_entry 
