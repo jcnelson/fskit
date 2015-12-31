@@ -304,6 +304,12 @@ int fskit_entry_attach_lowlevel( struct fskit_entry* parent, struct fskit_entry*
    clock_gettime( CLOCK_REALTIME, &ts );
    parent->mtime_sec = ts.tv_sec;
    parent->mtime_nsec = ts.tv_nsec;
+   
+   // if this is a directory, then set .. to point to the parent 
+   if( fent->type == FSKIT_ENTRY_TYPE_DIR ) {
+       
+       fskit_entry_set_replace( fent->children, "..", parent );
+   }
 
    return fskit_entry_set_insert( &parent->children, name, fent );
 }
@@ -1432,7 +1438,7 @@ fskit_entry_set* fskit_entry_swap_children( struct fskit_entry* ent, fskit_entry
    return old_children;
 }
 
-// put a new set of xattrs in place 
+// put a new set of xattrs in place
 fskit_xattr_set* fskit_entry_swap_xattrs( struct fskit_entry* ent, fskit_xattr_set* new_xattrs ) {
    fskit_xattr_set* old_xattrs = ent->xattrs;
    ent->xattrs = new_xattrs;
@@ -1473,7 +1479,7 @@ char* fskit_entry_swap_symlink_target( struct fskit_entry* ent, char* new_symlin
 // return -EIO if ent is a directory and lacks a .. entry.
 int fskit_entry_tag_garbage( struct fskit_entry* ent, fskit_entry_set** children ) {
     
-    fskit_debug("Tag %" PRIX64 " as garbage\n", ent->file_id );
+    fskit_debug("Tag %" PRIX64 " as garbage (link count %d, open count %d)\n", ent->file_id, ent->link_count, ent->open_count );
     
     if( ent->type == FSKIT_ENTRY_TYPE_DIR ) {
         
@@ -1655,7 +1661,7 @@ fskit_xattr_set* fskit_xattr_set_new(void) {
    return CALLOC_LIST( fskit_xattr_set, 1 );
 }
 
-// insert an xattr
+// insert an xattr.  duplicates name and value.
 // return 0 on success
 // return -EEXIST if the member is already present, and XATTR_CREATE is set in flags 
 // return -ENOATTR if the member is not present, and XATTR_REPLACE is set in flags
