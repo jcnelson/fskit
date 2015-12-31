@@ -128,6 +128,9 @@ struct fskit_dir_handle {
 
    // application-defined data
    void* app_data;
+   
+   // eof?
+   bool eof;
 };
 
 // fskit core filesystem structure
