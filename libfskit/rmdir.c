@@ -21,6 +21,7 @@
 
 #include <fskit/rmdir.h>
 #include <fskit/path.h>
+#include <fskit/util.h>
 
 #include "fskit_private/private.h"
 
@@ -48,7 +49,6 @@ int fskit_rmdir( struct fskit_core* core, char const* _path, uint64_t user, uint
    strncpy( path, _path, PATH_MAX - 1 );
 
    fskit_sanitize_path( path );
-
 
    // look up the parent and write-lock it
    char* path_dirname = fskit_dirname( path, NULL );
@@ -80,11 +80,10 @@ int fskit_rmdir( struct fskit_core* core, char const* _path, uint64_t user, uint
    // find the directory, and write-lock it
    struct fskit_entry* dent = fskit_entry_set_find_name( parent->children, path_basename );
 
-   free( path_basename );
-
    if( dent == NULL ) {
 
       fskit_entry_unlock( parent );
+      fskit_safe_free( path_basename );
 
       return -ENOENT;
    }
@@ -96,6 +95,8 @@ int fskit_rmdir( struct fskit_core* core, char const* _path, uint64_t user, uint
       // nope
       fskit_entry_unlock( dent );
       fskit_entry_unlock( parent );
+      
+      fskit_safe_free( path_basename );
 
       return -ENOTDIR;
    }
@@ -105,17 +106,21 @@ int fskit_rmdir( struct fskit_core* core, char const* _path, uint64_t user, uint
       // nope
       fskit_entry_unlock( dent );
       fskit_entry_unlock( parent );
-
+      fskit_safe_free( path_basename );
+      
       return -ENOTEMPTY;
    }
 
    // empty. Detach from the filesystem
    rc = fskit_entry_detach_lowlevel( parent, path_basename );
+   fskit_safe_free( path_basename );
+   
    if( rc != 0 ) {
       fskit_error("fskit_entry_detach_lowlevel(%p) rc = %d\n", dent, rc );
 
       fskit_entry_unlock( dent );
       fskit_entry_unlock( parent );
+      
       return rc;
    }
 
