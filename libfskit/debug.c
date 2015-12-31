@@ -29,6 +29,15 @@ int FSKIT_GLOBAL_ERROR_MESSAGES = 1;
 
 void fskit_set_debug_level( int d ) {
    FSKIT_GLOBAL_DEBUG_MESSAGES = d;
+   
+   if( d > 1 ) {
+       
+       FSKIT_GLOBAL_DEBUG_LOCKS = 1;
+   }
+   else {
+       
+       FSKIT_GLOBAL_DEBUG_LOCKS = 0;
+   }
 }
 
 void fskit_set_error_level( int e ) {
