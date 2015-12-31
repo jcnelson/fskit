@@ -121,6 +121,7 @@ static int fskit_readdir_find_start( struct fskit_dir_handle* dirh, fskit_entry_
         
         // name is invalid--try to seek to the point where we left off 
         fskit_entry_set* sought = NULL;
+        bool found = false;
         
         for( sought = fskit_entry_set_begin( read_itr, dent->children ); sought != NULL; sought = fskit_entry_set_next( read_itr ) ) {
             
@@ -129,16 +130,17 @@ static int fskit_readdir_find_start( struct fskit_dir_handle* dirh, fskit_entry_
             char const* sought_name = fskit_entry_set_name_at( sought );
             if( strcmp(dirh->curr_name, sought_name) < 0 ) {
                 
+                found = true;
                 break;
             }
         }
-        if( sought != NULL ) {
+        if( found ) {
             
             // scanned ahead!
             *read_start = sought;
         }
         else {
-            
+           
             // end of directory!
             *read_start = NULL;
         }
@@ -146,14 +148,17 @@ static int fskit_readdir_find_start( struct fskit_dir_handle* dirh, fskit_entry_
     else {
         
         *read_start = member;
-        sglib_fskit_entry_set_it_init_inorder( read_itr, member );
+
+        // TODO: find out why sglib's init_on_equal method doesn't get us the right iterator
+        fskit_entry_set* tmp = NULL;
+        for( tmp = fskit_entry_set_begin( read_itr, dent->children ); tmp != NULL && tmp != member; tmp = fskit_entry_set_next( read_itr ) );
     }
     
     return 0;
 }
 
 
-// low-level read directory--read up to num_children directory entires from dirh->dent, starting with the child at child_offset
+// low-level read directory--read up to num_children directory entires from dirh->dent, starting with the last child previously read from dirh.
 // dirh->dent must be a directory.
 // dirh->dent must be at least read-locked.
 // dirh must be write-locked
@@ -173,6 +178,12 @@ static struct fskit_dir_entry** fskit_readdir_lowlevel( struct fskit_core* core,
    
    fskit_entry_set_itr read_itr;
    fskit_entry_set* entry = NULL;
+   
+   if( dirh->eof ) {
+       // EOF
+       *num_read = 0;
+       return NULL;
+   }
 
    if( strlen(dirh->curr_name) == 0 ) {
        
@@ -181,13 +192,25 @@ static struct fskit_dir_entry** fskit_readdir_lowlevel( struct fskit_core* core,
        strncpy( dirh->curr_name, fskit_entry_set_name_at( read_start ), FSKIT_FILESYSTEM_NAMEMAX );
    }
    else {
-       
+
+       fskit_entry_set_itr test_itr;
+       fskit_entry_set* test_entry;
+
        fskit_readdir_find_start( dirh, &read_itr, &read_start );
        if( read_start == NULL ) {
            
            // out of directory 
            *num_read = 0;
-           return 0;
+           return NULL;
+       }
+       
+       // advance to the next entry, since that's the first unread one 
+       read_start = fskit_entry_set_next( &read_itr );
+       if( read_start == NULL ) {
+           
+           // out of directory 
+           *num_read = 0;
+           return NULL;
        }
    }
    
@@ -301,12 +324,30 @@ static struct fskit_dir_entry** fskit_readdir_lowlevel( struct fskit_core* core,
          break;
       }
    }
+   
+   if( *err != 0 ) {
+       
+       fskit_dir_entry_free_list( dir_ents );
+       *num_read = 0;
+       return NULL;
+   }
 
    *num_read = read_count;
    
-   // remember where we left off
-   memset( dirh->curr_name, 0, FSKIT_FILESYSTEM_NAMEMAX+1 );
-   strncpy( dirh->curr_name, dir_ents[read_count-1]->name, FSKIT_FILESYSTEM_NAMEMAX );
+   if( read_count == 0 ) {
+       
+       fskit_dir_entry_free_list( dir_ents );
+       dir_ents = NULL;
+       
+       // further attempts to read will EOF
+       dirh->eof = true;
+   }
+   else {
+       
+       // remember the last name, so we can resume there
+       memset( dirh->curr_name, 0, FSKIT_FILESYSTEM_NAMEMAX+1 );
+       strncpy( dirh->curr_name, dir_ents[read_count-1]->name, FSKIT_FILESYSTEM_NAMEMAX );
+   }
    
    return dir_ents;
 }
