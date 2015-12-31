@@ -89,7 +89,7 @@ ssize_t fskit_write( struct fskit_core* core, struct fskit_file_handle* fh, char
       fskit_entry_set_mtime( fh->fent, NULL );
       fskit_entry_set_atime( fh->fent, NULL );
 
-      fh->fent->size += num_written;
+      fh->fent->size = ((unsigned)(offset + buflen) > fh->fent->size ? offset + buflen : fh->fent->size);
 
       fskit_entry_unlock( fh->fent );
    }
