@@ -464,7 +464,6 @@ int fskit_core_destroy( struct fskit_core* core, void** app_fs_data ) {
    fs_data = core->app_fs_data;
    core->app_fs_data = NULL;
 
-   pthread_rwlock_unlock( &core->lock );
    pthread_rwlock_destroy( &core->lock );
    pthread_rwlock_destroy( &core->route_lock );
 
@@ -1168,8 +1167,10 @@ int fskit_entry_destroy( struct fskit_core* core, struct fskit_entry* fent, bool
    }
    
    (*core->fskit_inode_free)( fent->file_id, core->app_fs_data );
-   
-   fskit_entry_unlock( fent );
+  
+   if( needlock ) { 
+       fskit_entry_unlock( fent );
+   }
    pthread_rwlock_destroy( &fent->lock );
 
    return 0;

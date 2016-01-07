@@ -22,9 +22,8 @@
 #ifndef _FSKIT_FUSE_H_
 #define _FSKIT_FUSE_H_
 
-#ifndef _BSD_SOURCE 
-#define _BSD_SOURCE 
-#endif 
+
+#define _DEFAULT_SOURCE
 
 #include <fskit/fskit.h>
 
