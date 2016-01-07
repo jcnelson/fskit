@@ -368,7 +368,7 @@ int fskit_fuse_open(const char *path, struct fuse_file_info *fi) {
       return -ENOMEM;
    }
 
-   fi->fh = (uint64_t)ffi;
+   fi->fh = (uintptr_t)ffi;
 
    // NOTE: fskit_read() and fskit_write() return a negative error code on error,
    // so set direct_io to allow this error code to be propagated.
@@ -385,7 +385,7 @@ int fskit_fuse_read(const char *path, char *buf, size_t size, off_t offset, stru
 
    struct fskit_fuse_state* state = fskit_fuse_get_state();
 
-   struct fskit_fuse_file_info* ffi = (struct fskit_fuse_file_info*)fi->fh;
+   struct fskit_fuse_file_info* ffi = (struct fskit_fuse_file_info*)((uintptr_t)fi->fh);
    ssize_t num_read = 0;
 
    num_read = fskit_read( state->core, ffi->handle.fh, buf, size, offset );
@@ -401,7 +401,7 @@ int fskit_fuse_write(const char *path, const char *buf, size_t size, off_t offse
 
    struct fskit_fuse_state* state = fskit_fuse_get_state();
 
-   struct fskit_fuse_file_info* ffi = (struct fskit_fuse_file_info*)fi->fh;
+   struct fskit_fuse_file_info* ffi = (struct fskit_fuse_file_info*)((uintptr_t)fi->fh);
    ssize_t num_written = 0;
 
    num_written = fskit_write( state->core, ffi->handle.fh, buf, size, offset );
@@ -442,7 +442,7 @@ int fskit_fuse_release(const char *path, struct fuse_file_info *fi) {
 
    struct fskit_fuse_state* state = fskit_fuse_get_state();
 
-   struct fskit_fuse_file_info* ffi = (struct fskit_fuse_file_info*)fi->fh;
+   struct fskit_fuse_file_info* ffi = (struct fskit_fuse_file_info*)((uintptr_t)fi->fh);
 
    int rc = fskit_close( state->core, ffi->handle.fh );
 
@@ -547,7 +547,7 @@ int fskit_fuse_opendir(const char *path, struct fuse_file_info *fi) {
       return -ENOMEM;
    }
 
-   fi->fh = (uint64_t)ffi;
+   fi->fh = (uintptr_t)ffi;
 
    fskit_debug("opendir(%s, %p) rc = %d\n", path, fi, 0 );
    return 0;
@@ -563,7 +563,7 @@ int fskit_fuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
    int rc = 0;
    uint64_t num_read = 0;
 
-   ffi = (struct fskit_fuse_file_info*)fi->fh;
+   ffi = (struct fskit_fuse_file_info*)((uintptr_t)fi->fh);
    fdh = ffi->handle.dh;
 
    struct fskit_dir_entry** dirents = fskit_listdir( state->core, fdh, &num_read, &rc );
@@ -600,7 +600,7 @@ int fskit_fuse_releasedir(const char *path, struct fuse_file_info *fi) {
    struct fskit_fuse_file_info* ffi = NULL;
    int rc = 0;
 
-   ffi = (struct fskit_fuse_file_info*)fi->fh;
+   ffi = (struct fskit_fuse_file_info*)((uintptr_t)fi->fh);
 
    rc = fskit_closedir( state->core, ffi->handle.dh );
 
@@ -665,7 +665,7 @@ int fskit_fuse_create(const char *path, mode_t mode, struct fuse_file_info *fi) 
       return -ENOMEM;
    }
 
-   fi->fh = (uint64_t)ffi;
+   fi->fh = (uintptr_t)ffi;
 
    // NOTE: fskit_read() and fskit_write() return a negative error code on error,
    // so set direct_io to allow this error code to be propagated.
@@ -678,16 +678,16 @@ int fskit_fuse_create(const char *path, mode_t mode, struct fuse_file_info *fi) 
 
 int fskit_fuse_ftruncate(const char *path, off_t new_size, struct fuse_file_info *fi) {
 
-   fskit_debug("ftruncate(%s, %zu, %p)\n", path, new_size, fi );
+   fskit_debug("ftruncate(%s, %jd, %p)\n", path, new_size, fi );
 
    struct fskit_fuse_state* state = fskit_fuse_get_state();
    struct fskit_fuse_file_info* ffi = NULL;
 
-   ffi = (struct fskit_fuse_file_info*)fi->fh;
+   ffi = (struct fskit_fuse_file_info*)((uintptr_t)fi->fh);
 
    int rc = fskit_ftrunc( state->core, ffi->handle.fh, new_size );
 
-   fskit_debug("ftruncate(%s, %zu, %p) rc = %d\n", path, new_size, fi, rc );
+   fskit_debug("ftruncate(%s, %jd, %p) rc = %d\n", path, new_size, fi, rc );
 
    return rc;
 }
@@ -699,7 +699,7 @@ int fskit_fuse_fgetattr(const char *path, struct stat *statbuf, struct fuse_file
    struct fskit_fuse_state* state = fskit_fuse_get_state();
    struct fskit_fuse_file_info* ffi = NULL;
 
-   ffi = (struct fskit_fuse_file_info*)fi->fh;
+   ffi = (struct fskit_fuse_file_info*)((uintptr_t)fi->fh);
 
    int rc = 0;
 
