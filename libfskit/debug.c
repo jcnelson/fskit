@@ -57,9 +57,10 @@ unsigned long long int fskit_pthread_self(void) {
    
    union {
       pthread_t t;
-      uint64_t i;
+      unsigned long long i;
    } fskit_thread;
 
+   memset( &fskit_thread, 0, sizeof(fskit_thread) );
    fskit_thread.t = pthread_self();
    return fskit_thread.i;
 }
