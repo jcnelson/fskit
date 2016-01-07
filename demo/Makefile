@@ -1,7 +1,7 @@
 
 include ../buildconf.mk
 
-LIB   := $(PTHREAD_LIBS) $(FUSE_LIBS) -L../libfskit -lfskit -L../fuse -lfskit_fuse
+LIB   := $(PTHREAD_LIBS) $(FUSE_LIBS) -L../libfskit -lfskit -L../fuse -lfskit_fuse -lm
 INC   := $(PTHREAD_CFLAGS) $(FUSE_CFLAGS) -I../include -I. -I..
 C_SRCS:= $(wildcard *.c)
 OBJ   := $(patsubst %.c,%.o,$(C_SRCS))

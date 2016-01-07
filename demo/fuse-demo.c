@@ -44,7 +44,7 @@ struct demo_fd {
 
 // file create callback
 // create a file descriptor to a new file backed by RAM
-int create_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* fent, mode_t mode, void** inode_data, void** handle_data ) {
+int create_cb( struct fskit_core* core, struct fskit_route_metadata* grp, struct fskit_entry* fent, mode_t mode, void** inode_data, void** handle_data ) {
 
    char buf[17];
    char* path = NULL;
@@ -71,7 +71,7 @@ int create_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fs
 
 // file open callback
 // create a file descriptor to an existing file backed by RAM
-int open_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* fent, int flags, void** handle_data ) {
+int open_cb( struct fskit_core* core, struct fskit_route_metadata* grp, struct fskit_entry* fent, int flags, void** handle_data ) {
 
    // only regular files
    if( fskit_entry_get_type( fent ) != FSKIT_ENTRY_TYPE_FILE ) {
@@ -91,7 +91,7 @@ int open_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fski
 
 // file close callback
 // free the demo_fd
-int close_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* fent, void* handle_data ) {
+int close_cb( struct fskit_core* core, struct fskit_route_metadata* grp, struct fskit_entry* fent, void* handle_data ) {
 
    // only regular files
    if( fskit_entry_get_type( fent ) != FSKIT_ENTRY_TYPE_FILE ) {
@@ -106,7 +106,7 @@ int close_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fsk
 
 // file read callback
 // copy out of the inode's buffer
-int read_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* fent, char* buf, size_t buflen, off_t offset, void* handle_data ) {
+int read_cb( struct fskit_core* core, struct fskit_route_metadata* grp, struct fskit_entry* fent, char* buf, size_t buflen, off_t offset, void* handle_data ) {
 
    struct demo_fd* dfd = (struct demo_fd*)handle_data;
    struct demo_inode* di = (struct demo_inode*)fskit_entry_get_user_data( fent );
@@ -129,7 +129,7 @@ int read_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fski
 
 // file write callback
 // fill in the inode's buffer
-int write_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* fent, char* buf, size_t buflen, off_t offset, void* handle_data ) {
+int write_cb( struct fskit_core* core, struct fskit_route_metadata* grp, struct fskit_entry* fent, char* buf, size_t buflen, off_t offset, void* handle_data ) {
 
    struct demo_fd* dfd = (struct demo_fd*)handle_data;
    struct demo_inode* di = (struct demo_inode*)fskit_entry_get_user_data( fent );
@@ -162,7 +162,7 @@ int write_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fsk
 
 // file destroy callback
 // free memory 
-int destroy_cb( struct fskit_core* core, struct fskit_match_group* grp, struct fskit_entry* fent, void* inode_data ) {
+int destroy_cb( struct fskit_core* core, struct fskit_route_metadata* grp, struct fskit_entry* fent, void* inode_data ) {
 
    struct demo_inode* di = (struct demo_inode*)fskit_entry_get_user_data( fent );
    
@@ -186,7 +186,7 @@ void usage( char const* progname ) {
 int main( int argc, char** argv ) {
 
    int rc = 0;
-   struct fskit_fuse_state state;
+   struct fskit_fuse_state* state = NULL;
    struct fskit_core* core = NULL;
 
    if( argc < 2 ) {
@@ -194,17 +194,23 @@ int main( int argc, char** argv ) {
       exit(1);
    }
 
+   state = fskit_fuse_state_new();
+   if( state == NULL ) {
+      fprintf(stderr, "Out of memory\n");
+      exit(1);
+   }
+
    fskit_set_debug_level( 1 );
    fskit_set_error_level( 1 );
    
    // set up
-   rc = fskit_fuse_init( &state, NULL );
+   rc = fskit_fuse_init( state, NULL );
    if( rc != 0 ) {
       fprintf(stderr, "fskit_fuse_init rc = %d\n", rc );
       exit(1);
    }
 
-   core = fskit_fuse_get_core( &state );
+   core = fskit_fuse_get_core( state );
 
    // add handlers.  reads and writes must happen sequentially, since we seek and then perform I/O
    // NOTE: FSKIT_ROUTE_ANY matches any path, and is a macro for the regex "/([^/]+[/]*)*"
@@ -220,10 +226,11 @@ int main( int argc, char** argv ) {
    fskit_chmod( core, "/", 0, 0, 0755 );
 
    // run
-   rc = fskit_fuse_main( &state, argc, argv );
+   rc = fskit_fuse_main( state, argc, argv );
 
    // shutdown
-   fskit_fuse_shutdown( &state, NULL );
+   fskit_fuse_shutdown( state, NULL );
+   free( state );
 
    return rc;
 }

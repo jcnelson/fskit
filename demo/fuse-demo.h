@@ -24,5 +24,6 @@
 
 #include <fskit/fskit.h>
 #include <fskit/fuse/fskit_fuse.h>
+#include <math.h>
 
 #endif
