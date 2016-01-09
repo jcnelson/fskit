@@ -55,6 +55,9 @@ struct fskit_detach_ctx {
    size_t size;
 };
 
+// prototypes...
+int fskit_run_user_destroy( struct fskit_core* core, char const* path, struct fskit_entry* parent, struct fskit_entry* fent );
+
 SGLIB_DEFINE_RBTREE_FUNCTIONS( fskit_entry_set, left, right, color, FSKIT_ENTRY_SET_ENTRY_CMP );
 
 SGLIB_DEFINE_RBTREE_FUNCTIONS( fskit_xattr_set, left, right, color, FSKIT_XATTR_SET_ENTRY_CMP );
@@ -455,7 +458,8 @@ int fskit_core_destroy( struct fskit_core* core, void** app_fs_data ) {
    
    fskit_entry_unlock( &core->root );
    
-   fskit_run_user_detach( core, "/", NULL, &core->root );
+   fskit_debug("%s", "Destroy root inode\n");
+   fskit_run_user_destroy( core, "/", NULL, &core->root );
    
    fskit_entry_destroy( core, &core->root, true );
 
@@ -1186,6 +1190,7 @@ int fskit_entry_destroy( struct fskit_core* core, struct fskit_entry* fent, bool
 static int fskit_entry_try_destroy( struct fskit_core* core, char const* fs_path, struct fskit_entry* parent, struct fskit_entry* fent ) {
 
    int rc = 0;
+   uint64_t file_id = 0;
 
    if( fent->link_count <= 0 && fent->open_count <= 0 ) {
 
@@ -1202,8 +1207,9 @@ static int fskit_entry_try_destroy( struct fskit_core* core, char const* fs_path
       // do the detach--nothing references it anymore
       // but, we should ref it ourselves, so this method won't succeed in another thread.
       fent->open_count++;
+      file_id = fent->file_id;
       fskit_entry_unlock( fent );
-      
+     
       rc = fskit_run_user_destroy( core, fs_path, parent, fent );
       if( rc != 0 ) {
          fskit_error("WARN: fskit_run_user_destroy(%s) rc = %d\n", fs_path, rc );
