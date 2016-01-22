@@ -28,7 +28,7 @@
 #include "fskit_private/private.h"
 
 // get the user-supplied inode data for creating a node
-int fskit_run_user_mknod( struct fskit_core* core, char const* path, struct fskit_entry* parent, struct fskit_entry* fent, mode_t mode, dev_t dev, void** inode_data ) {
+int fskit_run_user_mknod( struct fskit_core* core, char const* path, struct fskit_entry* parent, struct fskit_entry* fent, mode_t mode, dev_t dev, void* cls, void** inode_data ) {
 
    int rc = 0;
    int cbrc = 0;
@@ -38,7 +38,7 @@ int fskit_run_user_mknod( struct fskit_core* core, char const* path, struct fski
    memset( name, 0, FSKIT_FILESYSTEM_NAMEMAX+1 );
    fskit_basename( path, name );
 
-   fskit_route_mknod_args( &dargs, parent, name, mode, dev );
+   fskit_route_mknod_args( &dargs, parent, name, mode, dev, cls );
 
    rc = fskit_route_call_mknod( core, path, fent, &dargs, &cbrc );
 
@@ -62,7 +62,7 @@ int fskit_run_user_mknod( struct fskit_core* core, char const* path, struct fski
 
 
 // make a node
-int fskit_mknod( struct fskit_core* core, char const* fs_path, mode_t mode, dev_t dev, uint64_t user, uint64_t group ) {
+int fskit_mknod_ex( struct fskit_core* core, char const* fs_path, mode_t mode, dev_t dev, uint64_t user, uint64_t group, void* cls ) {
 
    int err = 0;
    void* inode_data = NULL;
@@ -226,7 +226,7 @@ int fskit_mknod( struct fskit_core* core, char const* fs_path, mode_t mode, dev_
       child->open_count++;
 
       // perform any user-defined creations
-      err = fskit_run_user_mknod( core, path, parent, child, mode, dev, &inode_data );
+      err = fskit_run_user_mknod( core, path, parent, child, mode, dev, cls, &inode_data );
       
       child->open_count--;
       
@@ -264,3 +264,10 @@ int fskit_mknod( struct fskit_core* core, char const* fs_path, mode_t mode, dev_
 
    return err;
 }
+
+
+// mknod, but without the user-given arg
+int fskit_mknod( struct fskit_core* core, char const* fs_path, mode_t mode, dev_t dev, uint64_t user, uint64_t group ) {
+   return fskit_mknod_ex( core, fs_path, mode, dev, user, group, NULL );
+}
+
