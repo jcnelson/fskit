@@ -193,6 +193,7 @@ struct fskit_route_metadata {
    char* new_path;                      // path to rename/link to (rename(), link())
    
    bool garbage_collect;        // is this entry being unlinked due to garbage-collection, or due to an explicit command from userspace?
+   void* cls;                   // user-given argument to the method at hand
 };
 
 // route dispatch arguments
@@ -225,6 +226,8 @@ struct fskit_route_dispatch_args {
    char const* new_path;      // rename(), link()
    
    bool garbage_collect;        // is this entry being unlinked due to garbage-collection, or due to an explicit command from userspace?
+
+   void* cls;               // create(), mknod(), mkdir(), only
 };
 
 // a path route
@@ -249,8 +252,9 @@ int fskit_entry_try_garbage_collect( struct fskit_core* core, char const* path, 
 int fskit_run_user_close( struct fskit_core* core, char const* path, struct fskit_entry* fent, void* handle_data );
 
 // private--needed by open()
-int fskit_run_user_create( struct fskit_core* core, char const* path, struct fskit_entry* parent, struct fskit_entry* fent, mode_t mode, void** inode_data, void** handle_data );
-int fskit_do_create( struct fskit_core* core, struct fskit_entry* parent, char const* path, mode_t mode, uint64_t user, uint64_t group, struct fskit_entry** ret_child, void** handle_data );
+int fskit_run_user_create( struct fskit_core* core, char const* path, struct fskit_entry* parent, struct fskit_entry* fent, mode_t mode, void* cls, void** inode_data, void** handle_data );
+int fskit_do_create( struct fskit_core* core, struct fskit_entry* parent, char const* path, mode_t mode, uint64_t user, uint64_t group, void* cls, struct fskit_entry** ret_child, void** handle_data );
+struct fskit_file_handle* fskit_open_ex( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, int flags, mode_t mode, void* cls, int* err );
 
 // private--needed by opendir()
 int fskit_run_user_open( struct fskit_core* core, char const* path, struct fskit_entry* fent, int flags, void** handle_data );
@@ -281,9 +285,9 @@ struct fskit_path_route* fskit_route_table_find( fskit_route_table* routes, int 
 struct fskit_path_route* fskit_route_table_remove( fskit_route_table** route_table, int route_type, int route_id );
 
 // populate route dispatch arguments (internal API)
-int fskit_route_create_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, char const* name, mode_t mode );
-int fskit_route_mknod_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, char const* name, mode_t mode, dev_t dev );
-int fskit_route_mkdir_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, char const* name, mode_t mode );
+int fskit_route_create_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, char const* name, mode_t mode, void* cls );
+int fskit_route_mknod_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, char const* name, mode_t mode, dev_t dev, void* cls );
+int fskit_route_mkdir_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, char const* name, mode_t mode, void* cls );
 int fskit_route_open_args( struct fskit_route_dispatch_args* dargs, char const* name, int flags );
 int fskit_route_close_args( struct fskit_route_dispatch_args* dargs, void* handle_data );
 int fskit_route_readdir_args( struct fskit_route_dispatch_args* dargs, char const* name, struct fskit_dir_entry** dents, uint64_t num_dents );
