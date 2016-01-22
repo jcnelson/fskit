@@ -29,7 +29,7 @@
 
 // get the user-supplied inode and handle data for creating a file
 // NOTE: fent *cannot* be locked--it's lock status will be set through the route consistency discipline
-int fskit_run_user_create( struct fskit_core* core, char const* path, struct fskit_entry* parent, struct fskit_entry* fent, mode_t mode, void** inode_data, void** handle_data ) {
+int fskit_run_user_create( struct fskit_core* core, char const* path, struct fskit_entry* parent, struct fskit_entry* fent, mode_t mode, void* cls, void** inode_data, void** handle_data ) {
 
    int rc = 0;
    int cbrc = 0;
@@ -39,7 +39,7 @@ int fskit_run_user_create( struct fskit_core* core, char const* path, struct fsk
    memset( name, 0, FSKIT_FILESYSTEM_NAMEMAX+1 );
    fskit_basename( path, name );
 
-   fskit_route_create_args( &dargs, parent, name, mode );
+   fskit_route_create_args( &dargs, parent, name, mode, cls );
 
    rc = fskit_route_call_create( core, path, fent, &dargs, &cbrc );
 
@@ -72,7 +72,7 @@ int fskit_run_user_create( struct fskit_core* core, char const* path, struct fsk
 // on success, fill in *ret_child with a newly-created child (which will NOT be locked), and *handle_data with the file handle's app-specific data (generated from the user route)
 // also, the child will have been inserted into the parent's children list
 // NOTE: the child will have an open count of 1
-int fskit_do_create( struct fskit_core* core, struct fskit_entry* parent, char const* path, mode_t mode, uint64_t user, uint64_t group, struct fskit_entry** ret_child, void** handle_data ) {
+int fskit_do_create( struct fskit_core* core, struct fskit_entry* parent, char const* path, mode_t mode, uint64_t user, uint64_t group, void* cls, struct fskit_entry** ret_child, void** handle_data ) {
 
    char path_basename[FSKIT_FILESYSTEM_NAMEMAX + 1];
    void* inode_data = NULL;
@@ -120,7 +120,7 @@ int fskit_do_create( struct fskit_core* core, struct fskit_entry* parent, char c
       child->open_count++;
 
       // Generate any app data we need to
-      rc = fskit_run_user_create( core, path, parent, child, mode, &inode_data, handle_data );
+      rc = fskit_run_user_create( core, path, parent, child, mode, cls, &inode_data, handle_data );
       
       if( rc != 0 ) {
 
@@ -154,3 +154,9 @@ int fskit_do_create( struct fskit_core* core, struct fskit_entry* parent, char c
 struct fskit_file_handle* fskit_create( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, mode_t mode, int* err ) {
    return fskit_open( core, path, user, group, O_CREAT|O_WRONLY|O_TRUNC, mode, err );
 }
+
+// extended version of creating an entry (like fskit_create, but passes a create-specific user-given parameter)
+struct fskit_file_handle* fskit_create_ex( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, mode_t mode, void* cls, int* err ) {
+   return fskit_open_ex( core, path, user, group, O_CREAT|O_WRONLY|O_TRUNC, mode, cls, err );
+}
+
