@@ -197,7 +197,7 @@ int fskit_do_open( struct fskit_core* core, char const* path, struct fskit_entry
 // create/open a file, with the given flags and (if creating) mode
 // on success, return a file handle to the created/opened file.
 // on failure, return NULL and set *err to the appropriate errno
-struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path, uint64_t user, uint64_t group, int flags, mode_t mode, int* err ) {
+struct fskit_file_handle* fskit_open_ex( struct fskit_core* core, char const* _path, uint64_t user, uint64_t group, int flags, mode_t mode, void* cls, int* err ) {
 
    if( fskit_check_flags( flags ) != 0 ) {
       *err = -EINVAL;
@@ -312,7 +312,7 @@ struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path
 
          // can create!
          // NOTE: do *not* lock child--it has to be unlocked for running user-given routes
-         rc = fskit_do_create( core, parent, path, mode, user, group, &child, &handle_data );
+         rc = fskit_do_create( core, parent, path, mode, user, group, cls, &child, &handle_data );
          if( rc != 0 ) {
 
             fskit_entry_unlock( parent );
@@ -384,4 +384,10 @@ struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path
    }
 
    return ret;
+}
+
+
+// fskit_open() without the cls (used only by creat)
+struct fskit_file_handle* fskit_open( struct fskit_core* core, char const* _path, uint64_t user, uint64_t group, int flags, mode_t mode, int* err ) {
+   return fskit_open_ex( core, _path, user, group, flags, mode, NULL, err );
 }
