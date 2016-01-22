@@ -28,7 +28,7 @@
 #include "fskit_private/private.h"
 
 // get the user-supplied inode data for creating a directory
-int fskit_run_user_mkdir( struct fskit_core* core, char const* path, struct fskit_entry* parent, struct fskit_entry* fent, mode_t mode, void** inode_data ) {
+int fskit_run_user_mkdir( struct fskit_core* core, char const* path, struct fskit_entry* parent, struct fskit_entry* fent, mode_t mode, void* cls, void** inode_data ) {
 
    int rc = 0;
    int cbrc = 0;
@@ -38,7 +38,7 @@ int fskit_run_user_mkdir( struct fskit_core* core, char const* path, struct fski
    memset( name, 0, FSKIT_FILESYSTEM_NAMEMAX+1 );
    fskit_basename( path, name );
    
-   fskit_route_mkdir_args( &dargs, parent, name, mode );
+   fskit_route_mkdir_args( &dargs, parent, name, mode, cls );
 
    rc = fskit_route_call_mkdir( core, path, fent, &dargs, &cbrc );
 
@@ -67,7 +67,7 @@ int fskit_run_user_mkdir( struct fskit_core* core, char const* path, struct fski
 // return -EEXIST if an entry with the given name (path_basename) already exists in parent.
 // return -EIO if we couldn't allocate an inode
 // return -ENOMEM if we couldn't allocate memory
-static int fskit_mkdir_lowlevel( struct fskit_core* core, char const* path, struct fskit_entry* parent, char const* path_basename, mode_t mode, uint64_t user, uint64_t group ) {
+static int fskit_mkdir_lowlevel( struct fskit_core* core, char const* path, struct fskit_entry* parent, char const* path_basename, mode_t mode, uint64_t user, uint64_t group, void* cls ) {
 
    // resolve the child within the parent
    struct fskit_entry* child = fskit_entry_set_find_name( parent->children, path_basename );
@@ -141,7 +141,7 @@ static int fskit_mkdir_lowlevel( struct fskit_core* core, char const* path, stru
       child->open_count++;
       
       // almost done.  run the route callback for this path if needed
-      err = fskit_run_user_mkdir( core, path, parent, child, mode, &app_dir_data );
+      err = fskit_run_user_mkdir( core, path, parent, child, mode, cls, &app_dir_data );
       
       child->open_count--;
       
@@ -175,7 +175,7 @@ static int fskit_mkdir_lowlevel( struct fskit_core* core, char const* path, stru
 // create a directory
 // return -ENOTDIR if one of the elements on the path isn't a directory
 // return -EACCES if one of the directories is not searchable
-int fskit_mkdir( struct fskit_core* core, char const* path, mode_t mode, uint64_t user, uint64_t group ) {
+int fskit_mkdir_ex( struct fskit_core* core, char const* path, mode_t mode, uint64_t user, uint64_t group, void* cls ) {
 
    int err = 0;
 
@@ -230,7 +230,7 @@ int fskit_mkdir( struct fskit_core* core, char const* path, mode_t mode, uint64_
       return -EACCES;
    }
 
-   err = fskit_mkdir_lowlevel( core, path, parent, path_basename, mode, user, group );
+   err = fskit_mkdir_lowlevel( core, path, parent, path_basename, mode, user, group, cls );
 
    if( err != 0 ) {
       fskit_error( "fskit_entry_mkdir_lowlevel(%s) rc = %d\n", path, err );
@@ -243,3 +243,10 @@ int fskit_mkdir( struct fskit_core* core, char const* path, mode_t mode, uint64_
 
    return err;
 }
+
+
+// like fskit_mkdir_ex, but with a NULL cls 
+int fskit_mkdir( struct fskit_core* core, char const* path, mode_t mode, uint64_t user, uint64_t group ) {
+   return fskit_mkdir_ex( core, path, mode, user, group, NULL );
+}
+

@@ -28,6 +28,7 @@
 FSKIT_C_LINKAGE_BEGIN
 
 int fskit_mkdir( struct fskit_core* core, char const* path, mode_t mode, uint64_t user, uint64_t group );
+int fskit_mkdir_ex( struct fskit_core* core, char const* path, mode_t mode, uint64_t user, uint64_t group, void* cls );
 
 FSKIT_C_LINKAGE_END 
 
