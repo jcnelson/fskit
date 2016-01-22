@@ -670,6 +670,8 @@ static int fskit_route_metadata_populate( struct fskit_route_metadata* route_met
    route_metadata->parent = dargs->parent;
    route_metadata->new_parent = dargs->new_parent;
    route_metadata->garbage_collect = dargs->garbage_collect;
+   route_metadata->cls = dargs->cls;
+
    return 0;
 }
 
@@ -1315,19 +1317,20 @@ int fskit_unroute_all( struct fskit_core* core ) {
 }
 
 // set up dargs for create()
-int fskit_route_create_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, char const* name, mode_t mode ) {
+int fskit_route_create_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, char const* name, mode_t mode, void* cls ) {
 
    memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
    
    dargs->name = name;
    dargs->parent = parent;
    dargs->mode = mode;
+   dargs->cls = cls;
 
    return 0;
 }
 
 // set up dargs for mknod()
-int fskit_route_mknod_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, char const* name, mode_t mode, dev_t dev ) {
+int fskit_route_mknod_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, char const* name, mode_t mode, dev_t dev, void* cls ) {
 
    memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
 
@@ -1335,17 +1338,20 @@ int fskit_route_mknod_args( struct fskit_route_dispatch_args* dargs, struct fski
    dargs->parent = parent;
    dargs->mode = mode;
    dargs->dev = dev;
+   dargs->cls = cls;
+
    return 0;
 }
 
 // set up dargs for mkdir()
-int fskit_route_mkdir_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, char const* name, mode_t mode ) {
+int fskit_route_mkdir_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, char const* name, mode_t mode, void* cls ) {
 
    memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
 
    dargs->name = name;
    dargs->parent = parent;
    dargs->mode = mode;
+   dargs->cls = cls;
 
    return 0;
 }
@@ -1486,6 +1492,11 @@ char* fskit_route_metadata_get_path( struct fskit_route_metadata* route_metadata
 // get the route metadata name 
 char* fskit_route_metadata_get_name( struct fskit_route_metadata* route_metadata ) {
    return route_metadata->name;
+}
+
+// get caller-given closure 
+void* fskit_route_metadata_get_cls( struct fskit_route_metadata* route_metadata ) {
+   return route_metadata->cls;
 }
 
 // get the number of match groups 

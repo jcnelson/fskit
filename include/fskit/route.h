@@ -129,6 +129,7 @@ int fskit_unroute_all( struct fskit_core* core );
 // access route metadata 
 char* fskit_route_metadata_get_path( struct fskit_route_metadata* route_metadata );
 char* fskit_route_metadata_get_name( struct fskit_route_metadata* route_metadata );
+void* fskit_route_metadata_get_cls( struct fskit_route_metadata* route_metadata );
 int fskit_route_metadata_num_match_groups( struct fskit_route_metadata* route_metadata );
 char** fskit_route_metadata_get_match_groups( struct fskit_route_metadata* route_metadata );
 struct fskit_entry* fskit_route_metadata_get_parent( struct fskit_route_metadata* route_metadata );
