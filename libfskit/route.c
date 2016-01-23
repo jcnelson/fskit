@@ -275,6 +275,7 @@ struct fskit_path_route* fskit_route_table_remove( fskit_route_table** route_tab
       
       sglib_fskit_route_table_delete( route_table, row );
       fskit_route_table_row_free( row );
+      fskit_safe_free( row );
    }
    
    return route;
