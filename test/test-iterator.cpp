@@ -63,7 +63,7 @@ int main( int argc, char** argv ) {
    }
    
    /////////////////////////////////////////////////////////////////////////////////////
-   printf("\n\nIterate succeeds...\n\n");
+   printf("Iterate succeeds...\n");
    
    for( itr = fskit_path_begin( core, "/root/L/R/L/R/L/R/.foo", true ); !fskit_path_end( itr ); fskit_path_next( itr ) ) {
       
@@ -76,12 +76,7 @@ int main( int argc, char** argv ) {
    }
    
    printf("Iterator error: %d\n", fskit_path_iterator_error( itr ) );
-   
    fskit_path_iterator_release( itr );
-   
-   
-   printf("\n\n");
-   
    
    for( itr = fskit_path_begin( core, "/bar.f", true ); !fskit_path_end( itr ); fskit_path_next( itr ) ) {
       
@@ -94,11 +89,7 @@ int main( int argc, char** argv ) {
    }
    
    printf("Iterator error: %d\n", fskit_path_iterator_error( itr ) );
-   
    fskit_path_iterator_release( itr );
-   
-   
-   printf("\n\n");
    
    
    for( itr = fskit_path_begin( core, "/bar.d", true ); !fskit_path_end( itr ); fskit_path_next( itr ) ) {
@@ -112,12 +103,11 @@ int main( int argc, char** argv ) {
    }
    
    printf("Iterator error: %d\n", fskit_path_iterator_error( itr ) );
-   
    fskit_path_iterator_release( itr );
    
    
    /////////////////////////////////////////////////////////////////////////////////////
-   printf("\n\nIterate succeeds on path with duplicate . and /...\n\n");
+   printf("Iterate succeeds on path with duplicate . and /...\n");
    
    for( itr = fskit_path_begin( core, "././root/L/R//L//././/R/L//.///R", true ); !fskit_path_end( itr ); fskit_path_next( itr ) ) {
       
@@ -130,10 +120,8 @@ int main( int argc, char** argv ) {
    }
 
    printf("Iterator error: %d\n", fskit_path_iterator_error( itr ) );
-
    fskit_path_iterator_release( itr );
       
-   printf("\n\n");
    
    for( itr = fskit_path_begin( core, "/././root///././/.//.", true ); !fskit_path_end( itr ); fskit_path_next( itr ) ) {
       
@@ -146,11 +134,10 @@ int main( int argc, char** argv ) {
    }
 
    printf("Iterator error: %d\n", fskit_path_iterator_error( itr ) );
-
    fskit_path_iterator_release( itr );
       
    /////////////////////////////////////////////////////////////////////////////////////
-   printf("\n\nIterate fails (path too long)...\n\n");
+   printf("Iterate fails (path too long)...\n");
    
    for( itr = fskit_path_begin( core, "/root/L/R/L/R/L/R/L/R/L/R/L/R/L/R/L/R", true ); !fskit_path_end( itr ); fskit_path_next( itr ) ) {
       
@@ -163,11 +150,10 @@ int main( int argc, char** argv ) {
    }
    
    printf("Iterator error: %d\n", fskit_path_iterator_error( itr ) );
-   
    fskit_path_iterator_release( itr );
    
    /////////////////////////////////////////////////////////////////////////////////////
-   printf("\n\nIterate fails (path does not exist)...\n\n");
+   printf("Iterate fails (path does not exist)...\n");
    
    for( itr = fskit_path_begin( core, "/root/L/R/L/foo/L/R", true ); !fskit_path_end( itr ); fskit_path_next( itr ) ) {
       
@@ -179,8 +165,7 @@ int main( int argc, char** argv ) {
       free( cur_path );
    }
    
-   printf("Iterator error: %d\n\n\n", fskit_path_iterator_error( itr ) );
-   
+   printf("Iterator error: %d\n", fskit_path_iterator_error( itr ) );
    fskit_path_iterator_release( itr );
    
    fskit_test_end( core, &output );

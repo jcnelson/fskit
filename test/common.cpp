@@ -75,6 +75,12 @@ int fskit_print_tree( FILE* out, struct fskit_entry* root ) {
    int rc = 0;
    fskit_entry_set_itr itr;
    fskit_entry_set* child = NULL;
+   int64_t ctime_sec = 0;
+   int32_t ctime_nsec = 0;
+   int64_t mtime_sec = 0;
+   int32_t mtime_nsec = 0;
+   int64_t atime_sec = 0;
+   int32_t atime_nsec = 0;
 
    vector< struct fskit_entry* > frontier;
    vector< char* > frontier_paths;
@@ -91,12 +97,14 @@ int fskit_print_tree( FILE* out, struct fskit_entry* root ) {
       frontier_paths.erase( frontier_paths.begin() );
 
       fskit_type_to_string( fskit_entry_get_type( node ), type_str );
+      fskit_entry_get_ctime( node, &ctime_sec, &ctime_nsec );
+      fskit_entry_get_mtime( node, &mtime_sec, &mtime_nsec );
+      fskit_entry_get_atime( node, &atime_sec, &atime_nsec );
 
-      /*
       fprintf( out, "%s: inode=%" PRIX64 " size=%jd mode=%o user=%" PRIu64 " group=%" PRIu64 " ctime=(%" PRId64 ".%" PRId32 ") mtime=(%" PRId64 ".%" PRId32 ") atime=(%" PRId64 ".%" PRId32 ") mem=%p \"%s\"\n",
-                    type_str, node->file_id, node->size, node->mode, node->owner, node->group, node->ctime_sec, node->ctime_nsec, node->mtime_sec, node->mtime_nsec, node->atime_sec, node->atime_nsec, node, next_path );
+                    type_str, fskit_entry_get_file_id( node ), fskit_entry_get_size( node ), fskit_entry_get_mode( node ), fskit_entry_get_owner( node ), fskit_entry_get_group( node ), 
+                    ctime_sec, ctime_nsec, mtime_sec, mtime_nsec, atime_sec, atime_nsec, node, next_path );
 
-      */
       if( fskit_entry_get_type( node ) == FSKIT_ENTRY_TYPE_DIR ) {
 
          fskit_entry_set* children = fskit_entry_get_children( node );

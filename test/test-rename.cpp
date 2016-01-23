@@ -85,7 +85,7 @@ int main( int argc, char** argv ) {
       }
    }
 
-   printf("Rename /a$i to /b$i");
+   printf("Rename /a$i to /b$i\n");
    fskit_print_tree( stdout, fskit_core_get_root( core ) );
 
    // rename into a deeper directory
@@ -106,7 +106,7 @@ int main( int argc, char** argv ) {
    }
 
 
-   printf("Rename /b$i to /d$i/a$i");
+   printf("Rename /b$i to /d$i/a$i\n");
    fskit_print_tree( stdout, fskit_core_get_root( core ) );
 
    // rename into a shallower directory
@@ -126,7 +126,7 @@ int main( int argc, char** argv ) {
       }
    }
 
-   printf("Rename /d/a$i to /a$i");
+   printf("Rename /d/a$i to /a$i\n");
    fskit_print_tree( stdout, fskit_core_get_root( core ) );
 
    fskit_test_end( core, &output );
