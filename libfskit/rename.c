@@ -73,6 +73,17 @@ static int fskit_entry_resolve_inodes_cb( struct fskit_entry* fent, void* cls ) 
    
    int rc = 0;
    fskit_inode_set** inode_set = (fskit_inode_set**)cls;
+   bool new_inode_set = false;
+
+   if( *inode_set == NULL ) {
+      // empty 
+      *inode_set = CALLOC_LIST( fskit_inode_set, 1 );
+      if( *inode_set == NULL ) {
+         return -ENOMEM;
+      }
+
+      new_inode_set = true;
+   }
    
    fskit_inode_set* new_member = CALLOC_LIST( fskit_inode_set, 1 );
    if( new_member == NULL ) {
@@ -85,13 +96,18 @@ static int fskit_entry_resolve_inodes_cb( struct fskit_entry* fent, void* cls ) 
    memset( &lookup, 0, sizeof(fskit_inode_set) );
    
    lookup.file_id = fent->file_id;
-   
-   member = sglib_fskit_inode_set_find_member( *inode_set, &lookup );
-   if( member != NULL ) {
+  
+   if( !new_inode_set ) {
+       member = sglib_fskit_inode_set_find_member( *inode_set, &lookup );
+       if( member != NULL ) {
       
-      // encountered this file ID before... 
-      fskit_safe_free( new_member );
-      return -EINVAL;
+          // encountered this file ID before... 
+          fskit_debug("BUG: path loop: found %" PRIu64 " (%p) twice\n", fent->file_id, fent ); 
+          fskit_safe_free( new_member );
+          exit(1);
+
+          return -EINVAL;
+       }
    }
    
    // insert 
@@ -103,13 +119,18 @@ static int fskit_entry_resolve_inodes_cb( struct fskit_entry* fent, void* cls ) 
 // free up an inode_set
 static int fskit_inode_set_free( fskit_inode_set* inode_set ) {
    
-   
-   struct sglib_fskit_inode_set_iterator itr;
-   fskit_inode_set* dp = NULL;
-   
-   for( dp = sglib_fskit_inode_set_it_init_inorder( &itr, inode_set ); dp != NULL; dp = sglib_fskit_inode_set_it_next( &itr ) ) {
+   if( inode_set != NULL ) {
+
+      struct sglib_fskit_inode_set_iterator itr;
+      fskit_inode_set* dp = NULL;
+      fskit_inode_set* old_dp = NULL;
       
-      fskit_safe_free( dp );
+      for( dp = sglib_fskit_inode_set_it_init_inorder( &itr, inode_set ); dp != NULL; ) {
+
+         old_dp = dp;
+         dp = sglib_fskit_inode_set_it_next( &itr );
+         fskit_safe_free( old_dp );
+      }
    }
    
    return 0;
@@ -124,7 +145,7 @@ static int fskit_inode_set_free( fskit_inode_set* inode_set ) {
 // * path_resolution(7) error for things like e.g. permissions and access control
 static struct fskit_entry* fskit_entry_resolve_inodes( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, int* err, fskit_inode_set** ret_inode_set ) {
    
-   fskit_inode_set* inode_set = CALLOC_LIST( fskit_inode_set, 1 );
+   fskit_inode_set* inode_set = NULL;
    struct fskit_entry* dirent = NULL;
    
    dirent = fskit_entry_resolve_path_cls( core, path, user, group, true, err, fskit_entry_resolve_inodes_cb, &inode_set );
@@ -315,8 +336,6 @@ int fskit_rename( struct fskit_core* core, char const* old_path, char const* new
       fent_old = fskit_entry_set_find_name( fent_old_parent->children, old_path_basename );
    }
 
-   fskit_safe_free( old_path_basename );
-
    // old must exist...
    err = 0;
    if( fent_old == NULL ) {
@@ -329,6 +348,7 @@ int fskit_rename( struct fskit_core* core, char const* old_path, char const* new
       fskit_entry_rename_unlock( fent_common_parent, fent_old_parent, fent_new_parent );
       
       fskit_safe_free( new_path_basename );
+      fskit_safe_free( old_path_basename );
       
       if( new_path_inodes != NULL ) {
          fskit_inode_set_free( new_path_inodes );
@@ -337,7 +357,7 @@ int fskit_rename( struct fskit_core* core, char const* old_path, char const* new
       return err;
    }
 
-   // lock the chilren, so we can check for EISDIR and ENOTDIR
+   // lock the children, so we can check for EISDIR and ENOTDIR
    fskit_entry_wlock( fent_old );
    if( fent_new != NULL ) {
       fskit_entry_wlock( fent_new );
@@ -355,7 +375,7 @@ int fskit_rename( struct fskit_core* core, char const* old_path, char const* new
       }
    }
    
-   if( err == 0 ) {
+   if( err == 0 && fent_new != NULL ) {
       
       // verify no loops 
       if( new_path_inodes != NULL && fskit_inode_set_contains( new_path_inodes, fent_new->file_id ) ) {
@@ -371,6 +391,7 @@ int fskit_rename( struct fskit_core* core, char const* old_path, char const* new
       fskit_entry_rename_unlock( fent_common_parent, fent_old_parent, fent_new_parent );
       
       fskit_safe_free( new_path_basename );
+      fskit_safe_free( old_path_basename );
       
       if( new_path_inodes != NULL ) {
          fskit_inode_set_free( new_path_inodes );
@@ -406,6 +427,7 @@ int fskit_rename( struct fskit_core* core, char const* old_path, char const* new
       // user rename failure 
       fskit_entry_rename_unlock( fent_common_parent, fent_old_parent, fent_new_parent );
       fskit_safe_free( new_path_basename );
+      fskit_safe_free( old_path_basename );
       
       return err;
    }
@@ -427,7 +449,6 @@ int fskit_rename( struct fskit_core* core, char const* old_path, char const* new
       }
 
       fskit_entry_attach_lowlevel( fent_common_parent, fent_old, new_path_basename );
-      fskit_safe_free( new_path_basename );
    }
    else {
 
@@ -442,10 +463,12 @@ int fskit_rename( struct fskit_core* core, char const* old_path, char const* new
       }
 
       fskit_entry_attach_lowlevel( fent_new_parent, fent_old, new_path_basename );
-      fskit_safe_free( new_path_basename );
    }
    
    fskit_entry_unlock( fent_old );
+     
+   fskit_safe_free( old_path_basename );
+   fskit_safe_free( new_path_basename );
    
    if( fent_new != NULL && err == 0 ) {
 
