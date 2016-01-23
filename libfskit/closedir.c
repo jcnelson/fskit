@@ -99,7 +99,7 @@ int fskit_closedir( struct fskit_core* core, struct fskit_dir_handle* dirh ) {
       dirh->dent = NULL;
       rc = 0;
    }
-   if( rc < 0 ) {
+   else if( rc < 0 ) {
 
       // some error occurred
       fskit_error("fskit_entry_try_destroy_and_free(%p) rc = %d\n", dirh->dent, rc );
