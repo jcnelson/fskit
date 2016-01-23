@@ -23,7 +23,7 @@
 
 int main( int argc, char** argv ) {
 
-   struct fskit_core core;
+   struct fskit_core* core = NULL;
    int rc;
    void* output;
    struct fskit_path_iterator* itr = NULL;
@@ -34,29 +34,29 @@ int main( int argc, char** argv ) {
       exit(1);
    }
 
-   rc = fskit_test_mkdir_LR_recursive( &core, "/root", 7 );
+   rc = fskit_test_mkdir_LR_recursive( core, "/root", 7 );
    if( rc != 0 ) {
       fskit_error("fskit_test_mkdir_LR_recursive('/root') rc = %d\n", rc );
       exit(1);
    }
    
-   fh = fskit_create( &core, "/root/L/R/L/R/L/R/.foo", 0, 0, 0777, &rc );
+   fh = fskit_create( core, "/root/L/R/L/R/L/R/.foo", 0, 0, 0777, &rc );
    if( fh == NULL ) {
       fskit_error("fskit_create('/root/L/R/L/R/L/R/.foo') rc = %d\n", rc );
       exit(1);
    }
    
-   fskit_close( &core, fh );
+   fskit_close( core, fh );
    
-   fh = fskit_create( &core, "/bar.f", 0, 0, 0777, &rc );
+   fh = fskit_create( core, "/bar.f", 0, 0, 0777, &rc );
    if( fh == NULL ) {
       fskit_error("fskit_create('/bar.f') rc = %d\n", rc );
       exit(1);
    }
    
-   fskit_close( &core, fh );
+   fskit_close( core, fh );
    
-   rc = fskit_mkdir( &core, "/bar.d", 0755, 0, 0 );
+   rc = fskit_mkdir( core, "/bar.d", 0755, 0, 0 );
    if( rc < 0 ) {
       fskit_error("fskit_mkdir('/bar.d') rc = %d\n", rc );
       exit(1);  
@@ -65,7 +65,7 @@ int main( int argc, char** argv ) {
    /////////////////////////////////////////////////////////////////////////////////////
    printf("\n\nIterate succeeds...\n\n");
    
-   for( itr = fskit_path_begin( &core, "/root/L/R/L/R/L/R/.foo", true ); !fskit_path_end( itr ); fskit_path_next( itr ) ) {
+   for( itr = fskit_path_begin( core, "/root/L/R/L/R/L/R/.foo", true ); !fskit_path_end( itr ); fskit_path_next( itr ) ) {
       
       struct fskit_entry* cur = fskit_path_iterator_entry( itr );
       char* cur_path = fskit_path_iterator_path( itr );
@@ -83,7 +83,7 @@ int main( int argc, char** argv ) {
    printf("\n\n");
    
    
-   for( itr = fskit_path_begin( &core, "/bar.f", true ); !fskit_path_end( itr ); fskit_path_next( itr ) ) {
+   for( itr = fskit_path_begin( core, "/bar.f", true ); !fskit_path_end( itr ); fskit_path_next( itr ) ) {
       
       struct fskit_entry* cur = fskit_path_iterator_entry( itr );
       char* cur_path = fskit_path_iterator_path( itr );
@@ -101,7 +101,7 @@ int main( int argc, char** argv ) {
    printf("\n\n");
    
    
-   for( itr = fskit_path_begin( &core, "/bar.d", true ); !fskit_path_end( itr ); fskit_path_next( itr ) ) {
+   for( itr = fskit_path_begin( core, "/bar.d", true ); !fskit_path_end( itr ); fskit_path_next( itr ) ) {
       
       struct fskit_entry* cur = fskit_path_iterator_entry( itr );
       char* cur_path = fskit_path_iterator_path( itr );
@@ -119,7 +119,7 @@ int main( int argc, char** argv ) {
    /////////////////////////////////////////////////////////////////////////////////////
    printf("\n\nIterate succeeds on path with duplicate . and /...\n\n");
    
-   for( itr = fskit_path_begin( &core, "././root/L/R//L//././/R/L//.///R", true ); !fskit_path_end( itr ); fskit_path_next( itr ) ) {
+   for( itr = fskit_path_begin( core, "././root/L/R//L//././/R/L//.///R", true ); !fskit_path_end( itr ); fskit_path_next( itr ) ) {
       
       struct fskit_entry* cur = fskit_path_iterator_entry( itr );
       char* cur_path = fskit_path_iterator_path( itr );
@@ -135,7 +135,7 @@ int main( int argc, char** argv ) {
       
    printf("\n\n");
    
-   for( itr = fskit_path_begin( &core, "/././root///././/.//.", true ); !fskit_path_end( itr ); fskit_path_next( itr ) ) {
+   for( itr = fskit_path_begin( core, "/././root///././/.//.", true ); !fskit_path_end( itr ); fskit_path_next( itr ) ) {
       
       struct fskit_entry* cur = fskit_path_iterator_entry( itr );
       char* cur_path = fskit_path_iterator_path( itr );
@@ -152,7 +152,7 @@ int main( int argc, char** argv ) {
    /////////////////////////////////////////////////////////////////////////////////////
    printf("\n\nIterate fails (path too long)...\n\n");
    
-   for( itr = fskit_path_begin( &core, "/root/L/R/L/R/L/R/L/R/L/R/L/R/L/R/L/R", true ); !fskit_path_end( itr ); fskit_path_next( itr ) ) {
+   for( itr = fskit_path_begin( core, "/root/L/R/L/R/L/R/L/R/L/R/L/R/L/R/L/R", true ); !fskit_path_end( itr ); fskit_path_next( itr ) ) {
       
       struct fskit_entry* cur = fskit_path_iterator_entry( itr );
       char* cur_path = fskit_path_iterator_path( itr );
@@ -169,7 +169,7 @@ int main( int argc, char** argv ) {
    /////////////////////////////////////////////////////////////////////////////////////
    printf("\n\nIterate fails (path does not exist)...\n\n");
    
-   for( itr = fskit_path_begin( &core, "/root/L/R/L/foo/L/R", true ); !fskit_path_end( itr ); fskit_path_next( itr ) ) {
+   for( itr = fskit_path_begin( core, "/root/L/R/L/foo/L/R", true ); !fskit_path_end( itr ); fskit_path_next( itr ) ) {
       
       struct fskit_entry* cur = fskit_path_iterator_entry( itr );
       char* cur_path = fskit_path_iterator_path( itr );
@@ -183,7 +183,7 @@ int main( int argc, char** argv ) {
    
    fskit_path_iterator_release( itr );
    
-   fskit_test_end( &core, &output );
+   fskit_test_end( core, &output );
 
    return 0;
 }

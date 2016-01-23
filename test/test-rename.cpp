@@ -23,7 +23,7 @@
 
 int main( int argc, char** argv ) {
 
-   struct fskit_core core;
+   struct fskit_core* core = NULL;
    int rc;
    char name_buf[10];
    char name_buf2[10];
@@ -44,21 +44,21 @@ int main( int argc, char** argv ) {
       memset(name_buf, 0, 10 );
       sprintf(name_buf, "/a%d", i );
 
-      fh = fskit_create( &core, name_buf, 0, i, 0644, &rc );
+      fh = fskit_create( core, name_buf, 0, i, 0644, &rc );
 
       if( fh == NULL ) {
          fskit_error("fskit_create('%s') rc = %d\n", name_buf, rc );
          exit(1);
       }
 
-      fskit_close( &core, fh );
+      fskit_close( core, fh );
 
       // mkdir /d$i
 
       memset(name_buf, 0, 10 );
       sprintf(name_buf, "/d%d", i );
 
-      rc = fskit_mkdir( &core, name_buf, 0755, 0, 0 );
+      rc = fskit_mkdir( core, name_buf, 0755, 0, 0 );
       if( rc != 0 ) {
          fskit_error("fskit_mkdir('%s') rc = %d\n", name_buf, rc );
          exit(1);
@@ -66,7 +66,7 @@ int main( int argc, char** argv ) {
    }
 
    printf("Initial tree:\n");
-   fskit_print_tree( stdout, &core.root );
+   fskit_print_tree( stdout, fskit_core_get_root( core ) );
 
    // rename in the same directory
    // rename /a$i to /b$i
@@ -78,7 +78,7 @@ int main( int argc, char** argv ) {
       sprintf(name_buf, "/a%d", i );
       sprintf(name_buf2, "/b%d", i );
 
-      rc = fskit_rename( &core, name_buf, name_buf2, 0, 0 );
+      rc = fskit_rename( core, name_buf, name_buf2, 0, 0 );
       if( rc != 0 ) {
          fskit_error("fskit_rename('%s', '%s') rc = %d\n", name_buf, name_buf2, rc );
          exit(1);
@@ -86,7 +86,7 @@ int main( int argc, char** argv ) {
    }
 
    printf("Rename /a$i to /b$i");
-   fskit_print_tree( stdout, &core.root );
+   fskit_print_tree( stdout, fskit_core_get_root( core ) );
 
    // rename into a deeper directory
    // rename /b$i to /d$i/a$i
@@ -98,7 +98,7 @@ int main( int argc, char** argv ) {
       sprintf(name_buf, "/b%d", i );
       sprintf(name_buf2, "/d%d/a%d", i, i );
 
-      rc = fskit_rename( &core, name_buf, name_buf2, 0, 0 );
+      rc = fskit_rename( core, name_buf, name_buf2, 0, 0 );
       if( rc != 0 ) {
          fskit_error("fskit_rename('%s', '%s') rc = %d\n", name_buf, name_buf2, rc );
          exit(1);
@@ -107,7 +107,7 @@ int main( int argc, char** argv ) {
 
 
    printf("Rename /b$i to /d$i/a$i");
-   fskit_print_tree( stdout, &core.root );
+   fskit_print_tree( stdout, fskit_core_get_root( core ) );
 
    // rename into a shallower directory
    // rename /d$i/a$i to /a$i
@@ -119,7 +119,7 @@ int main( int argc, char** argv ) {
       sprintf(name_buf, "/d%d/a%d", i, i );
       sprintf(name_buf2, "/a%d", i );
 
-      rc = fskit_rename( &core, name_buf, name_buf2, 0, 0 );
+      rc = fskit_rename( core, name_buf, name_buf2, 0, 0 );
       if( rc != 0 ) {
          fskit_error("fskit_rename('%s', '%s') rc = %d\n", name_buf, name_buf2, rc );
          exit(1);
@@ -127,9 +127,9 @@ int main( int argc, char** argv ) {
    }
 
    printf("Rename /d/a$i to /a$i");
-   fskit_print_tree( stdout, &core.root );
+   fskit_print_tree( stdout, fskit_core_get_root( core ) );
 
-   fskit_test_end( &core, &output );
+   fskit_test_end( core, &output );
 
    return 0;
 }

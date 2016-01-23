@@ -67,7 +67,7 @@ static int print_xattrs( struct fskit_core* core, char const* path_buf ) {
 
 int main( int argc, char** argv ) {
 
-   struct fskit_core core;
+   struct fskit_core* core = NULL;
    int rc;
    void* output = NULL;
    char path_buf[100];
@@ -83,14 +83,14 @@ int main( int argc, char** argv ) {
    // make an entry
    sprintf(path_buf, "/test" );
 
-   fh = fskit_create( &core, path_buf, 0, 0, 0644, &rc );
+   fh = fskit_create( core, path_buf, 0, 0, 0644, &rc );
 
    if( fh == NULL ) {
       fskit_error("fskit_create('%s') rc = %d\n", path_buf, rc );
       exit(1);
    }
 
-   fskit_close( &core, fh );
+   fskit_close( core, fh );
 
    // set xattr
    for( int i = 0; i < 10; i++ ) {
@@ -101,7 +101,7 @@ int main( int argc, char** argv ) {
       sprintf(name_buf, "attr-name-%d", i );
       sprintf(xattr_buf, "attr-value-%d", i );
 
-      rc = fskit_setxattr( &core, path_buf, 0, 0, name_buf, xattr_buf, strlen(xattr_buf), XATTR_CREATE );
+      rc = fskit_setxattr( core, path_buf, 0, 0, name_buf, xattr_buf, strlen(xattr_buf), XATTR_CREATE );
       if( rc != 0 ) {
          fskit_error("fskit_setxattr( '%s', '%s', '%s' ) rc = %d\n", path_buf, name_buf, xattr_buf, rc );
          exit(1);
@@ -109,7 +109,7 @@ int main( int argc, char** argv ) {
    }
 
    // list xattr and getxattr
-   rc = print_xattrs( &core, path_buf );
+   rc = print_xattrs( core, path_buf );
    if( rc != 0 ) {
       exit(1);
    }
@@ -121,19 +121,19 @@ int main( int argc, char** argv ) {
 
       sprintf(name_buf, "attr-name-%d", i );
 
-      rc = fskit_removexattr( &core, path_buf, 0, 0, name_buf );
+      rc = fskit_removexattr( core, path_buf, 0, 0, name_buf );
       if( rc != 0 ) {
          fskit_error("fskit_removexattr( '%s', '%s' ) rc = %d\n", path_buf, name_buf, rc );
          exit(1);
       }
    }
 
-   rc = print_xattrs( &core, path_buf );
+   rc = print_xattrs( core, path_buf );
    if( rc != 0 ) {
       exit(1);
    }
 
-   fskit_test_end( &core, &output );
+   fskit_test_end( core, &output );
 
    return 0;
 }

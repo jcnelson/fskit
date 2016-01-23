@@ -111,7 +111,7 @@ int fskit_print_tree( FILE* out, struct fskit_entry* root ) {
          for( child = fskit_entry_set_begin( &itr, children ); child != NULL; child = fskit_entry_set_next( &itr ) ) {
 
             char const* name = fskit_entry_set_name_at( child );
-            struct fskit_entry* child = fskit_entry_set_child_at( child );
+            struct fskit_entry* child_ent = fskit_entry_set_child_at( child );
 
             if( child == NULL ) {
                continue;
@@ -120,7 +120,7 @@ int fskit_print_tree( FILE* out, struct fskit_entry* root ) {
                continue;
             }
 
-            frontier.push_back( child );
+            frontier.push_back( child_ent );
             frontier_paths.push_back( fskit_fullpath( next_path, name, NULL ) );
          }
       }
@@ -145,7 +145,7 @@ int fskit_print_tree( FILE* out, struct fskit_entry* root ) {
 
 
 // begin a functional test
-int fskit_test_begin( struct fskit_core* core, void* test_data ) {
+int fskit_test_begin( struct fskit_core** core, void* test_data ) {
 
    int rc = 0;
 
@@ -155,7 +155,12 @@ int fskit_test_begin( struct fskit_core* core, void* test_data ) {
       return rc;
    }
 
-   rc = fskit_core_init( core, test_data );
+   *core = fskit_core_new();
+   if( *core == NULL ) {
+      return -ENOMEM;
+   }
+
+   rc = fskit_core_init( *core, test_data );
    if( rc != 0 ) {
       fskit_error("fskit_core_init rc = %d\n", rc );
    }
@@ -185,6 +190,8 @@ int fskit_test_end( struct fskit_core* core, void** test_data ) {
    if( rc != 0 ) {
       return rc;
    }
+
+   free( core );
 
    return rc;
 }

@@ -23,7 +23,7 @@
 
 int main( int argc, char** argv ) {
 
-   struct fskit_core core;
+   struct fskit_core* core = NULL;
    int rc;
    void* output;
 
@@ -32,15 +32,15 @@ int main( int argc, char** argv ) {
       exit(1);
    }
 
-   rc = fskit_test_mkdir_LR_recursive( &core, "/root", 7 );
+   rc = fskit_test_mkdir_LR_recursive( core, "/root", 7 );
    if( rc != 0 ) {
       fskit_error("fskit_test_mkdir_LR_recursive('/root') rc = %d\n", rc );
       exit(1);
    }
 
-   fskit_print_tree( stdout, &core.root );
+   fskit_print_tree( stdout, fskit_core_get_root( core ) );
 
-   fskit_test_end( &core, &output );
+   fskit_test_end( core, &output );
 
    return 0;
 }

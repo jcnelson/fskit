@@ -28,7 +28,7 @@ void fskit_type_to_string( int type, char type_buf[10] );
 
 int fskit_print_tree( FILE* out, struct fskit_entry* root );
 
-int fskit_test_begin( struct fskit_core* core, void* test_data );
+int fskit_test_begin( struct fskit_core** core, void* test_data );
 int fskit_test_end( struct fskit_core* core, void** test_data );
 
 int fskit_test_mkdir_LR_recursive( struct fskit_core* core, char const* path, int depth );

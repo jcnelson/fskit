@@ -44,7 +44,7 @@ int fskit_test_readdir( struct fskit_core* core, char const* path ) {
    // read 1, then 2, then 3, etc.
    while( true ) {
 
-      dents = fskit_readdir( core, dh, offset, num_to_read, &num_read, &rc );
+      dents = fskit_readdir( core, dh, num_to_read, &num_read, &rc );
 
       if( rc != 0 ) {
          fskit_error("fskit_readdir('%s') rc = %d\n", path, rc );
@@ -85,7 +85,7 @@ int fskit_test_readdir( struct fskit_core* core, char const* path ) {
 
 int main( int argc, char** argv ) {
 
-   struct fskit_core core;
+   struct fskit_core* core = NULL;
    int rc;
    void* output;
 
@@ -94,34 +94,34 @@ int main( int argc, char** argv ) {
       exit(1);
    }
 
-   rc = fskit_test_mkdir_LR_recursive( &core, "/root", 2 );
+   rc = fskit_test_mkdir_LR_recursive( core, "/root", 2 );
    if( rc != 0 ) {
       fskit_error("fskit_test_mkdir_LR_recursive('/root') rc = %d\n", rc );
       exit(1);
    }
 
 
-   rc = fskit_test_readdir( &core, "/root" );
+   rc = fskit_test_readdir( core, "/root" );
    if( rc != 0 ) {
       fskit_error("fskit_test_readdir('/root') rc = %d\n", rc );
       exit(1);
    }
 
-   rc = fskit_test_readdir( &core, "/root/L" );
+   rc = fskit_test_readdir( core, "/root/L" );
    if( rc != 0 ) {
       fskit_error("fskit_test_readdir('/root') rc = %d\n", rc );
       exit(1);
    }
 
-   rc = fskit_test_readdir( &core, "/root/R" );
+   rc = fskit_test_readdir( core, "/root/R" );
    if( rc != 0 ) {
       fskit_error("fskit_test_readdir('/root') rc = %d\n", rc );
       exit(1);
    }
 
-   fskit_print_tree( stdout, &core.root );
+   fskit_print_tree( stdout, fskit_core_get_root( core ) );
 
-   fskit_test_end( &core, &output );
+   fskit_test_end( core, &output );
 
    return 0;
 }

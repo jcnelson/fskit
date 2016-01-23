@@ -23,7 +23,7 @@
 
 int main( int argc, char** argv ) {
 
-   struct fskit_core core;
+   struct fskit_core* core = NULL;
    int rc;
    char name_buf[10];
    void* output;
@@ -48,7 +48,7 @@ int main( int argc, char** argv ) {
 
       int type = types[ i % num_types ];
 
-      int rc = fskit_mknod( &core, name_buf, type | 0644, makedev( i, i ), 0, i );
+      int rc = fskit_mknod( core, name_buf, type | 0644, makedev( i, i ), 0, i );
 
       if( rc != 0 ) {
          fskit_error("fskit_mknod( path=%s, type=%o ) rc = %d\n", name_buf, type, rc );
@@ -56,9 +56,9 @@ int main( int argc, char** argv ) {
       }
    }
 
-   fskit_print_tree( stdout, &core.root );
+   fskit_print_tree( stdout, fskit_core_get_root( core ) );
 
-   fskit_test_end( &core, &output );
+   fskit_test_end( core, &output );
 
    return 0;
 }

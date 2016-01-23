@@ -23,7 +23,7 @@
 
 int main( int argc, char** argv ) {
 
-   struct fskit_core core;
+   struct fskit_core* core = NULL;
    int rc;
    char name_buf[10];
    struct fskit_file_handle* fh = NULL;
@@ -38,14 +38,14 @@ int main( int argc, char** argv ) {
 
       sprintf(name_buf, "/%d", i );
 
-      fh = fskit_create( &core, name_buf, 0, i, 0644, &rc );
+      fh = fskit_create( core, name_buf, 0, i, 0644, &rc );
 
       if( fh == NULL ) {
          fskit_error("fskit_create(%s) rc = %d\n", name_buf, rc );
          exit(1);
       }
 
-      fskit_close( &core, fh );
+      fskit_close( core, fh );
    }
 
    int num_flags = 5;
@@ -63,7 +63,7 @@ int main( int argc, char** argv ) {
 
       int f = flags[ i % num_flags ];
 
-      fh = fskit_open( &core, name_buf, 0, i, f, 0, &rc );
+      fh = fskit_open( core, name_buf, 0, i, f, 0, &rc );
 
       if( fh == NULL ) {
          fskit_error("fskit_create(%s) rc = %d\n", name_buf, rc );
@@ -72,11 +72,11 @@ int main( int argc, char** argv ) {
 
       fskit_debug("Open %s (flags = %x) handle = %p\n", name_buf, f, fh );
 
-      fskit_close( &core, fh );
+      fskit_close( core, fh );
    }
 
-   fskit_print_tree( stdout, &core.root );
+   fskit_print_tree( stdout, fskit_core_get_root( core ) );
 
-   fskit_test_end( &core, &output );
+   fskit_test_end( core, &output );
    return 0;
 }
