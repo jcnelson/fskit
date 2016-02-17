@@ -45,11 +45,17 @@ LIBFSKIT_FUSE_MAJOR := 1
 LIBFSKIT_FUSE_MINOR := 0
 LIBFSKIT_FUSE_PATCH := 2
 
+# special defs
+REPL_DEF := 
+ifeq ($(REPL),1)
+   REPL_DEF := -D_FSKIT_REPL
+endif
+
 # compiler
 CCFLAGS     := -Wall -std=c11 -g -fPIC -fstack-protector -fstack-protector-all -pthread -Wno-unused-variable -Wno-unused-but-set-variable
 CXXFLAGS   := -Wall -g -fPIC -fstack-protector -fstack-protector-all -pthread -Wno-unused-variable -Wno-unused-but-set-variable
 INC      := -I. -I$(ROOT_DIR) -I$(BUILD_INCLUDEDIR) -I$(BUILD)
-DEFS     := -D_THREAD_SAFE -D__STDC_FORMAT_MACROS 
+DEFS     := -D_THREAD_SAFE -D__STDC_FORMAT_MACROS $(REPL_DEF)
 LIBINC   := 
 CC       ?= cc
 CXX      ?= c++

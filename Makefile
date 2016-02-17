@@ -2,7 +2,7 @@
 include ./buildconf.mk
 
 all:
-	$(MAKE) -C libfskit
+	$(MAKE) -C libfskit REPL=$(REPL)
 	$(MAKE) -C fuse
 
 install:
