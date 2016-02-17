@@ -388,7 +388,7 @@ static int fskit_match_regex( struct fskit_route_metadata* route_metadata, struc
    // matched! whole path?
    if( (signed)path_len != m[0].rm_eo - m[0].rm_so ) {
       // didn't match the whole path
-      fskit_debug("Matched only %d:%d of 0:%zu\n", m[0].rm_so, m[0].rm_eo, path_len );
+      fskit_debug("Matched only %d:%d of 0:%zu in '%s'\n", m[0].rm_so, m[0].rm_eo, path_len, path );
       fskit_safe_free( m );
       return -ENOENT;
    }
@@ -652,7 +652,8 @@ static struct fskit_path_route* fskit_route_match( fskit_route_table* route_tabl
       }
    }
    
-   // no match 
+   // no match
+   fskit_debug("No match on route type %d on '%s'\n", route_type, path ); 
    return NULL;
 }
 
@@ -719,11 +720,7 @@ int fskit_route_call( struct fskit_core* core, int route_type, char const* path,
    fskit_core_route_unlock( core );
 
    rc = fskit_route_metadata_free( &route_metadata );
-   if( rc != 0 ) {
-       return rc;
-   }
-
-   return 0;
+   return rc;
 }
 
 
