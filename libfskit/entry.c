@@ -1395,18 +1395,51 @@ int fskit_dir_handle_unlock( struct fskit_dir_handle* dh ) {
 }
 
 // read-lock a filesystem core
-int fskit_core_rlock( struct fskit_core* core ) {
-   return pthread_rwlock_rdlock( &core->lock );
+int fskit_core_rlock2( struct fskit_core* core, char const* from_str, int lineno ) {
+   
+   if( FSKIT_GLOBAL_DEBUG_LOCKS ) {
+      fskit_debug( "%p: from %s:%d\n", core, from_str, lineno );
+   }
+
+   int rc = pthread_rwlock_rdlock( &core->lock );
+
+   if( rc != 0 ) {
+      fskit_error("pthread_rwlock_rdlock(%p) rc = %d (from %s:%d)\n", core, rc, from_str, lineno );
+   }
+
+   return rc;
 }
 
 // write-lock a filesystem core
-int fskit_core_wlock( struct fskit_core* core ) {
-   return pthread_rwlock_wrlock( &core->lock );
+int fskit_core_wlock2( struct fskit_core* core, char const* from_str, int lineno ) {
+
+   if( FSKIT_GLOBAL_DEBUG_LOCKS ) {
+      fskit_debug( "%p: from %s:%d\n", core, from_str, lineno );
+   }
+
+   int rc = pthread_rwlock_wrlock( &core->lock );
+   
+   if( rc != 0 ) {
+      fskit_error("pthread_rwlock_wrlock(%p) rc = %d (from %s:%d)\n", core, rc, from_str, lineno );
+   }
+
+   return rc;
 }
 
 // unlock a filesystem core
-int fskit_core_unlock( struct fskit_core* core ) {
-   return pthread_rwlock_unlock( &core->lock );
+int fskit_core_unlock2( struct fskit_core* core, char const* from_str, int lineno ) {
+
+   if( FSKIT_GLOBAL_DEBUG_LOCKS ) {
+      fskit_debug( "%p: from %s:%d\n", core, from_str, lineno );
+   }
+
+   int rc = pthread_rwlock_unlock( &core->lock );
+   
+   if( rc != 0 ) {
+      fskit_error("pthread_rwlock_unlock(%p) rc = %d (from %s:%d)\n", core, rc, from_str, lineno );
+   }
+
+   return rc;
 }
 
 // read-lock routes
