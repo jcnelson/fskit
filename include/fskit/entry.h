@@ -183,9 +183,13 @@ int fskit_dir_handle_rlock( struct fskit_dir_handle* dh );
 int fskit_dir_handle_wlock( struct fskit_dir_handle* dh );
 int fskit_dir_handle_unlock( struct fskit_dir_handle* dh );
 
-int fskit_core_rlock( struct fskit_core* core );
-int fskit_core_wlock( struct fskit_core* core );
-int fskit_core_unlock( struct fskit_core* core );
+int fskit_core_rlock2( struct fskit_core* core, char const* from_str, int line_no );
+int fskit_core_wlock2( struct fskit_core* core, char const* from_str, int line_no );
+int fskit_core_unlock2( struct fskit_core* core, char const* from_str, int line_no );
+
+#define fskit_core_rlock( core ) fskit_core_rlock2( core, __FILE__, __LINE__ )
+#define fskit_core_wlock( core ) fskit_core_wlock2( core, __FILE__, __LINE__ )
+#define fskit_core_unlock( core ) fskit_core_unlock2( core, __FILE__, __LINE__ )
 
 int fskit_core_route_rlock( struct fskit_core* core );
 int fskit_core_route_wlock( struct fskit_core* core );
