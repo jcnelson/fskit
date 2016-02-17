@@ -185,7 +185,7 @@ static int fskit_run_user_rename( struct fskit_core* core, char const* path, str
    memset( name, 0, FSKIT_FILESYSTEM_NAMEMAX+1 );
    fskit_basename( path, name );
    
-   fskit_route_rename_args( &dargs, old_fent, name, new_path, new_parent, dest );
+   fskit_route_rename_args( &dargs, old_parent, name, new_path, new_parent, dest );
    
    rc = fskit_route_call_rename( core, path, old_fent, &dargs, &cbrc );
    
