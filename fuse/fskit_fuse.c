@@ -60,6 +60,10 @@ uid_t fskit_fuse_get_uid( struct fskit_fuse_state* state ) {
       // filesystem process can access anything
       return 0;
    }
+   else if( state->settings & FSKIT_FUSE_NO_PERMISSIONS ) {
+      // no permission-check--every call is from "root"
+      return 0;
+   }
    else {
       return fuse_get_context()->uid;
    }
@@ -70,6 +74,10 @@ gid_t fskit_fuse_get_gid( struct fskit_fuse_state* state ) {
 
    if( getpid() == fuse_get_context()->pid && (state->settings & FSKIT_FUSE_SET_FS_ACCESS) ) {
       // filesystem process can access anything
+      return 0;
+   }
+   else if( state->settings & FSKIT_FUSE_NO_PERMISSIONS ) {
+      // no permission-check--every call is from "root" 
       return 0;
    }
    else {
@@ -838,6 +846,14 @@ int fskit_fuse_main( struct fskit_fuse_state* state, int argc, char** argv ) {
       return rc;
    }
 
+   if( mountpoint == NULL ) {
+
+      fskit_error("%s", "No mountpoint given\n");
+      fuse_opt_free_args(&args);
+
+      return rc;
+   }
+
    state->mountpoint = strdup( mountpoint );
 
    // mount
@@ -876,6 +892,7 @@ int fskit_fuse_main( struct fskit_fuse_state* state, int argc, char** argv ) {
    }
 
    // daemonize if running in the background
+   fskit_debug("FUSE daemonize: foreground=%d\n", foreground);
    rc = fuse_daemonize( foreground );
    if( rc != 0 ) {
 
@@ -916,6 +933,7 @@ int fskit_fuse_main( struct fskit_fuse_state* state, int argc, char** argv ) {
    }
 
    // run the filesystem--start processing requests
+   fskit_debug("%s", "FUSE main loop entered\n");
    if( multithreaded ) {
       rc = fuse_loop_mt( fs );
    }
@@ -923,6 +941,7 @@ int fskit_fuse_main( struct fskit_fuse_state* state, int argc, char** argv ) {
       rc = fuse_loop( fs );
    }
 
+   fskit_debug("%s", "FUSE main loop finished\n");
    fuse_teardown( fs, mountpoint );
    
    return rc;
@@ -934,26 +953,29 @@ int fskit_fuse_shutdown( struct fskit_fuse_state* state, void** core_state ) {
    struct fskit_core* core = state->core;
    int rc = 0;
 
-   // clean up
-   // blow away all inodes
-   rc = fskit_detach_all( core, "/" );
-   if( rc != 0 ) {
-      fskit_error( "fskit_detach_all(\"/\") rc = %d\n", rc );
-   }
+   if( core != NULL ) {
+       // clean up
+       // blow away all inodes
+       rc = fskit_detach_all( core, "/" );
+       if( rc != 0 ) {
+          fskit_error( "fskit_detach_all(\"/\") rc = %d\n", rc );
+       }
 
-   // destroy the core
-   rc = fskit_core_destroy( core, core_state );
-   if( rc != 0 ) {
-      fskit_error( "fskit_core_destroy rc = %d\n", rc );
-   }
+       // destroy the core
+       rc = fskit_core_destroy( core, core_state );
+       if( rc != 0 ) {
+          fskit_error( "fskit_core_destroy rc = %d\n", rc );
+       }
 
-   // shut down the library
-   rc = fskit_library_shutdown();
-   if( rc != 0 ) {
-      fskit_error( "fskit_library_shutdown rc = %d\n", rc );
-   }
+       // shut down the library
+       rc = fskit_library_shutdown();
+       if( rc != 0 ) {
+          fskit_error( "fskit_library_shutdown rc = %d\n", rc );
+       }
 
-   free( core );
+       free( core );
+       state->core = NULL;
+   }
 
    // free mountpoint
    if( state->mountpoint != NULL ) {
@@ -968,3 +990,10 @@ int fskit_fuse_shutdown( struct fskit_fuse_state* state, void** core_state ) {
 struct fskit_core* fskit_fuse_get_core( struct fskit_fuse_state* state ) {
    return state->core;
 }
+
+// detach the fskit core from the fskit_fuse state, so the state no longer points to it
+// ONLY DO THIS ON SHUTDOWN
+void fskit_fuse_detach_core( struct fskit_fuse_state* state ) {
+   state->core = NULL;
+}
+

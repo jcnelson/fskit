@@ -34,6 +34,9 @@
 // allow the filesystem process to call arbitrary methods on itself externally, bypassing permissions checks
 #define FSKIT_FUSE_SET_FS_ACCESS        0x1
 
+// disable uid/gid checking; every call is from "root"
+#define FSKIT_FUSE_NO_PERMISSIONS       0x2
+
 FSKIT_C_LINKAGE_BEGIN
 
 struct fskit_fuse_state;
@@ -110,6 +113,7 @@ int fskit_fuse_main( struct fskit_fuse_state* state, int argc, char** argv );
 int fskit_fuse_shutdown( struct fskit_fuse_state* state, void** user_state );
 
 struct fskit_core* fskit_fuse_get_core( struct fskit_fuse_state* state );
+void fskit_fuse_detach_core( struct fskit_fuse_state* state );
 
 FSKIT_C_LINKAGE_END 
 
