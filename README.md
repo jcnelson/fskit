@@ -44,22 +44,22 @@ Building
 --------
 The build process is intentionally simple.  To build:
 
-    $ make
+    $ make PREFIX=/usr/local
 
 Installing
 ----------
 
 To install libfskit to /usr/local/lib and headers to /usr/local/include/fskit:
 
-    $ sudo make install
+    $ sudo make install PREFIX=/usr/local
 
 To build libfskit_fuse, a helper library that wraps fskit into FUSE bindings:
 
-    $ make -C fuse/
+    $ make -C fuse/ PREFIX=/usr/local
 
 To install libfskit_fuse to /usr/local/lib and headers to /usr/local/include/fskit/fuse:
 
-    $ sudo make -C fuse/ install
+    $ sudo make -C fuse/ install PREFIX=/usr/local
 
 You can change the installation directory by setting DESTDIR.
 
