@@ -1,0 +1,61 @@
+Source: fskit
+Section: libs
+Priority: optional
+Maintainer: Zack Williams, University of Arizona <zdw@cs.arizona.edu>
+Changed-By: Enrico Weigelt, metux IT service <weigelt@metux.de>
+Standards-Version: 3.9.5
+Build-Depends: debhelper (>= 9), libattr1-dev, libfuse-dev, pkg-config
+
+Package: libfskit1
+Architecture: any
+Pre-Depends: ${misc:PreDepends}
+Depends:  ${shlibs:Depends},
+          ${misc:Depends}
+Description: Helper library for writing synthentic filesystems
+ fskit is an SDK for creating filesystems. It provides generic code and data
+ structures for managing filesystem inodes, handles, permissions, reference
+ counting, concurrency, and so on, so developers can focus on
+ filesystem-specific features. With fskit, a fully-featured multithreaded
+ filesystem can be written in just over 200 lines of code.
+
+
+Package: libfskit-fuse1
+Architecture: any
+Pre-Depends: ${misc:PreDepends}
+Depends:  ${shlibs:Depends},
+          ${misc:Depends},
+          libfskit1
+Description: Helper library for writing synthentic filesystems - FUSE backend
+ fskit is an SDK for creating filesystems. It provides generic code and data
+ structures for managing filesystem inodes, handles, permissions, reference
+ counting, concurrency, and so on, so developers can focus on
+ filesystem-specific features. With fskit, a fully-featured multithreaded
+ filesystem can be written in just over 200 lines of code.
+
+Package: libfskit1-dev
+Architecture: any
+Section: libdevel
+Pre-Depends: ${misc:PreDepends}
+Depends:  ${shlibs:Depends},
+          ${misc:Depends}
+Description: Helper library for writing synthentic filesystems, dev package
+ fskit is an SDK for creating filesystems. It provides generic code and data
+ structures for managing filesystem inodes, handles, permissions, reference
+ counting, concurrency, and so on, so developers can focus on
+ filesystem-specific features. With fskit, a fully-featured multithreaded
+ filesystem can be written in just over 200 lines of code.
+
+Package: libfskit-fuse1-dev
+Architecture: any
+Section: libdevel
+Pre-Depends: ${misc:PreDepends}
+Depends:  ${shlibs:Depends},
+          ${misc:Depends},
+          libfskit1-dev
+Description: Helper library for writing synthentic filesystems - FUSE backend, dev packag
+ fskit is an SDK for creating filesystems. It provides generic code and data
+ structures for managing filesystem inodes, handles, permissions, reference
+ counting, concurrency, and so on, so developers can focus on
+ filesystem-specific features. With fskit, a fully-featured multithreaded
+ filesystem can be written in just over 200 lines of code.
+

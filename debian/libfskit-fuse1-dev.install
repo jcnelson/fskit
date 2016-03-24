@@ -1,2 +1,3 @@
+usr/lib/libfskit_fuse.so
 usr/include/fskit/fuse/*.h
 usr/lib/pkgconfig/fskit_fuse.pc
