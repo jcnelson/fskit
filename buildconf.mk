@@ -16,7 +16,7 @@ BUILD_PRIVATE_INCLUDEDIR := $(BUILD)/fskit_private
 BUILD_ETCDIR := $(BUILD)/etc
 
 # install environment
-DESTDIR        ?= ""
+DESTDIR        ?= 
 PREFIX         ?= /usr/local
 INCLUDE_PREFIX ?= $(PREFIX)
 BINDIR         ?= $(DESTDIR)$(PREFIX)/bin
