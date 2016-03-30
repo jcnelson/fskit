@@ -31,8 +31,8 @@ INSTALL_HEADERS := $(patsubst $(BUILD_LIBFSKIT_FUSE_HEADERS)/%.h,$(INSTALL_LIBFS
 all: $(LIBFSKIT_FUSE_TARGET) $(LIBFSKIT_FUSE_SO_TARGET) $(LIBFSKIT_FUSE_LIB_TARGET) $(BUILD_HEADERS) $(PC_FILE)
 
 $(PC_FILE):	$(PC_FILE_IN)
-	mkdir -p "$(shell dirname "$@")"
-	cat "$<" | \
+	@mkdir -p "$(shell dirname "$@")"
+	@cat "$<" | \
 		sed -e 's~@PREFIX@~$(PREFIX)~g;' | \
 		sed -e 's~@INCLUDEDIR@~$(INCLUDEDIR)~g;' | \
 		sed -e 's~@VERSION@~$(VERSION)~g; ' | \
@@ -43,46 +43,46 @@ $(PC_FILE):	$(PC_FILE_IN)
 	   sed -e 's~@VERSION_PATCH@~$(LIBFSKIT_FUSE_PATCH)~g; '	> "$@"
 
 $(LIBFSKIT_FUSE_LIB_TARGET): $(OBJ)
-	mkdir -p "$(shell dirname "$@")"
+	@mkdir -p "$(shell dirname "$@")"
 	$(CC) $(CCFLAGS) -shared -Wl,-soname,$(LIBFSKIT_FUSE_SO) -o $(LIBFSKIT_FUSE_LIB_TARGET) $(OBJ) $(LIBINC) $(LIBS)
 
 $(LIBFSKIT_FUSE_SO_TARGET): $(LIBFSKIT_FUSE_LIB_TARGET)
-	mkdir -p "$(shell dirname "$@")"
-	ln -sf "$(shell basename "$<")" "$@"
+	@mkdir -p "$(shell dirname "$@")"
+	@ln -sf "$(shell basename "$<")" "$@"
 
 $(LIBFSKIT_FUSE_TARGET): $(LIBFSKIT_FUSE_SO_TARGET)
-	mkdir -p "$(shell dirname "$@")"
-	ln -sf "$(shell basename "$<")" "$@"
+	@mkdir -p "$(shell dirname "$@")"
+	@ln -sf "$(shell basename "$<")" "$@"
 
 $(BUILD_LIBFSKIT_FUSE_HEADERS)/%.h: %.h
-	mkdir -p "$(shell dirname "$@")"
-	cp -a "$<" "$@"
+	@mkdir -p "$(shell dirname "$@")"
+	@cp -a "$<" "$@"
 
 $(BUILD_LIBFSKIT_FUSE)/%.o : %.c $(BUILD_HEADERS)
-	mkdir -p "$(shell dirname "$@")"
+	@mkdir -p "$(shell dirname "$@")"
 	$(CC) $(CCFLAGS) -o "$@" $(INC) -c "$<" $(DEFS)
 
 
 install: $(LIBFSKIT_FUSE_INSTALL_TARGET) $(LIBFSKIT_FUSE_SO_INSTALL_TARGET) $(LIBFSKIT_FUSE_LIB_INSTALL_TARGET) $(PC_FILE_INSTALL) $(INSTALL_HEADERS)
 
 $(LIBFSKIT_FUSE_INSTALL_TARGET): $(LIBFSKIT_FUSE_TARGET)
-	mkdir -p "$(shell dirname "$@")"
+	@mkdir -p "$(shell dirname "$@")"
 	cp -a "$<" "$@"
 
 $(LIBFSKIT_FUSE_SO_INSTALL_TARGET): $(LIBFSKIT_FUSE_SO_TARGET)
-	mkdir -p "$(shell dirname "$@")"
+	@mkdir -p "$(shell dirname "$@")"
 	cp -a "$<" "$@"
 
 $(LIBFSKIT_FUSE_LIB_INSTALL_TARGET): $(LIBFSKIT_FUSE_LIB_TARGET)
-	mkdir -p "$(shell dirname "$@")"
+	@mkdir -p "$(shell dirname "$@")"
 	cp -a "$<" "$@"
 
 $(PC_FILE_INSTALL): $(PC_FILE)
-	mkdir -p "$(shell dirname "$@")"
+	@mkdir -p "$(shell dirname "$@")"
 	cp -a "$<" "$@"
 
 $(INSTALL_LIBFSKIT_FUSE_HEADERS)/%.h: $(BUILD_LIBFSKIT_FUSE_HEADERS)/%.h
-	mkdir -p "$(shell dirname "$@")"
+	@mkdir -p "$(shell dirname "$@")"
 	cp -a "$<" "$@"
 
 .PHONY: clean

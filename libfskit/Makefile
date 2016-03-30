@@ -34,8 +34,8 @@ INSTALL_HEADERS := $(patsubst $(BUILD_LIBFSKIT_HEADERS)/%.h,$(INSTALL_LIBFSKIT_H
 all: $(LIBFSKIT_TARGET) $(LIBFSKIT_SO_TARGET) $(LIBFSKIT_LIB_TARGET) $(BUILD_HEADERS) $(BUILD_PRIVATE_HEADERS) $(PC_FILE)
 
 $(PC_FILE):	$(PC_FILE_IN)
-	mkdir -p "$(shell dirname "$@")"
-	cat "$<" | \
+	@mkdir -p "$(shell dirname "$@")"
+	@cat "$<" | \
 		sed -e 's~@PREFIX@~$(PREFIX)~g;' \
 			 -e 's~@INCLUDEDIR@~$(INCLUDEDIR)~g;' \
 			 -e 's~@VERSION@~$(VERSION)~g; ' \
@@ -46,31 +46,31 @@ $(PC_FILE):	$(PC_FILE_IN)
 			 -e 's~@VERSION_PATCH@~$(LIBFSKIT_PATCH)~g; '	> "$@"
 
 $(LIBFSKIT_LIB_TARGET): $(OBJ)
-	mkdir -p "$(shell dirname "$@")"
+	@mkdir -p "$(shell dirname "$@")"
 	$(CC) $(CCFLAGS) -shared -Wl,-soname,$(LIBFSKIT_SO) -o $(LIBFSKIT_LIB_TARGET) $(OBJ) $(LIBINC) $(LIBS)
 
 $(LIBFSKIT_SO_TARGET): $(LIBFSKIT_LIB_TARGET)
-	mkdir -p "$(shell dirname "$@")"
-	ln -sf "$<" "$@"
+	@mkdir -p "$(shell dirname "$@")"
+	@ln -sf "$(shell basename "$<")" "$@"
 
 $(LIBFSKIT_TARGET): $(LIBFSKIT_SO_TARGET)
-	mkdir -p "$(shell dirname "$@")"
-	ln -sf "$<" "$@"
+	@mkdir -p "$(shell dirname "$@")"
+	@ln -sf "$(shell basename "$<")" "$@"
 
 $(BUILD_PRIVATE_INCLUDEDIR)/%.h: ../include/fskit_private/%.h
-	mkdir -p "$(shell dirname "$@")"
-	cp -a "$<" "$@"
+	@mkdir -p "$(shell dirname "$@")"
+	@cp -a "$<" "$@"
 
 $(BUILD_LIBFSKIT_HEADERS)/%.h: ../include/fskit/%.h
-	mkdir -p "$(shell dirname "$@")"
-	cp -a "$<" "$@"
+	@mkdir -p "$(shell dirname "$@")"
+	@cp -a "$<" "$@"
 
 $(BUILD_LIBFSKIT)/%.o : %.c $(BUILD_HEADERS) $(BUILD_PRIVATE_HEADERS)
-	mkdir -p "$(shell dirname "$@")"
+	@mkdir -p "$(shell dirname "$@")"
 	$(CC) $(CCFLAGS) -o "$@" $(INC) -c "$<" $(DEFS)
 
 $(BUILD_LIBFSKIT)/%.o : %.cpp $(BUILD_HEADERS) $(BUILD_PRIVATE_HEADERS)
-	mkdir -p "$(shell dirname "$@")"
+	@mkdir -p "$(shell dirname "$@")"
 	$(CC) $(CCFLAGS) -o "$@" $(INC) -c "$<" $(DEFS)
 
 libs-install: $(LIBFSKIT_INSTALL_TARGET) $(LIBFSKIT_SO_INSTALL_TARGET) $(LIBFSKIT_LIB_INSTALL_TARGET)
@@ -80,23 +80,23 @@ headers-install: $(PC_FILE_INSTALL) $(INSTALL_HEADERS)
 install: libs-install headers-install
 
 $(LIBFSKIT_INSTALL_TARGET): $(LIBFSKIT_TARGET)
-	mkdir -p "$(shell dirname "$@")"
+	@mkdir -p "$(shell dirname "$@")"
 	cp -a "$<" "$@"
 
 $(LIBFSKIT_SO_INSTALL_TARGET): $(LIBFSKIT_SO_TARGET)
-	mkdir -p "$(shell dirname "$@")"
+	@mkdir -p "$(shell dirname "$@")"
 	cp -a "$<" "$@"
 
 $(LIBFSKIT_LIB_INSTALL_TARGET): $(LIBFSKIT_LIB_TARGET)
-	mkdir -p "$(shell dirname "$@")"
+	@mkdir -p "$(shell dirname "$@")"
 	cp -a "$<" "$@"
 
 $(PC_FILE_INSTALL): $(PC_FILE)
-	mkdir -p "$(shell dirname "$@")"
+	@mkdir -p "$(shell dirname "$@")"
 	cp -a "$<" "$@"
 
 $(INSTALL_LIBFSKIT_HEADERS)/%.h: $(BUILD_LIBFSKIT_HEADERS)/%.h
-	mkdir -p "$(shell dirname "$@")"
+	@mkdir -p "$(shell dirname "$@")"
 	cp -a "$<" "$@"
 
 .PHONY: clean
