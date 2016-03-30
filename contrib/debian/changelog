@@ -1,5 +1,0 @@
-fskit (1.0.1+142-dpkg0) dpkg; urgency=low
-
-  * Generic dpkg packaging template
-
- -- Enrico Weigelt, metux IT consult <weigelt@metux.de>  Fri, 02 Jan 2015 16:19:13 +0100
