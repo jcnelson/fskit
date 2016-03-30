@@ -3,7 +3,7 @@ include ../buildconf.mk
 
 C_SRCS:= $(wildcard *.c)
 OBJ   := $(patsubst %.c,$(BUILD_LIBFSKIT_FUSE)/%.o,$(C_SRCS))
-LIBS  := -lpthread -lfuse
+LIBS  := -lpthread -lfuse -lfskit
 DEFS  := $(DEFS) -D_FILE_OFFSET_BITS=64
 
 PC_FILE		:= $(BUILD_PKGCONFIG)/fskit_fuse.pc
