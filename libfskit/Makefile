@@ -51,11 +51,11 @@ $(LIBFSKIT_LIB_TARGET): $(OBJ)
 
 $(LIBFSKIT_SO_TARGET): $(LIBFSKIT_LIB_TARGET)
 	mkdir -p "$(shell dirname "$@")"
-	ln -sf "$(shell basename "$<")" "$@"
+	ln -sf "$<" "$@"
 
 $(LIBFSKIT_TARGET): $(LIBFSKIT_SO_TARGET)
 	mkdir -p "$(shell dirname "$@")"
-	ln -sf "$(shell basename "$<")" "$@"
+	ln -sf "$<" "$@"
 
 $(BUILD_PRIVATE_INCLUDEDIR)/%.h: ../include/fskit_private/%.h
 	mkdir -p "$(shell dirname "$@")"
