@@ -3,7 +3,7 @@ include ../buildconf.mk
 
 C_SRCS:= $(wildcard *.c)
 OBJ   := $(patsubst %.c,$(BUILD_LIBFSKIT_FUSE)/%.o,$(C_SRCS))
-LIBS  := -lpthread -lfuse -lfskit
+LIBS  := -lpthread -lfuse
 DEFS  := $(DEFS) -D_FILE_OFFSET_BITS=64
 
 PC_FILE		:= $(BUILD_PKGCONFIG)/fskit_fuse.pc
@@ -44,7 +44,7 @@ $(PC_FILE):	$(PC_FILE_IN)
 
 $(LIBFSKIT_FUSE_LIB_TARGET): $(OBJ)
 	@mkdir -p "$(shell dirname "$@")"
-	$(CC) $(CCFLAGS) -shared -Wl,-soname,$(LIBFSKIT_FUSE_SO) -o $(LIBFSKIT_FUSE_LIB_TARGET) $(OBJ) $(LIBINC) $(LIBS)
+	$(CC) $(CCFLAGS) -shared -Wl,-soname,$(LIBFSKIT_FUSE_SO) -o $(LIBFSKIT_FUSE_LIB_TARGET) $(OBJ) $(LIBINC) $(LIBS) -lfskit
 
 $(LIBFSKIT_FUSE_SO_TARGET): $(LIBFSKIT_FUSE_LIB_TARGET)
 	@mkdir -p "$(shell dirname "$@")"
