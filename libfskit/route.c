@@ -443,17 +443,17 @@ static bool fskit_path_route_is_defined( struct fskit_path_route* route ) {
 
 // start running a route's callback.
 // enforce the consistency discipline by locking the route appropriately
-static int fskit_route_enter( struct fskit_path_route* route, struct fskit_entry* fent ) {
+static int fskit_route_enter( struct fskit_path_route* route, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs ) {
 
    int rc = 0;
    
-   if( fent == NULL ) {
+   if( fent == NULL && !dargs->fent_absent ) {
        fskit_error("%s", "BUG: entry is NULL\n");
        exit(1);
    }
-   
+  
    // the fent must be ref'ed before the route is called 
-   if( route->route_type != FSKIT_ROUTE_MATCH_DETACH && route->route_type != FSKIT_ROUTE_MATCH_DESTROY && fent->open_count <= 0 && fent->link_count <= 0 ) {
+   if( fent != NULL && route->route_type != FSKIT_ROUTE_MATCH_DETACH && route->route_type != FSKIT_ROUTE_MATCH_DESTROY && fent->open_count <= 0 && fent->link_count <= 0 ) {
       fskit_error("\n\nBUG: entry %p is not ref'ed (open = %d, link = %d)\n\n", fent, fent->open_count, fent->link_count);
       exit(1);
    }
@@ -465,10 +465,10 @@ static int fskit_route_enter( struct fskit_path_route* route, struct fskit_entry
    else if( route->consistency_discipline == FSKIT_CONCURRENT ) {
       rc = pthread_rwlock_rdlock( &route->lock );
    }
-   else if( route->consistency_discipline == FSKIT_INODE_SEQUENTIAL ) {
+   else if( fent != NULL && route->consistency_discipline == FSKIT_INODE_SEQUENTIAL ) {
       rc = fskit_entry_wlock( fent );
    }
-   else if( route->consistency_discipline == FSKIT_INODE_CONCURRENT ) {
+   else if( fent != NULL && route->consistency_discipline == FSKIT_INODE_CONCURRENT ) {
       rc = fskit_entry_rlock( fent );
    }
    
@@ -485,10 +485,10 @@ static int fskit_route_enter( struct fskit_path_route* route, struct fskit_entry
 // clean up from enforcing the consistency discipline
 static int fskit_route_leave( struct fskit_path_route* route, struct fskit_entry* fent ) {
    
-   if( route->consistency_discipline == FSKIT_INODE_SEQUENTIAL || route->consistency_discipline == FSKIT_INODE_CONCURRENT ) {
+   if( fent != NULL && (route->consistency_discipline == FSKIT_INODE_SEQUENTIAL || route->consistency_discipline == FSKIT_INODE_CONCURRENT) ) {
       fskit_entry_unlock( fent );
    }
-   else {
+   else if( route->consistency_discipline == FSKIT_SEQUENTIAL || route->consistency_discipline == FSKIT_CONCURRENT ) {
       pthread_rwlock_unlock( &route->lock );
    }
    
@@ -506,7 +506,7 @@ static int fskit_route_dispatch( struct fskit_core* core, struct fskit_route_met
    int rc = 0;
 
    // enforce the consistency discipline
-   rc = fskit_route_enter( route, fent );
+   rc = fskit_route_enter( route, fent, dargs );
    if( rc != 0 ) {
       fskit_error("fskit_route_enter(route %s) rc = %d\n", route->path_regex_str, rc );
       return rc;
@@ -1438,12 +1438,13 @@ int fskit_route_destroy_args( struct fskit_route_dispatch_args* dargs, struct fs
 }
 
 // set up dargs for stat()
-int fskit_route_stat_args( struct fskit_route_dispatch_args* dargs, char const* name, struct stat* sb ) {
+int fskit_route_stat_args( struct fskit_route_dispatch_args* dargs, char const* name, struct stat* sb, bool fent_absent ) {
 
    memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
 
    dargs->name = name;
    dargs->sb = sb;
+   dargs->fent_absent = fent_absent;
 
    return 0;
 }
