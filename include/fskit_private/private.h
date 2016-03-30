@@ -159,6 +159,9 @@ struct fskit_core {
 
    // lock governing access to the above fields of this structure
    pthread_rwlock_t route_lock;
+
+   // extra features to enable 
+   uint64_t features;
 };
 
 // route method type 
@@ -218,6 +221,7 @@ struct fskit_route_dispatch_args {
 
    char const* name;
    struct stat* sb;      // stat() only
+   bool fent_absent;     // stat() only
    
    struct fskit_entry* parent;  // create(), mkdir(), mknod(), rename(), link(), rmdir(), unlink() (guaranteed to be write-locked if non-NULL)
    
@@ -295,7 +299,7 @@ int fskit_route_io_args( struct fskit_route_dispatch_args* dargs, char* iobuf, s
 int fskit_route_trunc_args( struct fskit_route_dispatch_args* dargs, char const* name, off_t iooff, void* handle_data, fskit_route_io_continuation io_cont );
 int fskit_route_detach_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, char const* name, bool garbage_collect, void* inode_data );
 int fskit_route_destroy_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, char const* name, void* inode_data );
-int fskit_route_stat_args( struct fskit_route_dispatch_args* dargs, char const* name, struct stat* sb );
+int fskit_route_stat_args( struct fskit_route_dispatch_args* dargs, char const* name, struct stat* sb, bool fent_absent );
 int fskit_route_sync_args( struct fskit_route_dispatch_args* dargs );
 int fskit_route_rename_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* old_parent, char const* old_name, char const* new_path, struct fskit_entry* new_parent, struct fskit_entry* dest );
 int fskit_route_link_args( struct fskit_route_dispatch_args* dargs, char const* name, char const* new_path, struct fskit_entry* new_parent );
