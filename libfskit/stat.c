@@ -24,7 +24,7 @@
 
 #include "fskit_private/private.h"
 
-// NOTE: fent cannot be locked
+// NOTE: fent cannot be locked (or, it can be NULL)
 int fskit_do_user_stat( struct fskit_core* core, char const* fs_path, struct fskit_entry* fent, struct stat* sb ) {
 
    int rc = 0;
@@ -36,7 +36,7 @@ int fskit_do_user_stat( struct fskit_core* core, char const* fs_path, struct fsk
    memset( name, 0, FSKIT_FILESYSTEM_NAMEMAX+1 );
    fskit_basename( fs_path, name );
    
-   fskit_route_stat_args( &dargs, name, sb );
+   fskit_route_stat_args( &dargs, name, sb, true );
 
    rc = fskit_route_call_stat( core, fs_path, fent, &dargs, &cbrc );
 
@@ -63,6 +63,8 @@ int fskit_stat( struct fskit_core* core, char const* fs_path, uint64_t user, uin
    struct fskit_entry* fent = fskit_entry_ref( core, fs_path, &rc );
    if( fent == NULL ) {
       
+      // doesn't exist, but maybe the FS implementation will add it... 
+      rc = fskit_do_user_stat( core, fs_path, NULL, sb );
       return rc;
    }
    
