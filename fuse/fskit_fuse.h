@@ -37,6 +37,9 @@
 // disable uid/gid checking; every call is from "root"
 #define FSKIT_FUSE_NO_PERMISSIONS       0x2
 
+// call route on stat even if the inode doesn't exist 
+#define FSKIT_FUSE_STAT_ON_ABSENT       0x4
+
 FSKIT_C_LINKAGE_BEGIN
 
 struct fskit_fuse_state;
