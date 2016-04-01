@@ -2,15 +2,12 @@ Source: fskit
 Section: libs
 Priority: optional
 Maintainer: Zack Williams, University of Arizona <zdw@cs.arizona.edu>
-Changed-By: Enrico Weigelt, metux IT service <weigelt@metux.de>
 Standards-Version: 3.9.5
 Build-Depends: debhelper (>= 9), libattr1-dev, libfuse-dev, pkg-config
 
 Package: libfskit1
 Architecture: any
-Pre-Depends: ${misc:PreDepends}
-Depends:  ${shlibs:Depends},
-          ${misc:Depends}
+Depends:  ${shlibs:Depends}, ${misc:Depends}
 Description: Helper library for writing synthentic filesystems
  fskit is an SDK for creating filesystems. It provides generic code and data
  structures for managing filesystem inodes, handles, permissions, reference
@@ -21,10 +18,7 @@ Description: Helper library for writing synthentic filesystems
 
 Package: libfskit-fuse1
 Architecture: any
-Pre-Depends: ${misc:PreDepends}
-Depends:  ${shlibs:Depends},
-          ${misc:Depends},
-          libfskit1
+Depends:  ${shlibs:Depends}, ${misc:Depends}, libfskit1 (= ${binary:Version})
 Description: Helper library for writing synthentic filesystems - FUSE backend
  fskit is an SDK for creating filesystems. It provides generic code and data
  structures for managing filesystem inodes, handles, permissions, reference
@@ -35,9 +29,7 @@ Description: Helper library for writing synthentic filesystems - FUSE backend
 Package: libfskit1-dev
 Architecture: any
 Section: libdevel
-Pre-Depends: ${misc:PreDepends}
-Depends:  ${shlibs:Depends},
-          ${misc:Depends}
+Depends: ${misc:Depends}, libfskit1 (= ${binary:Version})
 Description: Helper library for writing synthentic filesystems, dev package
  fskit is an SDK for creating filesystems. It provides generic code and data
  structures for managing filesystem inodes, handles, permissions, reference
@@ -48,10 +40,7 @@ Description: Helper library for writing synthentic filesystems, dev package
 Package: libfskit-fuse1-dev
 Architecture: any
 Section: libdevel
-Pre-Depends: ${misc:PreDepends}
-Depends:  ${shlibs:Depends},
-          ${misc:Depends},
-          libfskit1-dev
+Depends: ${misc:Depends}, libfskit-fuse1 (= ${binary:Version})
 Description: Helper library for writing synthentic filesystems - FUSE backend, dev packag
  fskit is an SDK for creating filesystems. It provides generic code and data
  structures for managing filesystem inodes, handles, permissions, reference

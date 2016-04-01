@@ -2,6 +2,7 @@
 # -*- makefile -*-
 
 export DH_VERBOSE=1
+export PREFIX=/usr
 
 %:
 	dh ${@}

@@ -16,7 +16,8 @@ BUILD_PRIVATE_INCLUDEDIR := $(BUILD)/fskit_private
 BUILD_ETCDIR := $(BUILD)/etc
 
 # install environment
-PREFIX         ?= /usr
+DESTDIR        ?= 
+PREFIX         ?= /usr/local
 INCLUDE_PREFIX ?= $(PREFIX)
 BINDIR         ?= $(DESTDIR)$(PREFIX)/bin
 SBINDIR			?= $(DESTDIR)$(PREFIX)/sbin
@@ -56,7 +57,7 @@ CCFLAGS     := -Wall -std=c11 -g -fPIC -fstack-protector -fstack-protector-all -
 CXXFLAGS   := -Wall -g -fPIC -fstack-protector -fstack-protector-all -pthread -Wno-unused-variable -Wno-unused-but-set-variable
 INC      := -I. -I$(ROOT_DIR) -I$(BUILD_INCLUDEDIR) -I$(BUILD)
 DEFS     := -D_THREAD_SAFE -D__STDC_FORMAT_MACROS $(REPL_DEF)
-LIBINC   := 
+LIBINC   := -L. -L$(BUILD_USRLIB)
 CC       ?= cc
 CXX      ?= c++
 
