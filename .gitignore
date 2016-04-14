@@ -25,3 +25,4 @@ test/test-write
 test/test-xattr
 test/test-iterator
 demo/store
+*.swp
