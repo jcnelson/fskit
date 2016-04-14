@@ -25,6 +25,30 @@
 
 #include "fskit_private/private.h"
 
+// do user-supplied removexattr logic
+// return 1 if handled by the callback
+// return 0 if not
+// return negative on error
+int fskit_run_user_removexattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, char const* xattr_name ) {
+
+   int rc = 0;
+   int cbrc = 0;
+   struct fskit_route_dispatch_args dargs;
+   
+   fskit_route_removexattr_args( &dargs, xattr_name);
+   rc = fskit_route_call_removexattr( core, path, fent, &dargs, &cbrc );
+
+   if( rc == -EPERM ) {
+      // no routes
+      return 0;
+   }
+   else if( rc < 0 ) {
+      return rc;
+   }
+
+   return cbrc;
+}
+
 // remove an xattr.
 // returns whatever fremovexattr returns, plus whatever error codes path resolution can return
 int fskit_removexattr( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, char const* name ) {
@@ -39,7 +63,7 @@ int fskit_removexattr( struct fskit_core* core, char const* path, uint64_t user,
    }
 
    // get the xattr
-   rc = fskit_fremovexattr( core, fent, name );
+   rc = fskit_fremovexattr( core, path, fent, name );
 
    fskit_entry_unlock( fent );
 
@@ -49,12 +73,24 @@ int fskit_removexattr( struct fskit_core* core, char const* path, uint64_t user,
 // remove an xattr.
 // return 0 on success
 // return -ENOATTR if the attribute doesn't exist
+// return -EPERM if the user-given callback fails
 // NOTE: fent must be write-locked
-int fskit_fremovexattr( struct fskit_core* core, struct fskit_entry* fent, char const* name ) {
+int fskit_fremovexattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, char const* name ) {
 
    int rc = 0;
    bool removed = false;
    
+   rc = fskit_run_user_removexattr( core, path, fent, name );
+   if( rc < 0 ) {
+      fskit_error("fskit_user_removexattr('%s', '%s') rc = %d\n", path, name, rc );
+      return -EPERM;
+   }
+   
+   if( rc > 0 ) {
+      // removed 
+      return 0;
+   }
+
    removed = fskit_xattr_set_remove( &fent->xattrs, name );
    if( removed ) {
       

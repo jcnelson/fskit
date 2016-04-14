@@ -24,6 +24,30 @@
 
 #include "fskit_private/private.h"
 
+// get the user-supplied xattr data for getxattr
+// the callback should return > 0 if it handled the getxattr request
+// the callback should return 0 if it did not handle the request, but fskit should
+int fskit_run_user_getxattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, char const* xattr_name, char* xattr_buf, size_t xattr_buf_len ) {
+
+   int rc = 0;
+   int cbrc = 0;
+   struct fskit_route_dispatch_args dargs;
+   
+   fskit_route_getxattr_args( &dargs, xattr_name, xattr_buf, xattr_buf_len );
+   rc = fskit_route_call_getxattr( core, path, fent, &dargs, &cbrc );
+
+   if( rc == -EPERM ) {
+      // no routes
+      return 0;
+   }
+   else if( rc < 0 ) {
+      return rc;
+   }
+
+   return cbrc;
+}
+
+
 // wrapper around fgetxattr, which resolves the path to the fskit entry
 // returns whatever fgetxattr returns, plus any errors in path resolution
 int fskit_getxattr( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, char const* name, char* value, size_t size ) {
@@ -38,7 +62,7 @@ int fskit_getxattr( struct fskit_core* core, char const* path, uint64_t user, ui
    }
 
    // get the xattr
-   rc = fskit_fgetxattr( core, fent, name, value, size );
+   rc = fskit_fgetxattr( core, path, fent, name, value, size );
 
    fskit_entry_unlock( fent );
 
@@ -54,12 +78,24 @@ int fskit_getxattr( struct fskit_core* core, char const* path, uint64_t user, ui
 // * anything due to a failure in stat
 // if size == 0 or value == NULL, then just return the length of the attribute requested
 // NOTE: fent must be at least read-locked
-int fskit_fgetxattr( struct fskit_core* core, struct fskit_entry* fent, char const* name, char* value_buf, size_t size ) {
+int fskit_fgetxattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, char const* name, char* value_buf, size_t size ) {
 
    int rc = 0;
    char const* value = NULL;
    size_t value_len = 0;
-   
+
+   // can the callback service it?
+   rc = fskit_run_user_getxattr( core, path, fent, name, value_buf, size );
+   if( rc > 0 ) {
+      // callback handled! 
+      return rc;
+   }
+
+   if( rc < 0 ) {
+      fskit_error("fskit_run_user_getxattr('%s', '%s') rc = %d\n", path, name, rc );
+      return rc;
+   }
+    
    value = fskit_xattr_set_find( fent->xattrs, name, &value_len );
    if( value == NULL ) {
       
@@ -77,7 +113,7 @@ int fskit_fgetxattr( struct fskit_core* core, struct fskit_entry* fent, char con
       // too small 
       return -ERANGE;
    }
-   
+    
    memcpy( value_buf, value, value_len );
    return value_len;
 }

@@ -604,6 +604,26 @@ static int fskit_route_dispatch( struct fskit_core* core, struct fskit_route_met
          rc = fskit_safe_dispatch( route->method.link_cb, core, route_metadata, fent, dargs->new_path );
          break;
          
+      case FSKIT_ROUTE_MATCH_GETXATTR:
+
+         rc = fskit_safe_dispatch( route->method.getxattr_cb, core, route_metadata, fent, dargs->xattr_name, dargs->xattr_buf, dargs->xattr_buf_len );
+         break;
+
+      case FSKIT_ROUTE_MATCH_SETXATTR:
+         
+         rc = fskit_safe_dispatch( route->method.setxattr_cb, core, route_metadata, fent, dargs->xattr_name, dargs->xattr_value, dargs->xattr_value_len );
+         break;
+
+      case FSKIT_ROUTE_MATCH_LISTXATTR:
+
+         rc = fskit_safe_dispatch( route->method.listxattr_cb, core, route_metadata, fent, dargs->xattr_buf, dargs->xattr_buf_len );
+         break;
+
+      case FSKIT_ROUTE_MATCH_REMOVEXATTR:
+
+         rc = fskit_safe_dispatch( route->method.removexattr_cb, core, route_metadata, fent, dargs->xattr_name );
+         break;
+
       default:
 
          fskit_error("Invalid route dispatch code %d\n", route->route_type );
@@ -849,12 +869,48 @@ int fskit_route_call_rename( struct fskit_core* core, char const* path, struct f
 }
 
 
-// call theroute to link 
+// call the route to link 
 // return 0 if a route was called, or -EPERM if there are no routes 
 // set the route callback return code in *cbrc 
 // NOTE: fent *cannot* be locked--its lock status will be set through the route consistency discipline 
 int fskit_route_call_link( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc ) {
     return fskit_route_call( core, FSKIT_ROUTE_MATCH_LINK, path, fent, dargs, cbrc );
+}
+
+
+// call the route to getxattr
+// return 0 if a route was called, or -EPERM if there are no routes 
+// set the route callback return code in *cbrc
+// NOTE: fent *cannot* be locked--its lock status will be set through the route consistency discipline 
+int fskit_route_call_getxattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc ) {
+    return fskit_route_call( core, FSKIT_ROUTE_MATCH_GETXATTR, path, fent, dargs, cbrc );
+}
+
+
+// call the route to listxattr
+// return 0 if a route was called, or -EPERM if there are no routes 
+// set the route callback return code in *cbrc
+// NOTE: fent *cannot* be locked--its lock status will be set through the route consistency discipline 
+int fskit_route_call_listxattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc ) {
+    return fskit_route_call( core, FSKIT_ROUTE_MATCH_LISTXATTR, path, fent, dargs, cbrc );
+}
+
+
+// call the route to setxattr
+// return 0 if a route was called, or -EPERM if there are no routes 
+// set the route callback return code in *cbrc
+// NOTE: fent *cannot* be locked--its lock status will be set through the route consistency discipline 
+int fskit_route_call_setxattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc ) {
+    return fskit_route_call( core, FSKIT_ROUTE_MATCH_SETXATTR, path, fent, dargs, cbrc );
+}
+
+
+// call the route to removexattr
+// return 0 if a route was called, or -EPERM if there are no routes 
+// set the route callback return code in *cbrc
+// NOTE: fent *cannot* be locked--its lock status will be set through the route consistency discipline 
+int fskit_route_call_removexattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc ) {
+    return fskit_route_call( core, FSKIT_ROUTE_MATCH_REMOVEXATTR, path, fent, dargs, cbrc );
 }
 
 
@@ -1275,7 +1331,7 @@ int fskit_unroute_rename( struct fskit_core* core, int route_handle ) {
 
 
 // declare a route for linking a file into a new directory 
-// return >=0 on success (the route hndle )
+// return >=0 on success (the route handle )
 // return -EINVAL if consistency_discipline is not supported
 // return -ENOMEM if out of memory 
 int fskit_route_link( struct fskit_core* core, char const* route_regex, fskit_entry_route_link_callback_t link_cb, int consistency_discipline ) {
@@ -1294,6 +1350,90 @@ int fskit_unroute_link( struct fskit_core* core, int route_handle ) {
     
    return fskit_path_route_undecl( core, FSKIT_ROUTE_MATCH_LINK, route_handle );
 }
+
+
+// declare a route for getting an xattr 
+// return >=0 on success (the route handle)
+// return -EINVAL if consistency discipline is not supported
+// return -ENOMEM if out of memory 
+int fskit_route_getxattr( struct fskit_core* core, char const* route_regex, fskit_entry_route_getxattr_callback_t getxattr_cb, int consistency_discipline ) {
+
+   union fskit_route_method method;
+   method.getxattr_cb = getxattr_cb;
+
+   return fskit_path_route_decl( core, route_regex, FSKIT_ROUTE_MATCH_GETXATTR, method, consistency_discipline );
+}
+
+// undeclare a route for getting an xattr
+// return 0 on success
+// return -EINVAL if the route can't possibly exist 
+int fskit_unroute_getxattr( struct fskit_core* core, int route_handle ) {
+
+   return fskit_path_route_undecl( core, FSKIT_ROUTE_MATCH_GETXATTR, route_handle );
+}
+
+// declare a route for listing an xattr 
+// return >=0 on success (the route handle)
+// return -EINVAL if consistency discipline is not supported
+// return -ENOMEM if out of memory 
+int fskit_route_listxattr( struct fskit_core* core, char const* route_regex, fskit_entry_route_listxattr_callback_t listxattr_cb, int consistency_discipline ) {
+
+   union fskit_route_method method;
+   method.listxattr_cb = listxattr_cb;
+
+   return fskit_path_route_decl( core, route_regex, FSKIT_ROUTE_MATCH_LISTXATTR, method, consistency_discipline );
+}
+
+// undeclare a route for listing xattrs
+// return 0 on success
+// return -EINVAL if the route can't possibly exist 
+int fskit_unroute_listxattr( struct fskit_core* core, int route_handle ) {
+
+   return fskit_path_route_undecl( core, FSKIT_ROUTE_MATCH_LISTXATTR, route_handle );
+}
+
+
+// declare a route for setting an xattr 
+// return >=0 on success (the route handle)
+// return -EINVAL if consistency discipline is not supported
+// return -ENOMEM if out of memory 
+int fskit_route_setxattr( struct fskit_core* core, char const* route_regex, fskit_entry_route_setxattr_callback_t setxattr_cb, int consistency_discipline ) {
+
+   union fskit_route_method method;
+   method.setxattr_cb = setxattr_cb;
+
+   return fskit_path_route_decl( core, route_regex, FSKIT_ROUTE_MATCH_SETXATTR, method, consistency_discipline );
+}
+
+// undeclare a route for setting an xattr
+// return 0 on success
+// return -EINVAL if the route can't possibly exist 
+int fskit_unroute_setxattr( struct fskit_core* core, int route_handle ) {
+
+   return fskit_path_route_undecl( core, FSKIT_ROUTE_MATCH_SETXATTR, route_handle );
+}
+
+
+// declare a route for removing an xattr 
+// return >=0 on success (the route handle)
+// return -EINVAL if consistency discipline is not supported
+// return -ENOMEM if out of memory 
+int fskit_route_removexattr( struct fskit_core* core, char const* route_regex, fskit_entry_route_removexattr_callback_t removexattr_cb, int consistency_discipline ) {
+
+   union fskit_route_method method;
+   method.removexattr_cb = removexattr_cb;
+
+   return fskit_path_route_decl( core, route_regex, FSKIT_ROUTE_MATCH_REMOVEXATTR, method, consistency_discipline );
+}
+
+// undeclare a route for listing xattrs
+// return 0 on success
+// return -EINVAL if the route can't possibly exist 
+int fskit_unroute_removexattr( struct fskit_core* core, int route_handle ) {
+
+   return fskit_path_route_undecl( core, FSKIT_ROUTE_MATCH_REMOVEXATTR, route_handle );
+}
+
 
 // undeclare all routes 
 // return 0 on success
@@ -1483,6 +1623,46 @@ int fskit_route_link_args( struct fskit_route_dispatch_args* dargs, char const* 
    return 0;
 }
 
+// set up dargs for getxattr()
+int fskit_route_getxattr_args( struct fskit_route_dispatch_args* dargs, char const* xattr_name, char* xattr_buf, size_t xattr_buf_len ) {
+
+   memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
+
+   dargs->xattr_name = xattr_name;
+   dargs->xattr_buf = xattr_buf;
+   dargs->xattr_buf_len = xattr_buf_len;
+   return 0;
+}
+
+// set up dargs for setxattr 
+int fskit_route_setxattr_args( struct fskit_route_dispatch_args* dargs, char const* xattr_name, char const* xattr_value, size_t xattr_value_len ) {
+   
+   memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
+
+   dargs->xattr_name = xattr_name;
+   dargs->xattr_value = xattr_value;
+   dargs->xattr_value_len = xattr_value_len;
+   return 0;
+}
+
+// set up dargs for listxattr 
+int fskit_route_listxattr_args( struct fskit_route_dispatch_args* dargs, char* xattr_buf, size_t xattr_buf_len ) {
+
+   memset( dargs, 0, sizeof(struct fskit_route_dispatch_args));
+
+   dargs->xattr_buf = xattr_buf;
+   dargs->xattr_buf_len = xattr_buf_len;
+   return 0;
+}
+
+// set up dargs for removexattr 
+int fskit_route_removexattr_args( struct fskit_route_dispatch_args* dargs, char const* xattr_name ) {
+
+   memset( dargs, 0, sizeof(struct fskit_route_dispatch_args));
+   dargs->xattr_name = xattr_name;
+   return 0;
+}
+
 // get the route metadata path 
 char* fskit_route_metadata_get_path( struct fskit_route_metadata* route_metadata ) {
    return route_metadata->path;
@@ -1528,4 +1708,20 @@ bool fskit_route_metadata_is_garbage_collected( struct fskit_route_metadata* rou
    return route_metadata->garbage_collect;
 }
 
+// get the xattr name 
+char const* fskit_route_metadata_get_xattr_name( struct fskit_route_metadata* route_metadata ) {
+   return route_metadata->xattr_name;
+}
+
+// get the xattr value and len 
+char const* fskit_route_metadata_get_xattr_value( struct fskit_route_metadata* route_metadata, size_t* len ) {
+   *len = route_metadata->xattr_value_len;
+   return route_metadata->xattr_value;
+}
+
+// get the xattr value buffer and len 
+char* fskit_route_metadata_get_xattr_buf( struct fskit_route_metadata* route_metadata, size_t* len ) {
+   *len = route_metadata->xattr_buf_len;
+   return route_metadata->xattr_buf;
+}
 

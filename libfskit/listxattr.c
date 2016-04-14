@@ -24,6 +24,30 @@
 
 #include "fskit_private/private.h"
 
+// get the user-supplied xattr data for listxattr
+// return > 0 if the callback handled the request
+// return 0 if the callback did not handle the request, but fskit should
+// return negative on error
+int fskit_run_user_listxattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, char* xattr_buf, size_t xattr_buf_len ) {
+
+   int rc = 0;
+   int cbrc = 0;
+   struct fskit_route_dispatch_args dargs;
+   
+   fskit_route_listxattr_args( &dargs, xattr_buf, xattr_buf_len );
+   rc = fskit_route_call_listxattr( core, path, fent, &dargs, &cbrc );
+
+   if( rc == -EPERM ) {
+      // no routes 
+      return 0;
+   }
+   else if( rc < 0 ) {
+      return rc;
+   }
+
+   return cbrc;
+}
+
 
 int fskit_listxattr( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, char* list, size_t size ) {
 
@@ -37,7 +61,7 @@ int fskit_listxattr( struct fskit_core* core, char const* path, uint64_t user, u
    }
 
    // get the xattr
-   rc = fskit_flistxattr( core, fent, list, size );
+   rc = fskit_flistxattr( core, path, fent, list, size );
 
    fskit_entry_unlock( fent );
 
@@ -66,6 +90,7 @@ static int fskit_listxattr_len( fskit_xattr_set* xattrs ) {
    return size;
 }
 
+
 // copy the xattr names into a buffer.
 // NOTE: no input validation occurs here.  The caller must ensure that list has enough space to hold all names, separated by \0's
 static void fskit_listxattr_copy_names( fskit_xattr_set* xattrs, char* list, size_t size ) {
@@ -78,13 +103,10 @@ static void fskit_listxattr_copy_names( fskit_xattr_set* xattrs, char* list, siz
    for( xattr = fskit_xattr_set_begin( &itr, xattrs ); xattr != NULL; xattr = fskit_xattr_set_next( &itr ) ) {
       
       name = fskit_xattr_set_name( xattr );
-      
       memcpy( list + offset, name, strlen(name) );
       
       offset += strlen(name);
-      
       *(list + offset) = '\0';
-      
       offset++;
    }
 }
@@ -94,11 +116,25 @@ static void fskit_listxattr_copy_names( fskit_xattr_set* xattrs, char* list, siz
 // return the length of the name list on success
 // return on error:
 // * -ERANGE if the buffer is too short
+// * -EPERM if the callback failed
 // if list == NULL or size == 0, then just return the length of the name list
 // NOTE: fent must be at least read-locked
-int fskit_flistxattr( struct fskit_core* core, struct fskit_entry* fent, char* list, size_t size ) {
+int fskit_flistxattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, char* list, size_t size ) {
 
    int total_size = 0;
+   int rc = 0;
+
+   // can the callback service this?
+   rc = fskit_run_user_listxattr( core, path, fent, list, size );
+   if( rc < 0 ) {
+      fskit_error("fskit_run_user_listxattr('%s') rc = %d\n", path, rc );
+      return rc;
+   }
+
+   if( rc > 0 ) {
+      // callback handled 
+      return rc;
+   }
 
    // what's the total size?
    total_size = fskit_listxattr_len( fent->xattrs );

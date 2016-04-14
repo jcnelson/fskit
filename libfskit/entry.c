@@ -1703,6 +1703,7 @@ fskit_xattr_set* fskit_xattr_set_new(void) {
 
 // insert an xattr.  duplicates name and value.
 // return 0 on success
+// return -EINVAL on NULL data
 // return -EEXIST if the member is already present, and XATTR_CREATE is set in flags 
 // return -ENOATTR if the member is not present, and XATTR_REPLACE is set in flags
 // return -ENOMEM on OOM 
@@ -1713,6 +1714,11 @@ int fskit_xattr_set_insert( fskit_xattr_set** set, char const* name, char const*
    fskit_xattr_set* member = NULL;
    
    fskit_xattr_set lookup;
+
+   // sanity check 
+   if( name == NULL || value == NULL ) {
+      return -EINVAL;
+   }
    
    if( *set != NULL ) {
        
