@@ -27,8 +27,9 @@
 
 FSKIT_C_LINKAGE_BEGIN
 
+int fskit_run_user_listxattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, char* xattr_buf, size_t xattr_buf_len );
 int fskit_listxattr( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, char* list, size_t size );
-int fskit_flistxattr( struct fskit_core* core, struct fskit_entry* fent, char* list, size_t size );
+int fskit_flistxattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, char* list, size_t size );
 
 FSKIT_C_LINKAGE_END 
 

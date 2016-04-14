@@ -180,6 +180,10 @@ union fskit_route_method {
    fskit_entry_route_destroy_callback_t      destroy_cb;
    fskit_entry_route_rename_callback_t       rename_cb;
    fskit_entry_route_link_callback_t         link_cb;
+   fskit_entry_route_getxattr_callback_t     getxattr_cb;
+   fskit_entry_route_setxattr_callback_t     setxattr_cb;
+   fskit_entry_route_listxattr_callback_t    listxattr_cb;
+   fskit_entry_route_removexattr_callback_t  removexattr_cb;
 };
 
 // metadata about the patch matched to the route
@@ -197,6 +201,12 @@ struct fskit_route_metadata {
    
    bool garbage_collect;        // is this entry being unlinked due to garbage-collection, or due to an explicit command from userspace?
    void* cls;                   // user-given argument to the method at hand
+
+   char const* xattr_name;
+   char const* xattr_value;
+   size_t xattr_value_len;
+   char* xattr_buf;
+   size_t xattr_buf_len;
 };
 
 // route dispatch arguments
@@ -230,6 +240,13 @@ struct fskit_route_dispatch_args {
    char const* new_path;      // rename(), link()
    
    bool garbage_collect;        // is this entry being unlinked due to garbage-collection, or due to an explicit command from userspace?
+
+   // for xattrs 
+   char const* xattr_name;
+   char const* xattr_value;
+   size_t xattr_value_len;
+   char* xattr_buf;
+   size_t xattr_buf_len;
 
    void* cls;               // create(), mknod(), mkdir(), only
 };
@@ -303,6 +320,10 @@ int fskit_route_stat_args( struct fskit_route_dispatch_args* dargs, char const* 
 int fskit_route_sync_args( struct fskit_route_dispatch_args* dargs );
 int fskit_route_rename_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* old_parent, char const* old_name, char const* new_path, struct fskit_entry* new_parent, struct fskit_entry* dest );
 int fskit_route_link_args( struct fskit_route_dispatch_args* dargs, char const* name, char const* new_path, struct fskit_entry* new_parent );
+int fskit_route_getxattr_args( struct fskit_route_dispatch_args* args, char const* xattr_name, char* xattr_buf, size_t xattr_buf_len );
+int fskit_route_setxattr_args( struct fskit_route_dispatch_args* args, char const* xattr_name, char const* xattr_value, size_t xattr_value_len );
+int fskit_route_listxattr_args( struct fskit_route_dispatch_args* args, char* xattr_buf, size_t xattr_buf_len );
+int fskit_route_removexattr_args( struct fskit_route_dispatch_args* args, char const* xattr_name );
 
 // call user-supplied routes (internal API)
 int fskit_route_call_create( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
@@ -320,6 +341,10 @@ int fskit_route_call_stat( struct fskit_core* core, char const* path, struct fsk
 int fskit_route_call_sync( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
 int fskit_route_call_rename( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
 int fskit_route_call_link( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
+int fskit_route_call_getxattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
+int fskit_route_call_listxattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
+int fskit_route_call_setxattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
+int fskit_route_call_removexattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
 
 // memory management (internal API)
 int fskit_path_route_free( struct fskit_path_route* route );

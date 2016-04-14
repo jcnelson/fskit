@@ -29,8 +29,9 @@
 
 FSKIT_C_LINKAGE_BEGIN 
 
+int fskit_run_user_removexattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, char const* xattr_name );
 int fskit_removexattr( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, char const* name );
-int fskit_fremovexattr( struct fskit_core* core, struct fskit_entry* fent, char const* name );
+int fskit_fremovexattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, char const* name );
 int fskit_fremovexattr_all( struct fskit_core* core, struct fskit_entry* fent );
 
 FSKIT_C_LINKAGE_END 

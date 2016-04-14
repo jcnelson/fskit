@@ -48,7 +48,11 @@ struct fskit_path_route;
 #define FSKIT_ROUTE_MATCH_RENAME                12
 #define FSKIT_ROUTE_MATCH_LINK                  13
 #define FSKIT_ROUTE_MATCH_DESTROY               14
-#define FSKIT_ROUTE_NUM_ROUTE_TYPES             15
+#define FSKIT_ROUTE_MATCH_GETXATTR              15
+#define FSKIT_ROUTE_MATCH_LISTXATTR             16
+#define FSKIT_ROUTE_MATCH_SETXATTR              17
+#define FSKIT_ROUTE_MATCH_REMOVEXATTR           18
+#define FSKIT_ROUTE_NUM_ROUTE_TYPES             19
 
 // route consistency disciplines
 #define FSKIT_SEQUENTIAL        1       // route method calls will be serialized
@@ -85,6 +89,10 @@ typedef int (*fskit_entry_route_detach_callback_t)( struct fskit_core*, struct f
 typedef int (*fskit_entry_route_destroy_callback_t)( struct fskit_core*, struct fskit_route_metadata*, struct fskit_entry*, void* );             // unlink() and rmdir()
 typedef int (*fskit_entry_route_rename_callback_t)( struct fskit_core*, struct fskit_route_metadata*, struct fskit_entry*, char const*, struct fskit_entry* );
 typedef int (*fskit_entry_route_link_callback_t)( struct fskit_core*, struct fskit_route_metadata*, struct fskit_entry*, char const* );
+typedef int (*fskit_entry_route_getxattr_callback_t)( struct fskit_core*, struct fskit_route_metadata*, struct fskit_entry*, char const*, char*, size_t );
+typedef int (*fskit_entry_route_listxattr_callback_t)( struct fskit_core*, struct fskit_route_metadata*, struct fskit_entry*, char*, size_t );
+typedef int (*fskit_entry_route_setxattr_callback_t)( struct fskit_core*, struct fskit_route_metadata*, struct fskit_entry*, char const*, char const*, size_t );
+typedef int (*fskit_entry_route_removexattr_callback_t)( struct fskit_core*, struct fskit_route_metadata*, struct fskit_entry*, char const* );
 
 // I/O continuation for successful read/write/trunc (i.e. to be called with the route's consistency discipline enforced)
 typedef int (*fskit_route_io_continuation)( struct fskit_core*, struct fskit_entry*, off_t, ssize_t );
@@ -105,6 +113,10 @@ int fskit_route_stat( struct fskit_core* core, char const* route_regex, fskit_en
 int fskit_route_sync( struct fskit_core* core, char const* route_regex, fskit_entry_route_sync_callback_t sync_cb, int consistency_discipline );
 int fskit_route_rename( struct fskit_core* core, char const* route_regex, fskit_entry_route_rename_callback_t rename_cb, int consistency_discipline );
 int fskit_route_link( struct fskit_core* core, char const* route_regex, fskit_entry_route_link_callback_t link_cb, int consistency_discipline );
+int fskit_route_getxattr( struct fskit_core* core, char const* route_regex, fskit_entry_route_getxattr_callback_t getxattr_callback, int consistency_discipline );
+int fskit_route_listxattr( struct fskit_core* core, char const* route_regex, fskit_entry_route_listxattr_callback_t listxattr_callback, int consistency_discipline );
+int fskit_route_setxattr( struct fskit_core* core, char const* route_regex, fskit_entry_route_setxattr_callback_t setxattr_callback, int consistency_discipline );
+int fskit_route_removexattr( struct fskit_core* core, char const* route_regex, fskit_entry_route_removexattr_callback_t removexattr_callback, int consistency_discipline );
 
 // undefine various types of routes
 int fskit_unroute_create( struct fskit_core* core, int route_handle );
@@ -122,6 +134,10 @@ int fskit_unroute_stat( struct fskit_core* core, int route_handle );
 int fskit_unroute_sync( struct fskit_core* core, int route_handle );
 int fskit_unroute_rename( struct fskit_core* core, int route_handle );
 int fskit_unroute_link( struct fskit_core* core, int route_handle );
+int fskit_unroute_getxattr( struct fskit_core* core, int route_handle );
+int fskit_unroute_listxattr( struct fskit_core* core, int route_handle );
+int fskit_unroute_setxattr( struct fskit_core* core, int route_handle );
+int fskit_unroute_removexattr( struct fskit_core* core, int route_handle );
 
 // unroute everything 
 int fskit_unroute_all( struct fskit_core* core );
@@ -135,6 +151,9 @@ char** fskit_route_metadata_get_match_groups( struct fskit_route_metadata* route
 struct fskit_entry* fskit_route_metadata_get_parent( struct fskit_route_metadata* route_metadata );
 char* fskit_route_metadata_get_new_path( struct fskit_route_metadata* route_metadata );
 struct fskit_entry* fskit_route_metadata_get_new_parent( struct fskit_route_metadata* route_metadata );
+char const* fskit_route_metadata_get_xattr_value( struct fskit_route_metadata* route_metadata, size_t* len );
+char* fskit_route_metadata_get_xattr_buf( struct fskit_route_metadata* route_metadata, size_t* len );
+char const* fskit_route_metadata_get_xattr_name( struct fskit_route_metadata* route_metadata );
 
 FSKIT_C_LINKAGE_END 
 
