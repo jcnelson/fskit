@@ -21,6 +21,8 @@
 
 #include "test-repl.h"
 
+#ifdef _FSKIT_REPL
+
 char* test_input = 
 "create 0 0 /foo 0644\n"
 "access 0 0 /foo 0644\n"
@@ -80,3 +82,12 @@ int main( int argc, char** argv ) {
    fskit_test_end( core, &output );
    return 0;
 }
+
+#else 
+
+int main( int argc, char** argv ) {
+   printf("no repl support compiled (pass REPL=1 to the main Makefile to enable)\n");
+   return 0;
+}
+
+#endif

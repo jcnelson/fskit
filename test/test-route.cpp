@@ -86,12 +86,40 @@ int rename_cb( struct fskit_core* core, struct fskit_route_metadata* route_metad
    return 0;
 }
 
+int link_cb( struct fskit_core* core, struct fskit_route_metadata* route_metadata, struct fskit_entry* fent, char const* new_path ) {
+   fskit_debug("Link %" PRIX64 " to %s\n", fskit_entry_get_file_id( fent ), fskit_route_metadata_get_path( route_metadata ), new_path );
+   return 0;
+}
+
+int getxattr_cb( struct fskit_core* core, struct fskit_route_metadata* route_metadata, struct fskit_entry* fent, char const* xattr_name, char* xattr_buf, size_t xattr_buf_len ) {
+   fskit_debug("Getxattr %" PRIX64 ".%s\n", fskit_entry_get_file_id( fent ), fskit_route_metadata_get_xattr_name( route_metadata ) );
+   return xattr_buf_len;
+}
+
+int setxattr_cb( struct fskit_core* core, struct fskit_route_metadata* route_metadata, struct fskit_entry* fent, char const* xattr_name, char const* xattr_value, size_t xattr_value_len ) {
+   fskit_debug("Setxattr %" PRIX64 ".%s\n", fskit_entry_get_file_id( fent ), fskit_route_metadata_get_xattr_name( route_metadata ) );
+   return 1;
+}
+
+int listxattr_cb( struct fskit_core* core, struct fskit_route_metadata* route_metadata, struct fskit_entry* fent, char* xattr_buf, size_t xattr_buf_len ) {
+   fskit_debug("Listxattr %" PRIX64 "\n", fskit_entry_get_file_id( fent ) );
+   return xattr_buf_len;
+}
+
+int removexattr_cb( struct fskit_core* core, struct fskit_route_metadata* route_metadata, struct fskit_entry* fent, char const* xattr_name ) {
+   fskit_debug("Removexattr %" PRIX64 ".%s\n", fskit_entry_get_file_id( fent ), xattr_name );
+   return 1;
+}
+
 int main( int argc, char** argv ) {
    struct fskit_core* core = NULL;
    int rc;
    void* output;
    
-   int create_rh, mknod_rh, mkdir_rh, opendir_rh, open_rh, close_rh, closedir_rh, readdir_rh, read_rh, write_rh, trunc_rh, unlink_rh, rmdir_rh, stat_rh, sync_rh, rename_rh;
+   int create_rh, mknod_rh, mkdir_rh, opendir_rh, open_rh, close_rh, 
+       closedir_rh, readdir_rh, read_rh, write_rh, trunc_rh, unlink_rh, 
+       rmdir_rh, stat_rh, sync_rh, rename_rh, link_rh, getxattr_rh, listxattr_rh,
+       removexattr_rh, setxattr_rh;
 
    rc = fskit_test_begin( &core, NULL );
    if( rc != 0 ) {
@@ -193,6 +221,36 @@ int main( int argc, char** argv ) {
    rename_rh = fskit_route_rename( core, "/test-file", rename_cb, FSKIT_SEQUENTIAL );
    if( rename_rh < 0 ) {
       fskit_error("fskit_route_rename rc = %d\n", rename_rh );
+      exit(1);
+   }
+
+   link_rh = fskit_route_link( core, "/test-file", link_cb, FSKIT_SEQUENTIAL );
+   if( link_rh < 0 ) {
+      fskit_error("fskit_route_link rc = %d\n", link_rh );
+      exit(1);
+   }
+
+   getxattr_rh = fskit_route_getxattr( core, "/test-file", getxattr_cb, FSKIT_SEQUENTIAL );
+   if( getxattr_rh < 0 ) {
+      fskit_error("fskit_route_getxattr rc = %d\n", getxattr_rh );
+      exit(1);
+   }
+
+   listxattr_rh = fskit_route_listxattr( core, "/test-file", listxattr_cb, FSKIT_SEQUENTIAL );
+   if( listxattr_rh < 0 ) {
+      fskit_error("fskit_route_listxattr rc = %d\n", listxattr_rh );
+      exit(1);
+   }
+
+   removexattr_rh = fskit_route_removexattr( core, "/test-file", removexattr_cb, FSKIT_SEQUENTIAL );
+   if( removexattr_rh < 0 ) {
+      fskit_error("fskit_route_removexattr rc = %d\n", removexattr_rh );
+      exit(1);
+   }
+
+   setxattr_rh = fskit_route_setxattr( core, "/test-file", setxattr_cb, FSKIT_SEQUENTIAL );
+   if( setxattr_rh < 0 ) {
+      fskit_error("fskit_route_setxattr rc = %d\n", setxattr_rh );
       exit(1);
    }
 
@@ -308,6 +366,48 @@ int main( int argc, char** argv ) {
       fskit_error("fskit_rename rc = %d\n", rc );
       exit(1);
    }
+   
+   rc = fskit_rename( core, "/test-file-renamed", "/test-file", 0, 0 );
+   if( rc != 0 ) {
+      fskit_error("fskit_rename rc = %d\n", rc );
+      exit(1);
+   }
+
+   // link 
+   rc = fskit_link( core, "/test-file", "/test-file-linked", 0, 0 );
+   if( rc != 0 ) {
+      fskit_error("fskit_link rc = %d\n", rc );
+      exit(1);
+   }
+
+   // setxattr 
+   rc = fskit_setxattr( core, "/test-file", 0, 0, "foo", "bar", 4, 0 );
+   if( rc < 0 ) {
+      fskit_error("fskit_setxattr rc = %d\n", rc );
+      exit(1);
+   }
+
+   // listxattr 
+   char attrbuf[100];
+   rc = fskit_listxattr( core, "/test-file", 0, 0, attrbuf, 100 );
+   if( rc < 0 ) {
+      fskit_error("fskit_listxattr rc = %d\n", rc );
+      exit(1);
+   }
+
+   // getxattr
+   rc = fskit_getxattr( core, "/test-file", 0, 0, "foo", attrbuf, 100 );
+   if( rc < 0 ) {
+      fskit_error("fskit_getxattr rc = %d\n", rc );
+      exit(1);
+   }
+
+   // removexattr 
+   rc = fskit_removexattr( core, "/test-file", 0, 0, "foo" );
+   if( rc < 0 ) {
+      fskit_error("fskti_removexattr rc = %d\n", rc );
+      exit(1);
+   }
 
    // undefine routes
    rc = fskit_unroute_create( core, create_rh );
@@ -391,6 +491,30 @@ int main( int argc, char** argv ) {
    rc = fskit_unroute_rename( core, rename_rh );
    if( rc < 0 ) {
       fskit_error("fskit_unroute_rename rc = %d\n", rc );
+      exit(1);
+   }
+
+   rc = fskit_unroute_link( core, link_rh );
+   if( rc < 0 ) {
+      fskit_error("fskit_unroute_link rc = %d\n", rc );
+      exit(1);
+   }
+
+   rc = fskit_unroute_getxattr( core, getxattr_rh );
+   if( rc < 0 ) {
+      fskit_error("fskit_unroute_getxattr rc = %d\n", rc );
+      exit(1);
+   }
+
+   rc = fskit_unroute_listxattr( core, listxattr_rh );
+   if( rc < 0 ) {
+      fskit_error("fskit_unroute_listxattr rc = %d\n", rc );
+      exit(1);
+   }
+
+   rc = fskit_unroute_removexattr( core, removexattr_rh );
+   if( rc < 0 ) {
+      fskit_error("fskit_unroute_removexattr rc = %d\n", rc );
       exit(1);
    }
 
