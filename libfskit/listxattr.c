@@ -122,6 +122,7 @@ static void fskit_listxattr_copy_names( fskit_xattr_set* xattrs, char* list, siz
 int fskit_flistxattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, char* list, size_t size ) {
 
    int total_size = 0;
+   int user_size = 0;
    int rc = 0;
 
    // can the callback service this?
@@ -133,11 +134,11 @@ int fskit_flistxattr( struct fskit_core* core, char const* path, struct fskit_en
 
    if( rc > 0 ) {
       // callback handled 
-      return rc;
+      user_size = rc;
    }
 
    // what's the total size?
-   total_size = fskit_listxattr_len( fent->xattrs );
+   total_size = user_size + fskit_listxattr_len( fent->xattrs );
 
    // just a length query?
    if( list == NULL || size == 0 ) {
@@ -149,8 +150,8 @@ int fskit_flistxattr( struct fskit_core* core, char const* path, struct fskit_en
       return -ERANGE;
    }
 
-   // copy everything in
-   fskit_listxattr_copy_names( fent->xattrs, list, size );
+   // copy new names in
+   fskit_listxattr_copy_names( fent->xattrs, list + user_size, size );
 
    return total_size;
 }
