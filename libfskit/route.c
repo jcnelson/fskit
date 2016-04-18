@@ -693,7 +693,11 @@ static int fskit_route_metadata_populate( struct fskit_route_metadata* route_met
    route_metadata->new_parent = dargs->new_parent;
    route_metadata->garbage_collect = dargs->garbage_collect;
    route_metadata->cls = dargs->cls;
-
+   route_metadata->xattr_name = dargs->xattr_name;
+   route_metadata->xattr_value = dargs->xattr_value;
+   route_metadata->xattr_value_len = dargs->xattr_value_len;
+   route_metadata->xattr_buf = dargs->xattr_buf;
+   route_metadata->xattr_buf_len = dargs->xattr_buf_len;
    return 0;
 }
 
