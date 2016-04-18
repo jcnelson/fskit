@@ -26,8 +26,8 @@
 #include "fskit_private/private.h"
 
 // do user-supplied removexattr logic
-// return 1 if handled by the callback
-// return 0 if not
+// return 0 if handled by the callback
+// return 1 if not
 // return negative on error
 int fskit_run_user_removexattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, char const* xattr_name ) {
 
@@ -70,6 +70,25 @@ int fskit_removexattr( struct fskit_core* core, char const* path, uint64_t user,
    return rc;
 }
 
+
+// remove an xattr from a write-locked inode.  do not call the route
+// return 0 on success
+// return -ENOATTR if the attribute doesn't exist 
+int fskit_xattr_fremovexattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, char const* name ) {
+
+   bool removed = false;
+   
+   removed = fskit_xattr_set_remove( &fent->xattrs, name );
+   if( removed ) {
+      
+      return 0;
+   }
+   else {
+      
+      return -ENOATTR;
+   }
+}
+
 // remove an xattr.
 // return 0 on success
 // return -ENOATTR if the attribute doesn't exist
@@ -86,20 +105,12 @@ int fskit_fremovexattr( struct fskit_core* core, char const* path, struct fskit_
       return -EPERM;
    }
    
-   if( rc > 0 ) {
+   if( rc == 0 ) {
       // removed 
       return 0;
    }
 
-   removed = fskit_xattr_set_remove( &fent->xattrs, name );
-   if( removed ) {
-      
-      return 0;
-   }
-   else {
-      
-      return -ENOATTR;
-   }
+   return fskit_xattr_fremovexattr( core, path, fent, name );
 }
 
 
