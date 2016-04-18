@@ -69,33 +69,20 @@ int fskit_getxattr( struct fskit_core* core, char const* path, uint64_t user, ui
    return rc;
 }
 
-// get an xattr value.  fent must be at least read-locked
-// return the length of the attribute on success
-// on error:
-// * -ENOATTR if the attribute doesn't exist
-// * -ERANGE if the buffer isn't big enough
-// * -ENOMEM if there isn't enough memory
-// * anything due to a failure in stat
-// if size == 0 or value == NULL, then just return the length of the attribute requested
-// NOTE: fent must be at least read-locked
-int fskit_fgetxattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, char const* name, char* value_buf, size_t size ) {
+
+// get an xattr value directly from the inode.  do not call the user-given route
+// return the length copied on success
+// return -ENOATTR if there's no such attr
+// return -ERANGE if the buffer isn't big enough
+// return -ENOMEM if there's not enough memory
+// return -errno on failure in stat
+// NOTE: fent must be read-locked
+int fskit_xattr_fgetxattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, char const* name, char* value_buf, size_t size ) {
 
    int rc = 0;
    char const* value = NULL;
    size_t value_len = 0;
 
-   // can the callback service it?
-   rc = fskit_run_user_getxattr( core, path, fent, name, value_buf, size );
-   if( rc > 0 ) {
-      // callback handled! 
-      return rc;
-   }
-
-   if( rc < 0 ) {
-      fskit_error("fskit_run_user_getxattr('%s', '%s') rc = %d\n", path, name, rc );
-      return rc;
-   }
-    
    value = fskit_xattr_set_find( fent->xattrs, name, &value_len );
    if( value == NULL ) {
       
@@ -117,3 +104,33 @@ int fskit_fgetxattr( struct fskit_core* core, char const* path, struct fskit_ent
    memcpy( value_buf, value, value_len );
    return value_len;
 }
+
+
+// get an xattr value.  fent must be at least read-locked
+// return the length of the attribute on success
+// on error:
+// * -ENOATTR if the attribute doesn't exist
+// * -ERANGE if the buffer isn't big enough
+// * -ENOMEM if there isn't enough memory
+// * anything due to a failure in stat
+// if size == 0 or value == NULL, then just return the length of the attribute requested
+// NOTE: fent must be at least read-locked
+int fskit_fgetxattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, char const* name, char* value_buf, size_t size ) {
+
+   int rc = 0;
+
+   // can the callback service it?
+   rc = fskit_run_user_getxattr( core, path, fent, name, value_buf, size );
+   if( rc > 0 ) {
+      // callback handled! 
+      return rc;
+   }
+
+   if( rc < 0 ) {
+      fskit_error("fskit_run_user_getxattr('%s', '%s') rc = %d\n", path, name, rc );
+      return rc;
+   }
+   
+   return fskit_xattr_fgetxattr( core, path, fent, name, value_buf, size );
+}
+
