@@ -25,21 +25,21 @@
 #include "fskit_private/private.h"
 
 // get the user-supplied xattr data for setxattr
-// return 1 if the callback handled the request
-// return 0 if the callback did not handle the request, and fskit should instead
+// return 0 if the callback handled the request
+// return 1 if the callback did not handle the request, and fskit should instead
 // return negative on error
-int fskit_run_user_setxattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, char const* xattr_name, char const* xattr_value, size_t xattr_value_len ) {
+int fskit_run_user_setxattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, char const* xattr_name, char const* xattr_value, size_t xattr_value_len, int flags ) {
 
    int rc = 0;
    int cbrc = 0;
    struct fskit_route_dispatch_args dargs;
    
-   fskit_route_setxattr_args( &dargs, xattr_name, xattr_value, xattr_value_len );
+   fskit_route_setxattr_args( &dargs, xattr_name, xattr_value, xattr_value_len, flags );
    rc = fskit_route_call_setxattr( core, path, fent, &dargs, &cbrc );
 
    if( rc == -EPERM ) {
       // no routes 
-      return 0;
+      return 1;
    }
    else if( rc < 0 ) {
       return rc;
@@ -71,6 +71,25 @@ int fskit_setxattr( struct fskit_core* core, char const* path, uint64_t user, ui
 }
 
 
+// set an xattr value directly in the inode
+// the inode must be write-locked
+// return 0 on success
+// return -ENOSPC if out-of-memory
+// return -EEXIST if flags has XATTR_CREATE set and the attribute already exists
+// return -ENOATTR if flags has XATTR_REPALCE set and the attribute does not exist
+int fskit_xattr_fsetxattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, char const* name, char const* value, size_t value_len, int flags ) {
+
+   int rc = 0;
+   rc = fskit_xattr_set_insert( &fent->xattrs, name, value, value_len, flags );
+   if( rc == -ENOMEM ) {
+      
+      rc = -ENOSPC;
+   }
+   
+   return rc;
+}
+
+
 // set an xattr value on a fskit_entry.
 // fent must be at least read-locked
 // on success, return 0
@@ -90,23 +109,19 @@ int fskit_fsetxattr( struct fskit_core* core, char const* path, struct fskit_ent
    }
 
    // see if callback will handle this 
-   rc = fskit_run_user_setxattr( core, path, fent, name, value, value_len );
+   rc = fskit_run_user_setxattr( core, path, fent, name, value, value_len, flags );
    if( rc < 0 ) {
       fskit_error("fskit_run_user_setxattr('%s', '%s') rc = %d\n", path, name, rc );
       return -EPERM;
    }
 
-   if( rc == 1 ) {
+   if( rc == 0 ) {
       // take no further action 
       return 0;
    }
 
    // callback says okay
-   rc = fskit_xattr_set_insert( &fent->xattrs, name, value, value_len, flags );
-   if( rc == -ENOMEM ) {
-      
-      rc = -ENOSPC;
-   }
+   rc = fskit_xattr_fsetxattr( core, path, fent, name, value, value_len, flags );
    
    return rc;
 }
