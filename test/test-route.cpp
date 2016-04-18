@@ -96,9 +96,9 @@ int getxattr_cb( struct fskit_core* core, struct fskit_route_metadata* route_met
    return xattr_buf_len;
 }
 
-int setxattr_cb( struct fskit_core* core, struct fskit_route_metadata* route_metadata, struct fskit_entry* fent, char const* xattr_name, char const* xattr_value, size_t xattr_value_len ) {
-   fskit_debug("Setxattr %" PRIX64 ".%s\n", fskit_entry_get_file_id( fent ), fskit_route_metadata_get_xattr_name( route_metadata ) );
-   return 1;
+int setxattr_cb( struct fskit_core* core, struct fskit_route_metadata* route_metadata, struct fskit_entry* fent, char const* xattr_name, char const* xattr_value, size_t xattr_value_len, int flags ) {
+   fskit_debug("Setxattr %" PRIX64 ".%s (%X)\n", fskit_entry_get_file_id( fent ), fskit_route_metadata_get_xattr_name( route_metadata ), flags );
+   return 0;
 }
 
 int listxattr_cb( struct fskit_core* core, struct fskit_route_metadata* route_metadata, struct fskit_entry* fent, char* xattr_buf, size_t xattr_buf_len ) {
@@ -108,7 +108,7 @@ int listxattr_cb( struct fskit_core* core, struct fskit_route_metadata* route_me
 
 int removexattr_cb( struct fskit_core* core, struct fskit_route_metadata* route_metadata, struct fskit_entry* fent, char const* xattr_name ) {
    fskit_debug("Removexattr %" PRIX64 ".%s\n", fskit_entry_get_file_id( fent ), xattr_name );
-   return 1;
+   return 0;
 }
 
 int main( int argc, char** argv ) {
@@ -381,7 +381,7 @@ int main( int argc, char** argv ) {
    }
 
    // setxattr 
-   rc = fskit_setxattr( core, "/test-file", 0, 0, "foo", "bar", 4, 0 );
+   rc = fskit_setxattr( core, "/test-file", 0, 0, "foo", "bar", 4, XATTR_CREATE );
    if( rc < 0 ) {
       fskit_error("fskit_setxattr rc = %d\n", rc );
       exit(1);
