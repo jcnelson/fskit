@@ -611,7 +611,7 @@ static int fskit_route_dispatch( struct fskit_core* core, struct fskit_route_met
 
       case FSKIT_ROUTE_MATCH_SETXATTR:
          
-         rc = fskit_safe_dispatch( route->method.setxattr_cb, core, route_metadata, fent, dargs->xattr_name, dargs->xattr_value, dargs->xattr_value_len );
+         rc = fskit_safe_dispatch( route->method.setxattr_cb, core, route_metadata, fent, dargs->xattr_name, dargs->xattr_value, dargs->xattr_value_len, dargs->xattr_flags );
          break;
 
       case FSKIT_ROUTE_MATCH_LISTXATTR:
@@ -1635,13 +1635,14 @@ int fskit_route_getxattr_args( struct fskit_route_dispatch_args* dargs, char con
 }
 
 // set up dargs for setxattr 
-int fskit_route_setxattr_args( struct fskit_route_dispatch_args* dargs, char const* xattr_name, char const* xattr_value, size_t xattr_value_len ) {
+int fskit_route_setxattr_args( struct fskit_route_dispatch_args* dargs, char const* xattr_name, char const* xattr_value, size_t xattr_value_len, int flags ) {
    
    memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
 
    dargs->xattr_name = xattr_name;
    dargs->xattr_value = xattr_value;
    dargs->xattr_value_len = xattr_value_len;
+   dargs->xattr_flags = flags;
    return 0;
 }
 
