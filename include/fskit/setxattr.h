@@ -29,9 +29,10 @@
 
 FSKIT_C_LINKAGE_BEGIN 
 
-int fskit_run_user_setxattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, char const* xattr_name, char const* xattr_value, size_t xattr_value_len );
+int fskit_run_user_setxattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, char const* xattr_name, char const* xattr_value, size_t xattr_value_len, int flags );
 int fskit_fsetxattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, char const* name, char const* value, size_t value_len, int flags );
 int fskit_setxattr( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, char const* name, char const* value, size_t value_len, int flags );
+int fskit_xattr_fsetxattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, char const* name, char const* value, size_t value_len, int flags );
 
 FSKIT_C_LINKAGE_END 
 

@@ -247,6 +247,7 @@ struct fskit_route_dispatch_args {
    size_t xattr_value_len;
    char* xattr_buf;
    size_t xattr_buf_len;
+   int xattr_flags;
 
    void* cls;               // create(), mknod(), mkdir(), only
 };
@@ -321,7 +322,7 @@ int fskit_route_sync_args( struct fskit_route_dispatch_args* dargs );
 int fskit_route_rename_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* old_parent, char const* old_name, char const* new_path, struct fskit_entry* new_parent, struct fskit_entry* dest );
 int fskit_route_link_args( struct fskit_route_dispatch_args* dargs, char const* name, char const* new_path, struct fskit_entry* new_parent );
 int fskit_route_getxattr_args( struct fskit_route_dispatch_args* args, char const* xattr_name, char* xattr_buf, size_t xattr_buf_len );
-int fskit_route_setxattr_args( struct fskit_route_dispatch_args* args, char const* xattr_name, char const* xattr_value, size_t xattr_value_len );
+int fskit_route_setxattr_args( struct fskit_route_dispatch_args* args, char const* xattr_name, char const* xattr_value, size_t xattr_value_len, int flags );
 int fskit_route_listxattr_args( struct fskit_route_dispatch_args* args, char* xattr_buf, size_t xattr_buf_len );
 int fskit_route_removexattr_args( struct fskit_route_dispatch_args* args, char const* xattr_name );
 

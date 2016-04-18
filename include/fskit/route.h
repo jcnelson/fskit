@@ -91,7 +91,7 @@ typedef int (*fskit_entry_route_rename_callback_t)( struct fskit_core*, struct f
 typedef int (*fskit_entry_route_link_callback_t)( struct fskit_core*, struct fskit_route_metadata*, struct fskit_entry*, char const* );
 typedef int (*fskit_entry_route_getxattr_callback_t)( struct fskit_core*, struct fskit_route_metadata*, struct fskit_entry*, char const*, char*, size_t );
 typedef int (*fskit_entry_route_listxattr_callback_t)( struct fskit_core*, struct fskit_route_metadata*, struct fskit_entry*, char*, size_t );
-typedef int (*fskit_entry_route_setxattr_callback_t)( struct fskit_core*, struct fskit_route_metadata*, struct fskit_entry*, char const*, char const*, size_t );
+typedef int (*fskit_entry_route_setxattr_callback_t)( struct fskit_core*, struct fskit_route_metadata*, struct fskit_entry*, char const*, char const*, size_t, int );
 typedef int (*fskit_entry_route_removexattr_callback_t)( struct fskit_core*, struct fskit_route_metadata*, struct fskit_entry*, char const* );
 
 // I/O continuation for successful read/write/trunc (i.e. to be called with the route's consistency discipline enforced)
