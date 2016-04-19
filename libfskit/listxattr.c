@@ -112,6 +112,32 @@ static void fskit_listxattr_copy_names( fskit_xattr_set* xattrs, char* list, siz
 }
 
 
+// low-level listxattr 
+// return length copied on success (or if size is 0)
+// return -ERANGE if the buffer is too short
+// fent must be read-locked
+int fskit_xattr_flistxattr( struct fskit_core* core, struct fskit_entry* fent, char* list, size_t size ) {
+
+   int total_size = 0;
+
+   total_size = fskit_listxattr_len( fent->xattrs );
+
+   // just a length query?
+   if( list == NULL || size == 0 ) {
+      return total_size;
+   }
+
+   // range check
+   if( (unsigned)total_size > size ) {
+      return -ERANGE;
+   }
+
+   // copy new names in
+   fskit_listxattr_copy_names( fent->xattrs, list, size );
+   return total_size;
+}
+
+
 // get the list of all xattr names
 // return the length of the name list on success
 // return on error:
@@ -137,21 +163,8 @@ int fskit_flistxattr( struct fskit_core* core, char const* path, struct fskit_en
       user_size = rc;
    }
 
-   // what's the total size?
-   total_size = user_size + fskit_listxattr_len( fent->xattrs );
-
-   // just a length query?
-   if( list == NULL || size == 0 ) {
-      return total_size;
-   }
-
-   // range check
-   if( (unsigned)total_size > size ) {
-      return -ERANGE;
-   }
-
-   // copy new names in
-   fskit_listxattr_copy_names( fent->xattrs, list + user_size, size );
-
-   return total_size;
+   // not handled
+   return fskit_xattr_flistxattr( core, fent, list, size );
 }
+
+

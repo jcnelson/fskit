@@ -77,7 +77,7 @@ int fskit_getxattr( struct fskit_core* core, char const* path, uint64_t user, ui
 // return -ENOMEM if there's not enough memory
 // return -errno on failure in stat
 // NOTE: fent must be read-locked
-int fskit_xattr_fgetxattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, char const* name, char* value_buf, size_t size ) {
+int fskit_xattr_fgetxattr( struct fskit_core* core, struct fskit_entry* fent, char const* name, char* value_buf, size_t size ) {
 
    int rc = 0;
    char const* value = NULL;
@@ -131,6 +131,6 @@ int fskit_fgetxattr( struct fskit_core* core, char const* path, struct fskit_ent
       return rc;
    }
    
-   return fskit_xattr_fgetxattr( core, path, fent, name, value_buf, size );
+   return fskit_xattr_fgetxattr( core, fent, name, value_buf, size );
 }
 

@@ -74,7 +74,7 @@ int fskit_removexattr( struct fskit_core* core, char const* path, uint64_t user,
 // remove an xattr from a write-locked inode.  do not call the route
 // return 0 on success
 // return -ENOATTR if the attribute doesn't exist 
-int fskit_xattr_fremovexattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, char const* name ) {
+int fskit_xattr_fremovexattr( struct fskit_core* core, struct fskit_entry* fent, char const* name ) {
 
    bool removed = false;
    
@@ -110,7 +110,7 @@ int fskit_fremovexattr( struct fskit_core* core, char const* path, struct fskit_
       return 0;
    }
 
-   return fskit_xattr_fremovexattr( core, path, fent, name );
+   return fskit_xattr_fremovexattr( core, fent, name );
 }
 
 

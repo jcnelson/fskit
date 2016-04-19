@@ -77,7 +77,7 @@ int fskit_setxattr( struct fskit_core* core, char const* path, uint64_t user, ui
 // return -ENOSPC if out-of-memory
 // return -EEXIST if flags has XATTR_CREATE set and the attribute already exists
 // return -ENOATTR if flags has XATTR_REPALCE set and the attribute does not exist
-int fskit_xattr_fsetxattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, char const* name, char const* value, size_t value_len, int flags ) {
+int fskit_xattr_fsetxattr( struct fskit_core* core, struct fskit_entry* fent, char const* name, char const* value, size_t value_len, int flags ) {
 
    int rc = 0;
    rc = fskit_xattr_set_insert( &fent->xattrs, name, value, value_len, flags );
@@ -120,8 +120,8 @@ int fskit_fsetxattr( struct fskit_core* core, char const* path, struct fskit_ent
       return 0;
    }
 
-   // callback says okay
-   rc = fskit_xattr_fsetxattr( core, path, fent, name, value, value_len, flags );
+   // callback forwards to fskit
+   rc = fskit_xattr_fsetxattr( core, fent, name, value, value_len, flags );
    
    return rc;
 }
