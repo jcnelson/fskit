@@ -53,6 +53,9 @@ struct fskit_detach_ctx {
    struct fskit_detach_entry* head;
    struct fskit_detach_entry* tail;
    size_t size;
+
+   int flags;
+   int cbrc;
 };
 
 // prototypes...
@@ -592,6 +595,7 @@ int fskit_detach_queue_children( struct fskit_detach_ctx* ctx, char const* dir_p
 // destroy the contents of dir_children for which the entries have been fully unlinked (besides . and ..).
 // return 0 on success
 // return -ENOMEM if out of memory
+// return -EFAULT if the FSKIT_DETACH_CTX_CB_FAIL flag is set, and the callback fails.
 // NOTE: the owner of dir_children should be write-locked
 // NOTE: if -ENOMEM is encountered, this method will fail fast and return.
 // This is because it will be unable to safely run user-defined routes.
@@ -603,6 +607,7 @@ int fskit_detach_all_ex( struct fskit_core* core, char const* dir_path, fskit_en
    // here to avoid deadlock.
 
    int rc = 0;
+   int cbrc = 0;
 
    // queue immediate children for destruction
    if( dir_children != NULL ) {
@@ -660,7 +665,13 @@ int fskit_detach_all_ex( struct fskit_core* core, char const* dir_path, fskit_en
       }
       
       // maybe this entry is fully unref'ed...
-      rc = fskit_entry_try_destroy_and_free( core, fent_path, NULL, fent );
+      rc = fskit_entry_try_destroy_and_free_ex( core, fent_path, NULL, fent, &cbrc );
+      if( (ctx->flags & FSKIT_DETACH_CTX_CB_FAIL) && cbrc < 0 ) {
+         fskit_error("Callback failed (rc = %d)\n", cbrc );
+         fskit_entry_unlock( fent );
+         ctx->cbrc = cbrc;
+         return -EFAULT;
+      }
       if( rc >= 0 ) {
 
          if( rc == 0 ) {
@@ -702,10 +713,21 @@ struct fskit_detach_ctx* fskit_detach_ctx_new() {
 int fskit_detach_ctx_init( struct fskit_detach_ctx* ctx ) {
 
    memset( ctx, 0, sizeof(struct fskit_detach_ctx) );
-   
    return 0;
 }
 
+// set a flag 
+int fskit_detach_ctx_set_flags( struct fskit_detach_ctx* ctx, int flags ) {
+
+   int old = ctx->flags;
+   ctx->flags = flags;
+   return old;
+}
+
+// get the last callback return code 
+int fskit_detach_ctx_get_cbrc( struct fskit_detach_ctx* ctx ) {
+   return ctx->cbrc;
+}
 
 // free a detach context
 int fskit_detach_ctx_free( struct fskit_detach_ctx* ctx ) {
@@ -744,12 +766,14 @@ int fskit_detach_all( struct fskit_core* core, char const* root_path ) {
    
    dent = fskit_entry_resolve_path( core, root_path, 0, 0, true, &rc );
    if( dent == NULL ) {
+       fskit_detach_ctx_free( &ctx );
        return rc;
    }
    
    // swap out the children, and mark this directory as garbage-collectable
    rc = fskit_entry_tag_garbage( dent, &dir_children );
    if( rc != 0 ) {
+       fskit_detach_ctx_free( &ctx );
        fskit_error("fskit_entry_tag_garbage('%" PRIX64 "') rc = %d\n", dent->file_id, rc );
        fskit_entry_unlock( dent );
        return rc;
@@ -1187,7 +1211,7 @@ int fskit_entry_destroy( struct fskit_core* core, struct fskit_entry* fent, bool
 // fent and parent must be write-locked.  If it is fully unlinked (i.e. this call will destroy it), it will be unlocked.
 // NOTE: we mask any failures in the user callback.
 // NOTE: even if this method returns an error code, the entry will be destroyed if it is no longer linked.
-static int fskit_entry_try_destroy( struct fskit_core* core, char const* fs_path, struct fskit_entry* parent, struct fskit_entry* fent ) {
+static int fskit_entry_try_destroy( struct fskit_core* core, char const* fs_path, struct fskit_entry* parent, struct fskit_entry* fent, int* cbrc ) {
 
    int rc = 0;
    uint64_t file_id = 0;
@@ -1210,9 +1234,9 @@ static int fskit_entry_try_destroy( struct fskit_core* core, char const* fs_path
       file_id = fent->file_id;
       fskit_entry_unlock( fent );
      
-      rc = fskit_run_user_destroy( core, fs_path, parent, fent );
-      if( rc != 0 ) {
-         fskit_error("WARN: fskit_run_user_destroy(%s) rc = %d\n", fs_path, rc );
+      *cbrc = fskit_run_user_destroy( core, fs_path, parent, fent );
+      if( *cbrc != 0 ) {
+         fskit_error("WARN: fskit_run_user_destroy(%s) rc = %d\n", fs_path, *cbrc );
       }
 
       fskit_entry_destroy( core, fent, false );
@@ -1229,12 +1253,12 @@ static int fskit_entry_try_destroy( struct fskit_core* core, char const* fs_path
 // return 0 if not destroyed
 // return 1 if destroyed (even if the user-given detach callback fails)
 // fent and parent must be write-locked
-int fskit_entry_try_destroy_and_free( struct fskit_core* core, char const* fs_path, struct fskit_entry* parent, struct fskit_entry* fent ) {
+int fskit_entry_try_destroy_and_free_ex( struct fskit_core* core, char const* fs_path, struct fskit_entry* parent, struct fskit_entry* fent, int* cbrc ) {
 
    int rc = 0;
    
    // see if we can destroy this....
-   rc = fskit_entry_try_destroy( core, fs_path, parent, fent );
+   rc = fskit_entry_try_destroy( core, fs_path, parent, fent, cbrc );
    if( rc > 0 ) {
       
       // fent was unlocked and destroyed
@@ -1245,9 +1269,17 @@ int fskit_entry_try_destroy_and_free( struct fskit_core* core, char const* fs_pa
 }
 
 
+// default try-destroy-and-free: discard the callback return code
+int fskit_entry_try_destroy_and_free( struct fskit_core* core, char const* fs_path, struct fskit_entry* parent, struct fskit_entry* fent ) {
+   int cbrc = 0;
+   return fskit_entry_try_destroy_and_free_ex( core, fs_path, parent, fent, &cbrc );
+}
+
+
 // try to garbage-collect a node.  That is, if it's deletion_in_progress field is true, try to destroy it.
 // return 0 if detached but not destroyed
 // return 1 if detached and destroyed (even if the user-given detach callback fails)
+// set the garbage
 // return -EEXIST if the entry can't be garbage collected
 // NOTE: parent and child must be write-locked
 int fskit_entry_try_garbage_collect( struct fskit_core* core, char const* path, struct fskit_entry* parent, struct fskit_entry* child ) {

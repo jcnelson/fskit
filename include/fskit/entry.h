@@ -161,10 +161,15 @@ int fskit_entry_init_symlink( struct fskit_entry* fent, uint64_t file_id, char c
 // destruction
 int fskit_entry_destroy( struct fskit_core* core, struct fskit_entry* fent, bool needlock );
 int fskit_entry_try_destroy_and_free( struct fskit_core* core, char const* fs_path, struct fskit_entry* parent, struct fskit_entry* fent );
+int fskit_entry_try_destroy_and_free_ex( struct fskit_core* core, char const* fs_path, struct fskit_entry* parent, struct fskit_entry* fent, int* cbrc );
 struct fskit_detach_ctx* fskit_detach_ctx_new();
 int fskit_detach_ctx_init( struct fskit_detach_ctx* ctx );
+int fskit_detach_ctx_set_flags( struct fskit_detach_ctx* ctx, int flags );
+int fskit_detach_ctx_get_cbrc( struct fskit_detach_ctx* ctx );
 int fskit_detach_ctx_free( struct fskit_detach_ctx* ctx );
 int fskit_entry_tag_garbage( struct fskit_entry* ent, fskit_entry_set** children );
+
+#define FSKIT_DETACH_CTX_CB_FAIL        0x1     // fail if a user route fails
 
 // locking
 int fskit_entry_rlock2( struct fskit_entry* fent, char const* from_str, int line_no );
