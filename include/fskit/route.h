@@ -61,7 +61,7 @@ struct fskit_path_route;
 #define FSKIT_INODE_CONCURRENT  4       // route method calls on the same inode will be concurrent, provided that they only read the inode (i.e. the inode will be read-locked)
 
 // common routes
-#define FSKIT_ROUTE_ANY         "/([^/]+[/]*)*"
+#define FSKIT_ROUTE_ANY         "[/]+([^/]+[/]*)*"
 
 FSKIT_C_LINKAGE_BEGIN
 
