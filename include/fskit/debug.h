@@ -30,7 +30,7 @@
 #define fskit_debug( format, ... ) \
    do { \
       if( FSKIT_GLOBAL_DEBUG_MESSAGES ) { \
-         fprintf(stderr, FSKIT_WHERESTR format, FSKIT_WHEREARG, "DEBUG", __VA_ARGS__ ); \
+         fprintf(stderr, FSKIT_WHERESTR format, FSKIT_WHEREARG, "DEBUG", __VA_ARGS__ ); fflush(stderr); \
       } \
    } while(0)
 
@@ -38,7 +38,7 @@
 #define fskit_error( format, ... ) \
    do { \
       if( FSKIT_GLOBAL_ERROR_MESSAGES ) { \
-         fprintf(stderr, FSKIT_WHERESTR format, FSKIT_WHEREARG, "ERROR", __VA_ARGS__); \
+         fprintf(stderr, FSKIT_WHERESTR format, FSKIT_WHEREARG, "ERROR", __VA_ARGS__); fflush(stderr); \
       } \
    } while(0)
 
