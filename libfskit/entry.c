@@ -1171,10 +1171,12 @@ int fskit_entry_destroy( struct fskit_core* core, struct fskit_entry* fent, bool
    if( fent->type == FSKIT_ENTRY_TYPE_DEAD ) {
       return 0;
    }
-   
+
    if( needlock ) {
       fskit_entry_wlock( fent );
    }
+
+   fskit_debug("fskit_entry_destroy %" PRIX64 "\n", fent->file_id);
 
    fent->type = FSKIT_ENTRY_TYPE_DEAD;      // next thread to hold this lock knows this is a dead entry
 
