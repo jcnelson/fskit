@@ -10,7 +10,7 @@ install:
 	$(MAKE) -C fuse install
 
 test:
-	$(MAKE) -C test 
+	$(MAKE) -C test REPL=$(REPL)
 
 fuse-demo:
 	$(MAKE) -C demo 
