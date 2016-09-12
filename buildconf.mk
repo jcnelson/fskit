@@ -47,7 +47,8 @@ LIBFSKIT_FUSE_MINOR := 0
 LIBFSKIT_FUSE_PATCH := 2
 
 # special defs
-REPL_DEF := 
+REPL ?= 1
+REPL_DEF := 1
 ifeq ($(REPL),1)
    REPL_DEF := -D_FSKIT_REPL
 endif
