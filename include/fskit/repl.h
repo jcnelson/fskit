@@ -19,9 +19,6 @@
    <http://www.isc.org/downloads/software-support-policy/isc-license/>.
 */
 
-// not compiled in by default; must be enabled
-#ifdef _FSKIT_REPL
-
 #ifndef _FSKIT_REPL_H_
 #define _FSKIT_REPL_H_
 
@@ -51,5 +48,4 @@ int fskit_repl_main( struct fskit_repl* repl, FILE* f );
 
 FSKIT_C_LINKAGE_END
 
-#endif
 #endif
