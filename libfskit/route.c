@@ -507,11 +507,6 @@ static int fskit_route_dispatch( struct fskit_core* core, struct fskit_route_met
 
    // enforce the consistency discipline
    rc = fskit_route_enter( route, fent, dargs );
-   // if( rc != 0 ) {
-   //   fskit_error("fskit_route_enter(route %s) rc = %d\n", route->path_regex_str, rc );
-   //   return rc;
-   // }
-
    if( rc != 0 ) {
       // indicates deadlock
       rc = -errno;
