@@ -470,9 +470,6 @@ int fskit_rename( struct fskit_core* core, char const* old_path, char const* new
    
    if( fent_new != NULL && err == 0 ) {
 
-      // unref up fent_new (the overwritten inode) 
-      fskit_entry_unlock( fent_new );
-      
       if( fent_common_parent != NULL ) {
          err = fskit_entry_try_destroy_and_free( core, new_path, fent_common_parent, fent_new );
       }
@@ -484,6 +481,10 @@ int fskit_rename( struct fskit_core* core, char const* old_path, char const* new
          
          // not destroyed 
          fskit_entry_unlock( fent_new );
+      }
+      else {
+         // destroyed
+         err = 0;
       }
    }
    
