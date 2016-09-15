@@ -53,7 +53,10 @@ char* test_input =
 "unlink 0 0 /baz\n"
 "unlink 0 0 /foo3\n"
 "unlink 0 0 /foo4\n"
-"statvfs 0 0 /\n";
+"statvfs 0 0 /\n"
+"\n"
+" \n"
+"";
 
 int main( int argc, char** argv ) {
 
