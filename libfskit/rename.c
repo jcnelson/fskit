@@ -173,7 +173,7 @@ static int fskit_entry_rename_unlock( struct fskit_entry* fent_common_parent, st
 
 // user route to rename 
 // unlike all other routes on the system, this one *requres* both entries to be locked (since rename is atomic).
-// old_parent, old_vent, new_parent, and dest will all be write-locked.
+// old_parent, old_vent, new_parent, and dest will all be write-locked (irrespective of route lock discipline)
 static int fskit_run_user_rename( struct fskit_core* core, char const* path, struct fskit_entry* old_parent, struct fskit_entry* old_fent, char const* new_path, struct fskit_entry* new_parent, struct fskit_entry* dest ) {
    
    int rc = 0;
@@ -208,11 +208,6 @@ int fskit_entry_rename_in_directory( struct fskit_entry* fent_parent, struct fsk
    
    if( fskit_entry_set_find_name( fent_parent->children, old_name ) != fent ) {
       return -ENOENT;
-   }
-   
-   char* name_dup = strdup( new_name );
-   if( name_dup == NULL ) {
-      return -ENOMEM;
    }
    
    fskit_entry_set_remove( &fent_parent->children, old_name );
@@ -418,8 +413,11 @@ int fskit_rename( struct fskit_core* core, char const* old_path, char const* new
    }
    
    if( err != 0 ) {
-      
-      fskit_entry_unlock( fent_old );
+     
+      if( err != -ENOENT ) { 
+          fskit_entry_unlock( fent_old );
+      }
+
       if( fent_new != NULL ) {
          fskit_entry_unlock( fent_new );
       }
