@@ -130,6 +130,7 @@ void fskit_repl_free( struct fskit_repl* repl ) {
 // return NULL on failure, and set *_rc to:
 //  -ENOMEM on OOM
 //  -EINVAL on invalid line
+//  -ENODATA on EOF
 struct fskit_repl_stmt* fskit_repl_stmt_parse( FILE* input, int* _rc ) {
 
    int rc = 0;
@@ -144,11 +145,36 @@ struct fskit_repl_stmt* fskit_repl_stmt_parse( FILE* input, int* _rc ) {
 
    nr = getline( &linebuf, &len, input );
    if( nr < 0 ) {
-      *_rc = -errno;
+      if( feof(input) ) {
+         *_rc = -ENODATA;
+         fskit_debug("EOF on input %d\n", fileno(input));
+      }
+      else if( ferror(input) ) {
+         *_rc = -EBADF;
+         int errsv = -errno;
+         errno = 0;
+         clearerr(input);
+         fskit_debug("ferror on input %d (errno was %d)\n", fileno(input), errsv);
+      }
+      else {
+         *_rc = -errno;
+         fskit_debug("I/O error on input %d: %d\n", fileno(input), *_rc);
+      }
+      return NULL;
+   }
+
+   if( len == 0 ) {
+      fskit_safe_free(linebuf);
+      *_rc = 0;
       return NULL;
    }
 
    linebuf[nr-1] = '\0';
+   if( strlen(linebuf) == 0 ) {
+      fskit_safe_free( linebuf );
+      *_rc = 0;
+      return NULL;
+   }
 
    stmt = CALLOC_LIST( struct fskit_repl_stmt, 1 );
    if( stmt == NULL ) {
@@ -161,8 +187,9 @@ struct fskit_repl_stmt* fskit_repl_stmt_parse( FILE* input, int* _rc ) {
    stmt->cmd = strtok_r( linebuf, " \t", &tmp );
 
    if( stmt->cmd == NULL ) {
+      // all whitespace
       fskit_repl_stmt_free( stmt );
-      *_rc = -EINVAL;
+      *_rc = 0;
       return NULL;
    }
 
@@ -430,6 +457,7 @@ int fskit_repl_stmt_dispatch( struct fskit_repl* repl, struct fskit_repl_stmt* s
 
       fskit_debug("access('%s', %" PRIu64 ", %" PRIu64 ", %o)\n", path, user_id, group_id, mode );
       rc = fskit_access( core, path, user_id, group_id, mode );
+      fskit_debug("access('%s', %" PRIu64 ", %" PRIu64 ", %o) rc = %d\n", path, user_id, group_id, mode, rc );
    }
    else if( strcmp(stmt->cmd, "chmod") == 0 ) {
 
@@ -452,6 +480,7 @@ int fskit_repl_stmt_dispatch( struct fskit_repl* repl, struct fskit_repl_stmt* s
 
       fskit_debug("chmod('%s', %" PRIu64 ", %" PRIu64 ", %o)\n", path, user_id, group_id, mode );
       rc = fskit_chmod( core, path, user_id, group_id, mode );
+      fskit_debug("chmod('%s', %" PRIu64 ", %" PRIu64 ", %o) rc = %d\n", path, user_id, group_id, mode, rc );
    }
    else if( strcmp(stmt->cmd, "chown") == 0 ) {
 
@@ -474,6 +503,7 @@ int fskit_repl_stmt_dispatch( struct fskit_repl* repl, struct fskit_repl_stmt* s
 
       fskit_debug("chown('%s', %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ")\n", path, user_id, group_id, new_user_id, new_group_id );
       rc = fskit_chown( core, path, user_id, group_id, new_user_id, new_group_id );
+      fskit_debug("chown('%s', %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 ") rc = %d\n", path, user_id, group_id, new_user_id, new_group_id, rc );
    }
    else if( strcmp(stmt->cmd, "close") == 0 ) {
 
@@ -490,6 +520,7 @@ int fskit_repl_stmt_dispatch( struct fskit_repl* repl, struct fskit_repl_stmt* s
 
       fskit_debug("close(%d)\n", (int)filedes );
       rc = fskit_repl_filedes_close( repl, filedes );
+      fskit_debug("close(%d) rc = %d\n", (int)filedes, rc );
    }
    else if( strcmp(stmt->cmd, "closedir") == 0 ) {
 
@@ -506,6 +537,7 @@ int fskit_repl_stmt_dispatch( struct fskit_repl* repl, struct fskit_repl_stmt* s
 
       fskit_debug("closedir(%d)\n", (int)filedes );
       rc = fskit_repl_dirdes_close( repl, filedes );
+      fskit_debug("closedir(%d) rc = %d\n", (int)filedes, rc );
    }
    else if( strcmp(stmt->cmd, "create") == 0 ) {
 
@@ -528,6 +560,8 @@ int fskit_repl_stmt_dispatch( struct fskit_repl* repl, struct fskit_repl_stmt* s
 
       fskit_debug("create('%s', %" PRIu64 ", %" PRIu64 ", %o)\n", path, user_id, group_id, mode );
       fh = fskit_create( core, path, user_id, group_id, mode, &rc );
+      fskit_debug("create('%s', %" PRIu64 ", %" PRIu64 ", %o) rc = %d\n", path, user_id, group_id, mode, rc );
+
       if( fh != NULL ) {
          rc = fskit_repl_filedes_insert( repl, fh );
          if( rc < 0 ) {
@@ -560,12 +594,14 @@ int fskit_repl_stmt_dispatch( struct fskit_repl* repl, struct fskit_repl_stmt* s
       attrlen = fskit_getxattr( core, path, user_id, group_id, attrname, NULL, 0 ); 
       if( attrlen < 0 ) {
          rc = attrlen;
+         fskit_debug("getxattr('%s', %" PRIu64 ", %" PRIu64 ", '%s') rc = %d\n", path, user_id, group_id, attrname, rc );
          goto fskit_repl_stmt_dispatch_out;
       }
       
       attrvalue = CALLOC_LIST( char, attrlen+1 );
       if( attrvalue == NULL ) {
          rc = -ENOMEM;
+         fskit_debug("getxattr('%s', %" PRIu64 ", %" PRIu64 ", '%s') rc = %d\n", path, user_id, group_id, attrname, rc );
          goto fskit_repl_stmt_dispatch_out;
       }
 
@@ -573,9 +609,11 @@ int fskit_repl_stmt_dispatch( struct fskit_repl* repl, struct fskit_repl_stmt* s
       rc = attrlen;
       if( attrlen < 0 ) {
          fskit_safe_free( attrvalue );
+         fskit_debug("getxattr('%s', %" PRIu64 ", %" PRIu64 ", '%s') rc = %d\n", path, user_id, group_id, attrname, rc );
          goto fskit_repl_stmt_dispatch_out;
       }
 
+      fskit_debug("getxattr('%s', %" PRIu64 ", %" PRIu64 ", '%s') rc = %d\n", path, user_id, group_id, attrname, rc );
       printf("%zd\n", attrlen);
       printf("%s\n", attrvalue);
       fskit_safe_free( attrvalue );
@@ -596,8 +634,9 @@ int fskit_repl_stmt_dispatch( struct fskit_repl* repl, struct fskit_repl_stmt* s
       path = stmt->argv[2];
       newpath = stmt->argv[3];
 
-      fskit_debug("link('%s', '%s', %" PRIu64 ", %" PRIu64 "\n", path, newpath, user_id, group_id );
+      fskit_debug("link('%s', '%s', %" PRIu64 ", %" PRIu64 ")\n", path, newpath, user_id, group_id );
       rc = fskit_link( core, path, newpath, user_id, group_id );
+      fskit_debug("link('%s', '%s', %" PRIu64 ", %" PRIu64 ") rc = %d\n", path, newpath, user_id, group_id, rc );
    }
    else if( strcmp(stmt->cmd, "listxattr") == 0 ) {
 
@@ -614,24 +653,29 @@ int fskit_repl_stmt_dispatch( struct fskit_repl* repl, struct fskit_repl_stmt* s
 
       path = stmt->argv[2];
 
-      fskit_debug("listxattr('%s', %" PRIu64 ", %" PRIu64 "\n", path, user_id, group_id );
+      fskit_debug("listxattr('%s', %" PRIu64 ", %" PRIu64 ")\n", path, user_id, group_id );
       attrlen = fskit_listxattr( core, path, user_id, group_id, NULL, 0 );
       if( attrlen < 0 ) {
          rc = attrlen;
+         fskit_debug("listxattr('%s', %" PRIu64 ", %" PRIu64 ") rc = %zd\n", path, user_id, group_id, attrlen);
          goto fskit_repl_stmt_dispatch_out;
       }
 
       attrvalue = CALLOC_LIST( char, attrlen+1 );
       if( attrvalue == NULL ) {
          rc = -ENOMEM;
+         fskit_debug("listxattr('%s', %" PRIu64 ", %" PRIu64 ") rc = %d\n", path, user_id, group_id, rc);
          goto fskit_repl_stmt_dispatch_out;
       }
 
       attrlen = fskit_listxattr( core, path, user_id, group_id, attrvalue, attrlen );
       if( attrlen < 0 ) {
          fskit_safe_free( attrvalue );
+         fskit_debug("listxattr('%s', %" PRIu64 ", %" PRIu64 ") rc = %zd\n", path, user_id, group_id, attrlen);
          goto fskit_repl_stmt_dispatch_out;
       }
+
+      fskit_debug("listxattr('%s', %" PRIu64 ", %" PRIu64 ") rc = %zd\n", path, user_id, group_id, attrlen);
 
       printf("%zd\n", attrlen);
       for( offset = 0; offset < (unsigned)attrlen; ) {
@@ -662,6 +706,7 @@ int fskit_repl_stmt_dispatch( struct fskit_repl* repl, struct fskit_repl_stmt* s
 
       fskit_debug("mkdir('%s', %" PRIu64 ", %" PRIu64 ", %o)\n", path, user_id, group_id, mode );
       rc = fskit_mkdir( core, path, user_id, group_id, mode );
+      fskit_debug("mkdir('%s', %" PRIu64 ", %" PRIu64 ", %o) rc = %d\n", path, user_id, group_id, mode, rc );
    }
    else if( strcmp(stmt->cmd, "mknod") == 0 ) {
 
@@ -689,6 +734,7 @@ int fskit_repl_stmt_dispatch( struct fskit_repl* repl, struct fskit_repl_stmt* s
 
       fskit_debug("mknod('%s', %" PRIu64 ", %" PRIu64 ", %o)\n", path, user_id, group_id, mode );
       rc = fskit_mknod( core, path, mode, dev, user_id, group_id );
+      fskit_debug("mknod('%s', %" PRIu64 ", %" PRIu64 ", %o) rc = %d\n", path, user_id, group_id, mode, rc );
    }
    else if( strcmp(stmt->cmd, "open") == 0 ) {
 
@@ -711,6 +757,8 @@ int fskit_repl_stmt_dispatch( struct fskit_repl* repl, struct fskit_repl_stmt* s
 
       fskit_debug("open('%s', %" PRIu64 ", %" PRIu64 ", %" PRIx64 ")\n", path, user_id, group_id, flags );
       fh = fskit_open( core, path, user_id, group_id, flags, mode, &rc );
+      fskit_debug("open('%s', %" PRIu64 ", %" PRIu64 ", %" PRIx64 ") rc = %d\n", path, user_id, group_id, flags, rc );
+
       if( fh != NULL ) {
          rc = fskit_repl_filedes_insert( repl, fh );
          if( rc < 0 ) {
@@ -738,6 +786,8 @@ int fskit_repl_stmt_dispatch( struct fskit_repl* repl, struct fskit_repl_stmt* s
 
       fskit_debug("opendir('%s', %" PRIu64 ", %" PRIu64 ")\n", path, user_id, group_id );
       dh = fskit_opendir( core, path, user_id, group_id, &rc );
+      fskit_debug("opendir('%s', %" PRIu64 ", %" PRIu64 ") rc = %d\n", path, user_id, group_id, rc );
+
       if( dh != NULL ) {
          rc = fskit_repl_dirdes_insert( repl, dh );
          if( rc < 0 ) {
@@ -787,6 +837,8 @@ int fskit_repl_stmt_dispatch( struct fskit_repl* repl, struct fskit_repl_stmt* s
 
       fskit_debug("read(%" PRIu64 ", %" PRIu64 ", %" PRIu64 ")\n", filedes, offset, len );
       rc = fskit_read( core, fh, buf, len, offset );
+      fskit_debug("read(%" PRIu64 ", %" PRIu64 ", %" PRIu64 ") rc = %d\n", filedes, offset, len, rc );
+
       if( rc < 0 ) {
          fskit_safe_free( buf );
          goto fskit_repl_stmt_dispatch_out;
@@ -823,6 +875,8 @@ int fskit_repl_stmt_dispatch( struct fskit_repl* repl, struct fskit_repl_stmt* s
 
       fskit_debug("readdir(%" PRIu64 ", %" PRIu64 ")\n", filedes, num_children);
       children = fskit_readdir( core, dh, num_children, &len, &rc );
+      fskit_debug("readdir(%" PRIu64 ", %" PRIu64 ") rc = %d\n", filedes, num_children, rc);
+
       if( children == NULL ) {
          goto fskit_repl_stmt_dispatch_out;
       }
@@ -856,6 +910,8 @@ int fskit_repl_stmt_dispatch( struct fskit_repl* repl, struct fskit_repl_stmt* s
 
       fskit_debug("readlink('%s', %" PRIu64 ", %" PRIu64 ")\n", path, user_id, group_id);
       rc = fskit_readlink( core, path, user_id, group_id, pathbuf, 4096 );
+      fskit_debug("readlink('%s', %" PRIu64 ", %" PRIu64 ") rc = %d\n", path, user_id, group_id, rc);
+
       if( rc < 0 ) {
          goto fskit_repl_stmt_dispatch_out;
       }
@@ -881,6 +937,8 @@ int fskit_repl_stmt_dispatch( struct fskit_repl* repl, struct fskit_repl_stmt* s
 
       fskit_debug("removexattr('%s', %" PRIu64 ", %" PRIu64 ", '%s')\n", path, user_id, group_id, attrname );
       rc = fskit_removexattr( core, path, user_id, group_id, attrname );
+      fskit_debug("removexattr('%s', %" PRIu64 ", %" PRIu64 ", '%s') rc = %d\n", path, user_id, group_id, attrname, rc );
+
       if( rc < 0 ) {
          goto fskit_repl_stmt_dispatch_out;
       }
@@ -903,6 +961,8 @@ int fskit_repl_stmt_dispatch( struct fskit_repl* repl, struct fskit_repl_stmt* s
 
       fskit_debug("rename('%s', %" PRIu64 ", %" PRIu64 ", '%s')\n", path, user_id, group_id, newpath );
       rc = fskit_rename( core, path, newpath, user_id, group_id );
+      fskit_debug("rename('%s', %" PRIu64 ", %" PRIu64 ", '%s') rc = %d\n", path, user_id, group_id, newpath, rc );
+
       if( rc < 0 ) {
          goto fskit_repl_stmt_dispatch_out;
       }
@@ -924,6 +984,8 @@ int fskit_repl_stmt_dispatch( struct fskit_repl* repl, struct fskit_repl_stmt* s
 
       fskit_debug("rmdir('%s', %" PRIu64 ", %" PRIu64 ")\n", path, user_id, group_id );
       rc = fskit_rmdir( core, path, user_id, group_id );
+      fskit_debug("rmdir('%s', %" PRIu64 ", %" PRIu64 " rc = %d)\n", path, user_id, group_id, rc );
+
       if( rc < 0 ) {
          goto fskit_repl_stmt_dispatch_out;
       }
@@ -952,6 +1014,8 @@ int fskit_repl_stmt_dispatch( struct fskit_repl* repl, struct fskit_repl_stmt* s
 
       fskit_debug("setxattr('%s', %" PRIu64 ", %" PRIu64 ", '%s', '%s', %" PRIx64 ")\n", path, user_id, group_id, attrname, attrvalue, flags );
       rc = fskit_setxattr( core, path, user_id, group_id, attrname, attrvalue, strlen(attrvalue), flags );
+      fskit_debug("setxattr('%s', %" PRIu64 ", %" PRIu64 ", '%s', '%s', %" PRIx64 ") rc = %d\n", path, user_id, group_id, attrname, attrvalue, flags, rc );
+
       if( rc < 0 ) {
          goto fskit_repl_stmt_dispatch_out;
       }
@@ -973,6 +1037,8 @@ int fskit_repl_stmt_dispatch( struct fskit_repl* repl, struct fskit_repl_stmt* s
 
       fskit_debug("stat('%s', %" PRIu64 ", %" PRIu64 ")\n", path, user_id, group_id );
       rc = fskit_stat( core, path, user_id, group_id, &sb );
+      fskit_debug("stat('%s', %" PRIu64 ", %" PRIu64 ") rc = %d\n", path, user_id, group_id, rc );
+
       if( rc < 0 ) {
          goto fskit_repl_stmt_dispatch_out;
       }
@@ -1000,6 +1066,8 @@ int fskit_repl_stmt_dispatch( struct fskit_repl* repl, struct fskit_repl_stmt* s
 
       fskit_debug("statvfs('%s', %" PRIu64 ", %" PRIu64 ")\n", path, user_id, group_id );
       rc = fskit_statvfs( core, path, user_id, group_id, &svfs );
+      fskit_debug("statvfs('%s', %" PRIu64 ", %" PRIu64 ") rc = %d\n", path, user_id, group_id, rc );
+
       if( rc < 0 ) {
          goto fskit_repl_stmt_dispatch_out;
       }
@@ -1025,6 +1093,8 @@ int fskit_repl_stmt_dispatch( struct fskit_repl* repl, struct fskit_repl_stmt* s
 
       fskit_debug("symlink('%s', %" PRIu64 ", %" PRIu64 ", '%s')\n", path, user_id, group_id, newpath );
       rc = fskit_symlink( core, path, newpath, user_id, group_id );
+      fskit_debug("symlink('%s', %" PRIu64 ", %" PRIu64 ", '%s') rc = %d\n", path, user_id, group_id, newpath, rc );
+
       if( rc < 0 ) {
          goto fskit_repl_stmt_dispatch_out;
       }
@@ -1050,6 +1120,8 @@ int fskit_repl_stmt_dispatch( struct fskit_repl* repl, struct fskit_repl_stmt* s
 
       fskit_debug("fsync(%" PRIu64 ")\n", filedes );
       rc = fskit_fsync( core, fh );
+      fskit_debug("fsync(%" PRIu64 ") rc = %d\n", filedes, rc );
+
       if( rc < 0 ) {
          goto fskit_repl_stmt_dispatch_out;
       }
@@ -1075,6 +1147,8 @@ int fskit_repl_stmt_dispatch( struct fskit_repl* repl, struct fskit_repl_stmt* s
 
       fskit_debug("trunc('%s', %" PRIu64 ")\n", path, size );
       rc = fskit_trunc( core, path, user_id, group_id, size );
+      fskit_debug("trunc('%s', %" PRIu64 ") rc = %d\n", path, size, rc );
+
       if( rc < 0 ) {
          goto fskit_repl_stmt_dispatch_out;
       }
@@ -1096,6 +1170,8 @@ int fskit_repl_stmt_dispatch( struct fskit_repl* repl, struct fskit_repl_stmt* s
       
       fskit_debug("unlink('%s', %" PRIu64 ", %" PRIu64 ")\n", path, user_id, group_id );
       rc = fskit_unlink( core, path, user_id, group_id );
+      fskit_debug("unlink('%s', %" PRIu64 ", %" PRIu64 ") rc = %d\n", path, user_id, group_id, rc );
+
       if( rc != 0 ) {
          goto fskit_repl_stmt_dispatch_out;
       }
@@ -1148,6 +1224,10 @@ int fskit_repl_stmt_dispatch( struct fskit_repl* repl, struct fskit_repl_stmt* s
             path, user_id, group_id, utimes[0].tv_sec, utimes[0].tv_usec, utimes[1].tv_sec, utimes[1].tv_usec );
 
       rc = fskit_utimes( core, path, user_id, group_id, utimes );
+
+      fskit_debug("fskit_utimes('%s', %" PRIu64 ", %" PRIu64 ", [(%" PRId64 ", %ld), (%" PRId64 ", %ld)]) rc = %d\n",
+            path, user_id, group_id, utimes[0].tv_sec, utimes[0].tv_usec, utimes[1].tv_sec, utimes[1].tv_usec, rc );
+
       if( rc != 0 ) {
          goto fskit_repl_stmt_dispatch_out;
       }
@@ -1185,6 +1265,8 @@ int fskit_repl_stmt_dispatch( struct fskit_repl* repl, struct fskit_repl_stmt* s
 
       fskit_debug("fskit_write(%" PRIu64 ", '%s', %" PRIu64 ", %zu)\n", filedes, buf, offset, len );
       rc = fskit_write( core, fh, buf, len, offset );
+      fskit_debug("fskit_write(%" PRIu64 ", '%s', %" PRIu64 ", %zu) rc = %d\n", filedes, buf, offset, len, rc );
+
       if( rc < 0 ) {
          goto fskit_repl_stmt_dispatch_out;
       }
@@ -1216,7 +1298,13 @@ int fskit_repl_main( struct fskit_repl* repl, FILE* f ) {
 
        stmt = fskit_repl_stmt_parse( f, &rc );
        if( stmt == NULL ) {
-          fskit_error("%s", "fskit_repl_stmt_parse failed\n");
+          if( rc != 0 && rc != -ENODATA ) {
+              fskit_error("fskit_repl_stmt_parse failed, rc = %d\n", rc);
+          }
+          else if( rc == -ENODATA ) {
+              // EOF
+              break;
+          }
           continue;
        }
 
