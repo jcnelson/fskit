@@ -693,6 +693,7 @@ static int fskit_route_metadata_populate( struct fskit_route_metadata* route_met
    route_metadata->xattr_value_len = dargs->xattr_value_len;
    route_metadata->xattr_buf = dargs->xattr_buf;
    route_metadata->xattr_buf_len = dargs->xattr_buf_len;
+   route_metadata->renamed = dargs->renamed;
    return 0;
 }
 
@@ -1302,7 +1303,7 @@ int fskit_unroute_sync( struct fskit_core* core, int route_handle ) {
 
 
 // declare a route for renaming a file or directory 
-// Note that for renames, the consistency *must be* FSKIT_SEQUENTIAL or FSKIT_CONCURRENT, since both the source and dest inodes will be write-locked
+// Note that for renames, the consistency *must be* FSKIT_SEQUENTIAL, since both the source and dest inodes will be write-locked
 // return >= 0 on success (the route handle)
 // return -EINVAL if we couldn't compile the regex 
 // return -EINVAL if consistency_discipline is not supported
@@ -1552,26 +1553,28 @@ int fskit_route_trunc_args( struct fskit_route_dispatch_args* dargs, char const*
 }
 
 // set up dargs for unlink(), where we only decrement the link count
-int fskit_route_detach_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, char const* name, bool garbage_collect, void* inode_data ) {
+int fskit_route_detach_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, char const* name, bool garbage_collect, bool renamed, void* inode_data ) {
 
    memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
 
    dargs->name = name;
    dargs->parent = parent;
    dargs->garbage_collect = garbage_collect;
+   dargs->renamed = renamed;
    dargs->inode_data = inode_data;
 
    return 0;
 }
 
 // set up dargs for unlink(), rmdir(), and general destruction
-int fskit_route_destroy_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, char const* name, void* inode_data ) {
+int fskit_route_destroy_args( struct fskit_route_dispatch_args* dargs, struct fskit_entry* parent, char const* name, bool renamed, void* inode_data ) {
 
    memset( dargs, 0, sizeof(struct fskit_route_dispatch_args) );
 
    dargs->name = name;
    dargs->parent = parent;
    dargs->inode_data = inode_data;
+   dargs->renamed = renamed;
 
    return 0;
 }
@@ -1725,3 +1728,7 @@ char* fskit_route_metadata_get_xattr_buf( struct fskit_route_metadata* route_met
    return route_metadata->xattr_buf;
 }
 
+// renamed?
+bool fskit_route_metadata_renamed( struct fskit_route_metadata* route_metadata ) {
+   return route_metadata->renamed;
+}
