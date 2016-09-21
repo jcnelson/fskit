@@ -1107,7 +1107,7 @@ int fskit_run_user_detach( struct fskit_core* core, char const* path, struct fsk
    memset( name, 0, FSKIT_FILESYSTEM_NAMEMAX+1 );
    fskit_basename( path, name );
 
-   fskit_route_detach_args( &dargs, parent, name, fent->deletion_in_progress, fent->app_data );
+   fskit_route_detach_args( &dargs, parent, name, fent->deletion_in_progress, fent->deletion_through_rename, fent->app_data );
 
    rc = fskit_route_call_detach( core, path, fent, &dargs, &cbrc );
 
@@ -1141,7 +1141,7 @@ int fskit_run_user_destroy( struct fskit_core* core, char const* path, struct fs
    memset( name, 0, FSKIT_FILESYSTEM_NAMEMAX+1 );
    fskit_basename( path, name );
 
-   fskit_route_destroy_args( &dargs, parent, name, fent->app_data );
+   fskit_route_destroy_args( &dargs, parent, name, fent->deletion_through_rename, fent->app_data );
 
    rc = fskit_route_call_destroy( core, path, fent, &dargs, &cbrc );
 
