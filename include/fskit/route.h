@@ -154,6 +154,7 @@ struct fskit_entry* fskit_route_metadata_get_new_parent( struct fskit_route_meta
 char const* fskit_route_metadata_get_xattr_value( struct fskit_route_metadata* route_metadata, size_t* len );
 char* fskit_route_metadata_get_xattr_buf( struct fskit_route_metadata* route_metadata, size_t* len );
 char const* fskit_route_metadata_get_xattr_name( struct fskit_route_metadata* route_metadata );
+bool fskit_route_metadata_renamed( struct fskit_route_metadata* route_metadata );
 
 FSKIT_C_LINKAGE_END 
 
