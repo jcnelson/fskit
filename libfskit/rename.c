@@ -470,6 +470,8 @@ int fskit_rename( struct fskit_core* core, char const* old_path, char const* new
    
    if( fent_new != NULL && err == 0 ) {
 
+      fent_new->deletion_through_rename = true;
+
       if( fent_common_parent != NULL ) {
          err = fskit_entry_try_destroy_and_free( core, new_path, fent_common_parent, fent_new );
       }
@@ -479,7 +481,8 @@ int fskit_rename( struct fskit_core* core, char const* old_path, char const* new
       
       if( err == 0 ) {
          
-         // not destroyed 
+         // not destroyed
+         fent_new->deletion_through_rename = false; 
          fskit_entry_unlock( fent_new );
       }
       else {
