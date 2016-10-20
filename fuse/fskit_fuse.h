@@ -40,6 +40,40 @@
 // call route on stat even if the inode doesn't exist 
 #define FSKIT_FUSE_STAT_ON_ABSENT       0x4
 
+// which FUSE operations do we support? 
+#define FSKIT_FUSE_GETATTR              0x1L
+#define FSKIT_FUSE_READLINK             0x2L
+#define FSKIT_FUSE_MKNOD                0x4L
+#define FSKIT_FUSE_MKDIR                0x8L
+#define FSKIT_FUSE_UNLINK               0x10L
+#define FSKIT_FUSE_RMDIR                0x20L
+#define FSKIT_FUSE_SYMLINK              0x40L
+#define FSKIT_FUSE_RENAME               0x80L
+#define FSKIT_FUSE_LINK                 0x100L
+#define FSKIT_FUSE_CHMOD                0x200L
+#define FSKIT_FUSE_CHOWN                0x400L
+#define FSKIT_FUSE_TRUNCATE             0x800L
+#define FSKIT_FUSE_UTIME                0x1000L
+#define FSKIT_FUSE_OPEN                 0x2000L
+#define FSKIT_FUSE_READ                 0x4000L
+#define FSKIT_FUSE_WRITE                0x8000L
+#define FSKIT_FUSE_STATFS               0x10000L
+#define FSKIT_FUSE_FLUSH                0x20000L
+#define FSKIT_FUSE_RELEASE              0x40000L
+#define FSKIT_FUSE_FSYNC                0x80000L
+#define FSKIT_FUSE_SETXATTR             0x100000L
+#define FSKIT_FUSE_GETXATTR             0x200000L
+#define FSKIT_FUSE_LISTXATTR            0x400000L
+#define FSKIT_FUSE_REMOVEXATTR          0x800000L
+#define FSKIT_FUSE_OPENDIR              0x1000000L
+#define FSKIT_FUSE_READDIR              0x2000000L
+#define FSKIT_FUSE_FSYNCDIR             0x4000000L
+#define FSKIT_FUSE_RELEASEDIR           0x8000000L
+#define FSKIT_FUSE_ACCESS               0x10000000L
+#define FSKIT_FUSE_CREATE               0x20000000L
+#define FSKIT_FUSE_FTRUNCATE            0x40000000L
+#define FSKIT_FUSE_FGETATTR             0x80000000L
+
 FSKIT_C_LINKAGE_BEGIN
 
 struct fskit_fuse_state;
@@ -66,6 +100,9 @@ mode_t fskit_fuse_get_umask();
 
 int fskit_fuse_setting_enable( struct fskit_fuse_state* state, uint64_t flag );
 int fskit_fuse_setting_disable( struct fskit_fuse_state* state, uint64_t flag );
+
+int fskit_fuse_callback_enable( struct fskit_fuse_state* state, uint64_t callback_id );
+int fskit_fuse_callback_disable( struct fskit_fuse_state* state, uint64_t callback_id );
 
 char const* fskit_fuse_get_mountpoint( struct fskit_fuse_state* state );
 int fskit_fuse_postmount_callback( struct fskit_fuse_state* state, fskit_fuse_postmount_callback_t cb, void* cb_cls );

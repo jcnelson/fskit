@@ -26,6 +26,7 @@ struct fskit_fuse_state {
 
    struct fskit_core* core;
    uint64_t settings;           // bitmask of FSKIT_FUSE_SET_*
+   uint64_t callbacks;
 
    char* mountpoint;    // mountpoint
 
@@ -113,6 +114,18 @@ int fskit_fuse_setting_disable( struct fskit_fuse_state* state, uint64_t flag ) 
    return 0;
 }
 
+// enable a callback
+int fskit_fuse_callback_enable( struct fskit_fuse_state* state, uint64_t callback_id ) {
+   state->callbacks |= callback_id;
+   return 0;
+}
+
+// disable a callback
+int fskit_fuse_callback_disable( struct fskit_fuse_state* state, uint64_t callback_id ) {
+   state->callbacks &= ~callback_id;
+   return 0;
+}
+
 // set the postmount callback
 int fskit_fuse_postmount_callback( struct fskit_fuse_state* state, fskit_fuse_postmount_callback_t cb, void* cb_cls ) {
    state->postmount = cb;
@@ -151,6 +164,10 @@ struct fskit_fuse_file_info* fskit_fuse_make_dir_handle( struct fskit_dir_handle
 int fskit_fuse_getattr(const char *path, struct stat *statbuf) {
 
    struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_GETATTR) == 0 ) {
+      return -ENOSYS;
+   }
+
    uid_t uid = fskit_fuse_get_uid( state );
    gid_t gid = fskit_fuse_get_gid( state );
 
@@ -166,10 +183,14 @@ int fskit_fuse_getattr(const char *path, struct stat *statbuf) {
 
 int fskit_fuse_readlink(const char *path, char *link, size_t size) {
 
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_READLINK) == 0 ) {
+      return -ENOSYS;
+   }
+
    fskit_debug("readlink(%s, %zu)\n", path, size );
 
    ssize_t rc = 0;
-   struct fskit_fuse_state* state = fskit_fuse_get_state();
    uid_t uid = fskit_fuse_get_uid( state );
    gid_t gid = fskit_fuse_get_gid( state );
 
@@ -187,9 +208,13 @@ int fskit_fuse_readlink(const char *path, char *link, size_t size) {
 
 int fskit_fuse_mknod(const char *path, mode_t mode, dev_t dev) {
 
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_MKNOD) == 0 ) {
+      return -ENOSYS;
+   }
+
    fskit_debug("mknod(%s, %o, %d, %d)\n", path, mode, major(dev), minor(dev) );
 
-   struct fskit_fuse_state* state = fskit_fuse_get_state();
    uid_t uid = fskit_fuse_get_uid( state );
    gid_t gid = fskit_fuse_get_gid( state );
 
@@ -202,9 +227,13 @@ int fskit_fuse_mknod(const char *path, mode_t mode, dev_t dev) {
 
 int fskit_fuse_mkdir(const char *path, mode_t mode) {
 
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_MKDIR) == 0 ) {
+      return -ENOSYS;
+   }
+
    fskit_debug("mkdir(%s, %o)\n", path, mode );
 
-   struct fskit_fuse_state* state = fskit_fuse_get_state();
    uid_t uid = fskit_fuse_get_uid( state );
    gid_t gid = fskit_fuse_get_gid( state );
 
@@ -217,9 +246,13 @@ int fskit_fuse_mkdir(const char *path, mode_t mode) {
 
 int fskit_fuse_unlink(const char *path) {
 
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_UNLINK) == 0 ) {
+      return -ENOSYS;
+   }
+
    fskit_debug("unlink(%s)\n", path );
 
-   struct fskit_fuse_state* state = fskit_fuse_get_state();
    uid_t uid = fskit_fuse_get_uid( state );
    gid_t gid = fskit_fuse_get_gid( state );
 
@@ -232,9 +265,13 @@ int fskit_fuse_unlink(const char *path) {
 
 int fskit_fuse_rmdir(const char *path) {
 
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_RMDIR) == 0 ) {
+      return -ENOSYS;
+   }
+
    fskit_debug("rmdir(%s)\n", path );
 
-   struct fskit_fuse_state* state = fskit_fuse_get_state();
    uid_t uid = fskit_fuse_get_uid( state );
    gid_t gid = fskit_fuse_get_gid( state );
 
@@ -247,10 +284,14 @@ int fskit_fuse_rmdir(const char *path) {
 
 int fskit_fuse_symlink(const char *target, const char *linkpath) {
 
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_SYMLINK) == 0 ) {
+      return -ENOSYS;
+   }
+
    fskit_debug("symlink(%s, %s)\n", target, linkpath );
 
    int rc = 0;
-   struct fskit_fuse_state* state = fskit_fuse_get_state();
    uid_t uid = fskit_fuse_get_uid( state );
    gid_t gid = fskit_fuse_get_gid( state );
 
@@ -262,9 +303,13 @@ int fskit_fuse_symlink(const char *target, const char *linkpath) {
 
 int fskit_fuse_rename(const char *path, const char *newpath) {
 
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_RENAME) == 0 ) {
+      return -ENOSYS;
+   }
+
    fskit_debug("rename(%s, %s)\n", path, newpath );
 
-   struct fskit_fuse_state* state = fskit_fuse_get_state();
    uid_t uid = fskit_fuse_get_uid( state );
    gid_t gid = fskit_fuse_get_gid( state );
 
@@ -277,9 +322,13 @@ int fskit_fuse_rename(const char *path, const char *newpath) {
 
 int fskit_fuse_link(const char *path, const char *newpath) {
 
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_LINK) == 0 ) {
+      return -ENOSYS;
+   }
+
    fskit_debug("link(%s, %s)\n", path, newpath );
    
-   struct fskit_fuse_state* state = fskit_fuse_get_state();
    uid_t uid = fskit_fuse_get_uid( state );
    gid_t gid = fskit_fuse_get_gid( state );
 
@@ -292,9 +341,13 @@ int fskit_fuse_link(const char *path, const char *newpath) {
 
 int fskit_fuse_chmod(const char *path, mode_t mode) {
 
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_CHMOD) == 0 ) {
+      return -ENOSYS;
+   }
+
    fskit_debug("chmod(%s, %o)\n", path, mode );
 
-   struct fskit_fuse_state* state = fskit_fuse_get_state();
    uid_t uid = fskit_fuse_get_uid( state );
    gid_t gid = fskit_fuse_get_gid( state );
 
@@ -307,9 +360,13 @@ int fskit_fuse_chmod(const char *path, mode_t mode) {
 
 int fskit_fuse_chown(const char *path, uid_t new_uid, gid_t new_gid) {
 
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_CHOWN) == 0 ) {
+      return -ENOSYS;
+   }
+
    fskit_debug("chown(%s, %d, %d)\n", path, new_uid, new_gid );
 
-   struct fskit_fuse_state* state = fskit_fuse_get_state();
    uid_t uid = fskit_fuse_get_uid( state );
    gid_t gid = fskit_fuse_get_gid( state );
 
@@ -322,9 +379,13 @@ int fskit_fuse_chown(const char *path, uid_t new_uid, gid_t new_gid) {
 
 int fskit_fuse_truncate(const char *path, off_t newsize) {
 
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_TRUNCATE) == 0 ) {
+      return -ENOSYS;
+   }
+
    fskit_debug("truncate(%s, %jd)\n", path, newsize );
 
-   struct fskit_fuse_state* state = fskit_fuse_get_state();
    uid_t uid = fskit_fuse_get_uid( state );
    gid_t gid = fskit_fuse_get_gid( state );
 
@@ -337,9 +398,13 @@ int fskit_fuse_truncate(const char *path, off_t newsize) {
 
 int fskit_fuse_utime(const char *path, struct utimbuf *ubuf) {
 
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_UTIME) == 0 ) {
+      return -ENOSYS;
+   }
+
    fskit_debug("utime(%s, %ld.%ld)\n", path, ubuf->actime, ubuf->modtime );
 
-   struct fskit_fuse_state* state = fskit_fuse_get_state();
    uid_t uid = fskit_fuse_get_uid( state );
    gid_t gid = fskit_fuse_get_gid( state );
 
@@ -352,9 +417,13 @@ int fskit_fuse_utime(const char *path, struct utimbuf *ubuf) {
 
 int fskit_fuse_open(const char *path, struct fuse_file_info *fi) {
 
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_OPEN) == 0 ) {
+      return -ENOSYS;
+   }
+
    fskit_debug("open(%s, %p)\n", path, fi);
 
-   struct fskit_fuse_state* state = fskit_fuse_get_state();
    uid_t uid = fskit_fuse_get_uid( state );
    gid_t gid = fskit_fuse_get_gid( state );
    mode_t umask = fskit_fuse_get_umask();
@@ -389,9 +458,12 @@ int fskit_fuse_open(const char *path, struct fuse_file_info *fi) {
 
 int fskit_fuse_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
 
-   fskit_debug("read(%s, %p, %zu, %jd, %p)\n", path, buf, size, offset, fi);
-
    struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_READ) == 0 ) {
+      return -ENOSYS;
+   }
+
+   fskit_debug("read(%s, %p, %zu, %jd, %p)\n", path, buf, size, offset, fi);
 
    struct fskit_fuse_file_info* ffi = (struct fskit_fuse_file_info*)((uintptr_t)fi->fh);
    ssize_t num_read = 0;
@@ -405,9 +477,12 @@ int fskit_fuse_read(const char *path, char *buf, size_t size, off_t offset, stru
 
 int fskit_fuse_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
 
-   fskit_debug("write(%s, %p, %zu, %jd, %p)\n", path, buf, size, offset, fi);
-
    struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_WRITE) == 0 ) {
+      return -ENOSYS;
+   }
+
+   fskit_debug("write(%s, %p, %zu, %jd, %p)\n", path, buf, size, offset, fi);
 
    struct fskit_fuse_file_info* ffi = (struct fskit_fuse_file_info*)((uintptr_t)fi->fh);
    ssize_t num_written = 0;
@@ -421,9 +496,13 @@ int fskit_fuse_write(const char *path, const char *buf, size_t size, off_t offse
 
 int fskit_fuse_statfs(const char *path, struct statvfs *statv) {
 
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_STATFS) == 0 ) {
+      return -ENOSYS;
+   }
+
    fskit_debug("statfs(%s, %p)\n", path, statv );
 
-   struct fskit_fuse_state* state = fskit_fuse_get_state();
    uid_t uid = fskit_fuse_get_uid( state );
    gid_t gid = fskit_fuse_get_gid( state );
 
@@ -436,6 +515,11 @@ int fskit_fuse_statfs(const char *path, struct statvfs *statv) {
 
 int fskit_fuse_flush(const char *path, struct fuse_file_info *fi) {
 
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_FLUSH) == 0 ) {
+      return -ENOSYS;
+   }
+
    fskit_debug("flush(%s, %p)\n", path, fi);
 
    // not addressed by fskit
@@ -446,9 +530,12 @@ int fskit_fuse_flush(const char *path, struct fuse_file_info *fi) {
 
 int fskit_fuse_release(const char *path, struct fuse_file_info *fi) {
 
-   fskit_debug("release(%s, %p)\n", path, fi);
-
    struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_RELEASE) == 0 ) {
+      return -ENOSYS;
+   }
+
+   fskit_debug("release(%s, %p)\n", path, fi);
 
    struct fskit_fuse_file_info* ffi = (struct fskit_fuse_file_info*)((uintptr_t)fi->fh);
 
@@ -464,19 +551,30 @@ int fskit_fuse_release(const char *path, struct fuse_file_info *fi) {
 
 int fskit_fuse_fsync(const char *path, int datasync, struct fuse_file_info *fi) {
 
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_FSYNC) == 0 ) {
+      return -ENOSYS;
+   }
+
    fskit_debug("fsync(%s, %d, %p)\n", path, datasync, fi );
 
-   // not addressed by fskit
+   struct fskit_fuse_file_info* ffi = (struct fskit_fuse_file_info*)((uintptr_t)fi->fh);
 
-   fskit_debug("fsync(%s, %d, %p) rc = %d\n", path, datasync, fi, 0 );
-   return 0;
+   int rc = fskit_fsync( state->core, ffi->handle.fh );
+
+   fskit_debug("fsync(%s, %d, %p) rc = %d\n", path, datasync, fi, rc );
+   return rc;
 }
 
 int fskit_fuse_setxattr(const char *path, const char *name, const char *value, size_t size, int flags) {
 
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_SETXATTR) == 0 ) {
+      return -ENOSYS;
+   }
+
    fskit_debug("setxattr(%s, %s, %p, %zu, %X)\n", path, name, value, size, flags );
 
-   struct fskit_fuse_state* state = fskit_fuse_get_state();
    uid_t uid = fskit_fuse_get_uid( state );
    gid_t gid = fskit_fuse_get_gid( state );
 
@@ -488,9 +586,13 @@ int fskit_fuse_setxattr(const char *path, const char *name, const char *value, s
 
 int fskit_fuse_getxattr(const char *path, const char *name, char *value, size_t size) {
 
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_GETXATTR) == 0 ) {
+      return -ENOSYS;
+   }
+
    fskit_debug("getxattr(%s, %s, %p, %zu)\n", path, name, value, size );
 
-   struct fskit_fuse_state* state = fskit_fuse_get_state();
    uid_t uid = fskit_fuse_get_uid( state );
    gid_t gid = fskit_fuse_get_gid( state );
 
@@ -502,9 +604,13 @@ int fskit_fuse_getxattr(const char *path, const char *name, char *value, size_t 
 
 int fskit_fuse_listxattr(const char *path, char *list, size_t size) {
 
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_LISTXATTR) == 0 ) {
+      return -ENOSYS;
+   }
+
    fskit_debug("listxattr(%s, %p, %zu)\n", path, list, size );
 
-   struct fskit_fuse_state* state = fskit_fuse_get_state();
    uid_t uid = fskit_fuse_get_uid( state );
    gid_t gid = fskit_fuse_get_gid( state );
 
@@ -516,9 +622,13 @@ int fskit_fuse_listxattr(const char *path, char *list, size_t size) {
 
 int fskit_fuse_removexattr(const char *path, const char *name) {
 
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_REMOVEXATTR) == 0 ) {
+      return -ENOSYS;
+   }
+
    fskit_debug("removexattr(%s, %s)\n", path, name );
 
-   struct fskit_fuse_state* state = fskit_fuse_get_state();
    uid_t uid = fskit_fuse_get_uid( state );
    gid_t gid = fskit_fuse_get_gid( state );
 
@@ -530,9 +640,13 @@ int fskit_fuse_removexattr(const char *path, const char *name) {
 
 int fskit_fuse_opendir(const char *path, struct fuse_file_info *fi) {
 
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_OPENDIR) == 0 ) {
+      return -ENOSYS;
+   }
+
    fskit_debug("opendir(%s, %p)\n", path, fi );
 
-   struct fskit_fuse_state* state = fskit_fuse_get_state();
    uid_t uid = fskit_fuse_get_uid( state );
    gid_t gid = fskit_fuse_get_gid( state );
    struct fskit_fuse_file_info* ffi = NULL;
@@ -563,9 +677,13 @@ int fskit_fuse_opendir(const char *path, struct fuse_file_info *fi) {
 
 int fskit_fuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi) {
 
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_READDIR) == 0 ) {
+      return -ENOSYS;
+   }
+
    fskit_debug("readdir(%s, %jd, %p, %p)\n", path, offset, buf, fi );
 
-   struct fskit_fuse_state* state = fskit_fuse_get_state();
    struct fskit_dir_handle* fdh = NULL;
    struct fskit_fuse_file_info* ffi = NULL;
    int rc = 0;
@@ -602,9 +720,13 @@ int fskit_fuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
 
 int fskit_fuse_releasedir(const char *path, struct fuse_file_info *fi) {
 
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_RELEASEDIR) == 0 ) {
+      return -ENOSYS;
+   }
+
    fskit_debug("releasedir(%s, %p)\n", path, fi );
 
-   struct fskit_fuse_state* state = fskit_fuse_get_state();
    struct fskit_fuse_file_info* ffi = NULL;
    int rc = 0;
 
@@ -621,8 +743,14 @@ int fskit_fuse_releasedir(const char *path, struct fuse_file_info *fi) {
 
 int fskit_fuse_fsyncdir(const char *path, int datasync, struct fuse_file_info *fi) {
 
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_FSYNCDIR) == 0 ) {
+      return -ENOSYS;
+   }
+
    fskit_debug("fsyncdir(%s, %d, %p)\n", path, datasync, fi);
 
+   
    // not addressed by fskit
 
    fskit_debug("fsyncdir(%s, %d, %p) rc = %d\n", path, datasync, fi, 0);
@@ -631,9 +759,13 @@ int fskit_fuse_fsyncdir(const char *path, int datasync, struct fuse_file_info *f
 
 int fskit_fuse_access(const char *path, int mask) {
 
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_ACCESS) == 0 ) {
+      return -ENOSYS;
+   }
+
    fskit_debug("access(%s, %X)\n", path, mask );
 
-   struct fskit_fuse_state* state = fskit_fuse_get_state();
    uid_t uid = fskit_fuse_get_uid( state );
    gid_t gid = fskit_fuse_get_gid( state );
 
@@ -646,9 +778,13 @@ int fskit_fuse_access(const char *path, int mask) {
 
 int fskit_fuse_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
 
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_CREATE) == 0 ) {
+      return -ENOSYS;
+   }
+
    fskit_debug("create(%s, %o, %p)\n", path, mode, fi );
 
-   struct fskit_fuse_state* state = fskit_fuse_get_state();
    uid_t uid = fskit_fuse_get_uid( state );
    gid_t gid = fskit_fuse_get_gid( state );
    struct fskit_fuse_file_info* ffi = NULL;
@@ -686,9 +822,13 @@ int fskit_fuse_create(const char *path, mode_t mode, struct fuse_file_info *fi) 
 
 int fskit_fuse_ftruncate(const char *path, off_t new_size, struct fuse_file_info *fi) {
 
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_FTRUNCATE) == 0 ) {
+      return -ENOSYS;
+   }
+
    fskit_debug("ftruncate(%s, %jd, %p)\n", path, new_size, fi );
 
-   struct fskit_fuse_state* state = fskit_fuse_get_state();
    struct fskit_fuse_file_info* ffi = NULL;
 
    ffi = (struct fskit_fuse_file_info*)((uintptr_t)fi->fh);
@@ -702,9 +842,13 @@ int fskit_fuse_ftruncate(const char *path, off_t new_size, struct fuse_file_info
 
 int fskit_fuse_fgetattr(const char *path, struct stat *statbuf, struct fuse_file_info *fi) {
 
+   struct fskit_fuse_state* state = fskit_fuse_get_state();
+   if( (state->callbacks & FSKIT_FUSE_FGETATTR) == 0 ) {
+      return -ENOSYS;
+   }
+
    fskit_debug("fgetattr(%s, %p, %p)\n", path, statbuf, fi );
 
-   struct fskit_fuse_state* state = fskit_fuse_get_state();
    struct fskit_fuse_file_info* ffi = NULL;
 
    ffi = (struct fskit_fuse_file_info*)((uintptr_t)fi->fh);
@@ -785,7 +929,9 @@ int fskit_fuse_init_fs( struct fskit_fuse_state* state, struct fskit_core* fs ) 
    
    // load default FUSE operations
    state->ops = fskit_fuse_get_opers();
-   
+  
+   // enable all callbacks by default 
+   state->callbacks = 0xFFFFFFFFFFFFFFFFL; 
    return 0;
 }
 
