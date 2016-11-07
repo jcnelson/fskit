@@ -388,7 +388,7 @@ static int fskit_match_regex( struct fskit_route_metadata* route_metadata, struc
    // matched! whole path?
    if( (signed)path_len != m[0].rm_eo - m[0].rm_so ) {
       // didn't match the whole path
-      fskit_debug("Matched only %d:%d of 0:%zu in '%s'\n", m[0].rm_so, m[0].rm_eo, path_len, path );
+      fskit_debug("Matched only %d:%d of 0:%zu in '%s'\n", (int)m[0].rm_so, (int)m[0].rm_eo, path_len, path );
       fskit_safe_free( m );
       return -ENOENT;
    }
