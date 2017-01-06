@@ -108,6 +108,10 @@ int fskit_trunc( struct fskit_core* core, char const* path, uint64_t user, uint6
    int err = 0;
    int rc = 0;
 
+   if( fskit_basename_len(path) > FSKIT_FILESYSTEM_NAMEMAX ) {
+      return -ENAMETOOLONG;
+   }
+
    // get the fent
    struct fskit_entry* fent = fskit_entry_resolve_path( core, path, user, group, true, &err );
    if( fent == NULL || err != 0 ) {

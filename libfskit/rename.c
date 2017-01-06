@@ -231,6 +231,14 @@ int fskit_rename( struct fskit_core* core, char const* old_path, char const* new
    struct fskit_entry* fent_common_parent = NULL;
    fskit_inode_set* new_path_inodes = NULL;
 
+   if( fskit_basename_len(old_path) > FSKIT_FILESYSTEM_NAMEMAX ) {
+      return -ENAMETOOLONG;
+   }
+
+   if( fskit_basename_len(new_path) > FSKIT_FILESYSTEM_NAMEMAX ) {
+      return -ENAMETOOLONG;
+   }
+
    // identify the parents of old_path and new_path
    char* old_path_dirname = fskit_dirname( old_path, NULL );
    char* new_path_dirname = fskit_dirname( new_path, NULL );

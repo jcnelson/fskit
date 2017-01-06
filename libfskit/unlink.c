@@ -47,6 +47,13 @@ int fskit_unlink( struct fskit_core* core, char const* path, uint64_t owner, uin
       return -ENOMEM;
    }
 
+   if( strlen(path_basename) > FSKIT_FILESYSTEM_NAMEMAX ) {
+
+      fskit_safe_free( path_basename );
+      fskit_safe_free( path_dirname );
+      return -ENAMETOOLONG;
+   }
+
    struct fskit_entry* parent = fskit_entry_resolve_path( core, path_dirname, owner, group, true, &err );
 
    free( path_dirname );

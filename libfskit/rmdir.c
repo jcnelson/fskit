@@ -43,6 +43,11 @@ int fskit_rmdir( struct fskit_core* core, char const* _path, uint64_t user, uint
       return -ENAMETOOLONG;
    }
 
+
+   if( fskit_basename_len(_path) > FSKIT_FILESYSTEM_NAMEMAX ) {
+      return -ENAMETOOLONG;
+   }
+
    // ensure path ends in /
    char path[PATH_MAX];
    memset( path, 0, PATH_MAX );

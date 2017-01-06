@@ -58,7 +58,7 @@ int fskit_entry_set_group( struct fskit_entry* fent, uint64_t new_group ) {
 // the caller should verify that the new_group is allowed by its security model.
 // Return 0 on success, negative on error:
 // -ENOMEM if oom
-// -EPERM if the caller doesn't own the file
+// -EPERM if we don't own the file
 // -EACCES if the caller can't search a component of the path
 // -ENOTDIR if the path has a parent non-directory
 // -ENOENT if the entry doesn't exist

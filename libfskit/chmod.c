@@ -27,6 +27,7 @@
 // directly set the mode of an inode 
 // always succeeds
 // NOTE: fent must be write-locked 
+// TODO: add user-supplied routes
 int fskit_entry_set_mode( struct fskit_entry* fent, mode_t mode ) {
    
    fent->mode = mode;
@@ -37,8 +38,8 @@ int fskit_entry_set_mode( struct fskit_entry* fent, mode_t mode ) {
 // only the owner can change the file's mode.
 // Return 0 on success, negative on error:
 // -ENOMEM if oom
-// -EPERM if the caller doesn't own the file
-// -EACCES if the caller can't search a component of the path
+// -EPERM if the calling user doesn't have permission to make the change
+// -EACCES if the caller can't search a component of the path, or doesn't own the file
 // -ENOTDIR if the path has a parent non-directory
 // -ENOENT if the entry doesn't exist
 int fskit_chmod( struct fskit_core* core, char const* path, uint64_t user, uint64_t group, mode_t mode ) {
