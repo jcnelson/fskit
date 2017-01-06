@@ -524,13 +524,20 @@ int fskit_fuse_flush(const char *path, struct fuse_file_info *fi) {
    if( (state->callbacks & FSKIT_FUSE_FLUSH) == 0 ) {
       return -ENOSYS;
    }
-
+   
+   int rc = 0;
    fskit_debug("flush(%s, %p)\n", path, fi);
+  
+   // if this is a file, then fsync it
+   struct fskit_fuse_file_info* ffi = (struct fskit_fuse_file_info*)((uintptr_t)fi->fh);
+   if( ffi->type == FSKIT_ENTRY_TYPE_FILE ) {
 
-   // not addressed by fskit
+       // same as fsync 
+       rc = fskit_fsync( state->core, ffi->handle.fh );
+   }
 
-   fskit_debug("flush(%s, %p) rc = %d\n", path, fi, 0);
-   return 0;
+   fskit_debug("flush(%s, %p) rc = %d\n", path, fi, rc);
+   return rc;
 }
 
 int fskit_fuse_release(const char *path, struct fuse_file_info *fi) {
