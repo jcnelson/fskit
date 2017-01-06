@@ -58,6 +58,14 @@ struct fskit_detach_ctx {
    int cbrc;
 };
 
+struct fskit_inode_metadata {
+   uint64_t fields;
+
+   mode_t mode;
+   uint64_t owner;
+   uint64_t group;
+};
+
 // prototypes...
 int fskit_run_user_destroy( struct fskit_core* core, char const* path, struct fskit_entry* parent, struct fskit_entry* fent );
 
@@ -1897,5 +1905,46 @@ fskit_xattr_set* fskit_xattr_set_begin( fskit_xattr_set_itr* itr, fskit_xattr_se
 fskit_xattr_set* fskit_xattr_set_next( fskit_xattr_set_itr* itr ) {
    
    return sglib_fskit_xattr_set_it_next( itr );
+}
+
+// setup metadata
+struct fskit_inode_metadata* fskit_inode_metadata_new() {
+   return CALLOC_LIST( struct fskit_inode_metadata, 1 ); 
+}
+
+int fskit_inode_metadata_free( struct fskit_inode_metadata* imd ) {
+   fskit_safe_free( imd );
+   return 0;
+}
+
+uint64_t fskit_inode_metadata_get_inventory( struct fskit_inode_metadata* imd ) {
+   return imd->fields;
+}
+
+mode_t fskit_inode_metadata_get_mode( struct fskit_inode_metadata* imd ) {
+   return imd->mode;
+}
+
+uint64_t fskit_inode_metadata_get_owner( struct fskit_inode_metadata* imd ) {
+   return imd->owner;
+}
+
+uint64_t fskit_inode_metadata_get_group( struct fskit_inode_metadata* imd ) {
+   return imd->group;
+}
+
+void fskit_inode_metadata_set_mode( struct fskit_inode_metadata* imd, mode_t mode ) {
+   imd->mode = mode;
+   imd->fields |= FSKIT_INODE_METADATA_MODE;
+}
+
+void fskit_inode_metadata_set_owner( struct fskit_inode_metadata* imd, uint64_t owner ) {
+   imd->owner = owner;
+   imd->fields |= FSKIT_INODE_METADATA_OWNER;
+}
+
+void fskit_inode_metadata_set_group( struct fskit_inode_metadata* imd, uint64_t group ) {
+   imd->group = group;
+   imd->fields |= FSKIT_INODE_METADATA_GROUP;
 }
 
