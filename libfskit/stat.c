@@ -59,6 +59,10 @@ int fskit_stat( struct fskit_core* core, char const* fs_path, uint64_t user, uin
 
    int rc = 0;
 
+   if( fskit_basename_len(fs_path) >= FSKIT_FILESYSTEM_NAMEMAX ) {
+      return -ENAMETOOLONG;
+   }
+
    // ref this entry, so it won't disappear on stat
    struct fskit_entry* fent = fskit_entry_ref( core, fs_path, &rc );
    if( fent == NULL ) {
