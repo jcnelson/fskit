@@ -66,6 +66,12 @@ struct fskit_file_handle;
 // fskit directory handle
 struct fskit_dir_handle;
 
+// fskit route metadata structure 
+struct fskit_inode_metadata;
+#define FSKIT_INODE_METADATA_MODE   0x1
+#define FSKIT_INODE_METADATA_OWNER  0x2
+#define FSKIT_INODE_METADATA_GROUP  0x4
+
 // fskit dir entry
 struct fskit_dir_entry {
    uint8_t type;        // type of file
@@ -241,6 +247,17 @@ void fskit_entry_set_file_id( struct fskit_entry* ent, uint64_t file_id );
 fskit_entry_set* fskit_entry_swap_children( struct fskit_entry* ent, fskit_entry_set* new_children );
 fskit_xattr_set* fskit_entry_swap_xattrs( struct fskit_entry* ent, fskit_xattr_set* new_xattrs );
 char* fskit_entry_swap_symlink_target( struct fskit_entry* ent, char* new_symlink_target );
+
+// metadata 
+struct fskit_inode_metadata* fskit_inode_metadata_new(void);
+int fskit_inode_metadata_free( struct fskit_inode_metadata* imd );
+uint64_t fskit_inode_metadata_get_inventory( struct fskit_inode_metadata* imd );
+mode_t fskit_inode_metadata_get_mode( struct fskit_inode_metadata* imd );
+uint64_t fskit_inode_metadata_get_owner( struct fskit_inode_metadata* imd );
+uint64_t fskit_inode_metadata_get_group( struct fskit_inode_metadata* imd );
+void fskit_inode_metadata_set_mode( struct fskit_inode_metadata* imd, mode_t mode );
+void fskit_inode_metadata_set_owner( struct fskit_inode_metadata* imd, uint64_t owner );
+void fskit_inode_metadata_set_group( struct fskit_inode_metadata* imd, uint64_t group );
 
 FSKIT_C_LINKAGE_END 
 

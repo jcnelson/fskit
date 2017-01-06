@@ -185,6 +185,7 @@ union fskit_route_method {
    fskit_entry_route_setxattr_callback_t     setxattr_cb;
    fskit_entry_route_listxattr_callback_t    listxattr_cb;
    fskit_entry_route_removexattr_callback_t  removexattr_cb;
+   fskit_entry_route_setmetadata_callback_t  setmetadata_cb;
 };
 
 // metadata about the patch matched to the route
@@ -253,6 +254,9 @@ struct fskit_route_dispatch_args {
    int xattr_flags;
 
    void* cls;               // create(), mknod(), mkdir(), only
+
+   // for chmod, chown, etc.
+   struct fskit_inode_metadata* imd;
 };
 
 // a path route
@@ -328,6 +332,7 @@ int fskit_route_getxattr_args( struct fskit_route_dispatch_args* args, char cons
 int fskit_route_setxattr_args( struct fskit_route_dispatch_args* args, char const* xattr_name, char const* xattr_value, size_t xattr_value_len, int flags );
 int fskit_route_listxattr_args( struct fskit_route_dispatch_args* args, char* xattr_buf, size_t xattr_buf_len );
 int fskit_route_removexattr_args( struct fskit_route_dispatch_args* args, char const* xattr_name );
+int fskit_route_setmetadata_args( struct fskit_route_dispatch_args* dargs, struct fskit_inode_metadata* imd );
 
 // call user-supplied routes (internal API)
 int fskit_route_call_create( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
@@ -349,6 +354,7 @@ int fskit_route_call_getxattr( struct fskit_core* core, char const* path, struct
 int fskit_route_call_listxattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
 int fskit_route_call_setxattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
 int fskit_route_call_removexattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
+int fskit_route_call_setmetadata( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc );
 
 // memory management (internal API)
 int fskit_path_route_free( struct fskit_path_route* route );
