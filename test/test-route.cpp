@@ -111,6 +111,11 @@ int removexattr_cb( struct fskit_core* core, struct fskit_route_metadata* route_
    return 0;
 }
 
+int setmetadata_cb( struct fskit_core* core, struct fskit_route_metadata* route_metadata, struct fskit_entry* fent, struct fskit_inode_metadata* imd ) {
+   fskit_debug("set inode metadata: %X (%o, %" PRIu64 ", %" PRIu64 ")\n", fskit_inode_metadata_get_inventory(imd), fskit_inode_metadata_get_mode(imd), fskit_inode_metadata_get_owner(imd), fskit_inode_metadata_get_group(imd));
+   return 0;
+}
+
 int main( int argc, char** argv ) {
    struct fskit_core* core = NULL;
    int rc;
@@ -119,7 +124,7 @@ int main( int argc, char** argv ) {
    int create_rh, mknod_rh, mkdir_rh, opendir_rh, open_rh, close_rh, 
        closedir_rh, readdir_rh, read_rh, write_rh, trunc_rh, unlink_rh, 
        rmdir_rh, stat_rh, sync_rh, rename_rh, link_rh, getxattr_rh, listxattr_rh,
-       removexattr_rh, setxattr_rh;
+       removexattr_rh, setxattr_rh, setmetadata_rh;
 
    rc = fskit_test_begin( &core, NULL );
    if( rc != 0 ) {
@@ -253,6 +258,13 @@ int main( int argc, char** argv ) {
       fskit_error("fskit_route_setxattr rc = %d\n", setxattr_rh );
       exit(1);
    }
+
+   setmetadata_rh = fskit_route_setmetadata( core, "/test-file", setmetadata_cb, FSKIT_INODE_SEQUENTIAL );
+   if( setmetadata_rh < 0 ) {
+      fskit_error("fakit_route_setmetadata rc = %d\n", setmetadata_rh );
+      exit(1);
+   }
+
 
    // invoke routes
    struct fskit_file_handle* fh = NULL;
@@ -406,6 +418,34 @@ int main( int argc, char** argv ) {
    rc = fskit_removexattr( core, "/test-file", 0, 0, "foo" );
    if( rc < 0 ) {
       fskit_error("fskti_removexattr rc = %d\n", rc );
+      exit(1);
+   }
+
+   // chown 
+   rc = fskit_chown( core, "/test-file", 0, 0, 123, 456 );
+   if( rc < 0 ) {
+      fskit_error("fskit_chown rc = %d\n", rc );
+      exit(1);
+   }
+
+   // chmod 
+   rc = fskit_chmod( core, "/test-file", 123, 456, 0765 );
+   if( rc < 0 ) {
+      fskit_error("fskit_chmod rc = %d\n", rc );
+      exit(1);
+   }
+
+   // chown 
+   rc = fskit_chown( core, "/test-file", 123, 456, 0, 0 );
+   if( rc < 0 ) {
+      fskit_error("fskit_chown rc = %d\n", rc );
+      exit(1);
+   }
+
+   // chmod 
+   rc = fskit_chmod( core, "/test-file", 0, 0, 0555 );
+   if( rc < 0 ) {
+      fskit_error("fskit_chmod rc = %d\n", rc );
       exit(1);
    }
 
