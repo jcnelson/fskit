@@ -37,10 +37,10 @@
 // disable uid/gid checking; every call is from "root"
 #define FSKIT_FUSE_NO_PERMISSIONS       0x2
 
-// call route on stat even if the inode doesn't exist 
+// call route on stat even if the inode doesn't exist
 #define FSKIT_FUSE_STAT_ON_ABSENT       0x4
 
-// which FUSE operations do we support? 
+// which FUSE operations do we support?
 #define FSKIT_FUSE_GETATTR              0x1L
 #define FSKIT_FUSE_READLINK             0x2L
 #define FSKIT_FUSE_MKNOD                0x4L
@@ -107,6 +107,8 @@ int fskit_fuse_callback_disable( struct fskit_fuse_state* state, uint64_t callba
 char const* fskit_fuse_get_mountpoint( struct fskit_fuse_state* state );
 int fskit_fuse_postmount_callback( struct fskit_fuse_state* state, fskit_fuse_postmount_callback_t cb, void* cb_cls );
 
+struct fuse_operations* fskit_fuse_get_ops( struct fskit_fuse_state* state );
+
 // default fs methods
 int fuse_fskit_getattr(const char *path, struct stat *statbuf);
 int fuse_fskit_readlink(const char *path, char *link, size_t size);
@@ -155,6 +157,6 @@ int fskit_fuse_shutdown( struct fskit_fuse_state* state, void** user_state );
 struct fskit_core* fskit_fuse_get_core( struct fskit_fuse_state* state );
 void fskit_fuse_detach_core( struct fskit_fuse_state* state );
 
-FSKIT_C_LINKAGE_END 
+FSKIT_C_LINKAGE_END
 
 #endif

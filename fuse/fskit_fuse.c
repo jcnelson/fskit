@@ -33,8 +33,8 @@ struct fskit_fuse_state {
    // post-mount callback, to be called before processing any FUSE requests
    fskit_fuse_postmount_callback_t postmount;
    void* postmount_cls;
-   
-   // operations 
+
+   // operations
    struct fuse_operations ops;
 };
 
@@ -78,7 +78,7 @@ gid_t fskit_fuse_get_gid( struct fskit_fuse_state* state ) {
       return 0;
    }
    else if( state->settings & FSKIT_FUSE_NO_PERMISSIONS ) {
-      // no permission-check--every call is from "root" 
+      // no permission-check--every call is from "root"
       return 0;
    }
    else {
@@ -97,9 +97,14 @@ mode_t fskit_fuse_get_umask() {
    return fuse_get_context()->umask;
 }
 
-// get filesystem mountpoint 
+// get filesystem mountpoint
 char const* fskit_fuse_get_mountpoint( struct fskit_fuse_state* state ) {
    return state->mountpoint;
+}
+
+// get opertions
+struct fuse_operations* fskit_fuse_get_ops( struct fskit_fuse_state* state ) {
+   return &state->ops;
 }
 
 // enable a setting
@@ -328,7 +333,7 @@ int fskit_fuse_link(const char *path, const char *newpath) {
    }
 
    fskit_debug("link(%s, %s)\n", path, newpath );
-   
+
    uid_t uid = fskit_fuse_get_uid( state );
    gid_t gid = fskit_fuse_get_gid( state );
 
@@ -698,7 +703,7 @@ int fskit_fuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
       fskit_debug("readdir(%s, %jd, %p, %p) rc = %d\n", path, offset, buf, fi, rc );
       return rc;
    }
-   
+
    for( uint64_t i = 0; i < num_read; i++ ) {
 
       rc = filler( buf, dirents[i]->name, NULL, 0 );
@@ -750,7 +755,7 @@ int fskit_fuse_fsyncdir(const char *path, int datasync, struct fuse_file_info *f
 
    fskit_debug("fsyncdir(%s, %d, %p)\n", path, datasync, fi);
 
-   
+
    // not addressed by fskit
 
    fskit_debug("fsyncdir(%s, %d, %p) rc = %d\n", path, datasync, fi, 0);
@@ -923,15 +928,15 @@ struct fuse_operations fskit_fuse_get_opers() {
 // make sure to call fskit_library_init() before calling this method.
 // always succeeds
 int fskit_fuse_init_fs( struct fskit_fuse_state* state, struct fskit_core* fs ) {
-   
+
    memset( state, 0, sizeof(struct fskit_fuse_state) );
    state->core = fs;
-   
+
    // load default FUSE operations
    state->ops = fskit_fuse_get_opers();
-  
-   // enable all callbacks by default 
-   state->callbacks = 0xFFFFFFFFFFFFFFFFL; 
+
+   // enable all callbacks by default
+   state->callbacks = 0xFFFFFFFFFFFFFFFFL;
    return 0;
 }
 
@@ -957,10 +962,10 @@ int fskit_fuse_init( struct fskit_fuse_state* state, void* core_state ) {
    if( core == NULL ) {
       return -ENOMEM;
    }
-   
+
    rc = fskit_core_init( core, core_state );
    if( rc != 0 ) {
-      
+
       fskit_error( "fskit_core_init rc = %d\n", rc );
       return rc;
    }
@@ -1089,7 +1094,7 @@ int fskit_fuse_main( struct fskit_fuse_state* state, int argc, char** argv ) {
 
    fskit_debug("%s", "FUSE main loop finished\n");
    fuse_teardown( fs, mountpoint );
-   
+
    return rc;
 }
 
@@ -1142,4 +1147,3 @@ struct fskit_core* fskit_fuse_get_core( struct fskit_fuse_state* state ) {
 void fskit_fuse_detach_core( struct fskit_fuse_state* state ) {
    state->core = NULL;
 }
-
