@@ -459,19 +459,21 @@ static int fskit_route_enter( struct fskit_path_route* route, struct fskit_entry
    }
 
    // enforce the consistency discipline for this route
-   if( route->consistency_discipline == FSKIT_SEQUENTIAL ) {
-      rc = pthread_rwlock_wrlock( &route->lock );
+   // does not apply to setmetadata operation, which *must* be atomic
+   if( route->route_type != FSKIT_ROUTE_MATCH_SETMETADATA ) {
+      if( route->consistency_discipline == FSKIT_SEQUENTIAL ) {
+         rc = pthread_rwlock_wrlock( &route->lock );
+      }
+      else if( route->consistency_discipline == FSKIT_CONCURRENT ) {
+         rc = pthread_rwlock_rdlock( &route->lock );
+      }
+      else if( fent != NULL && route->consistency_discipline == FSKIT_INODE_SEQUENTIAL ) {
+         rc = fskit_entry_wlock( fent );
+      }
+      else if( fent != NULL && route->consistency_discipline == FSKIT_INODE_CONCURRENT ) {
+         rc = fskit_entry_rlock( fent );
+      }
    }
-   else if( route->consistency_discipline == FSKIT_CONCURRENT ) {
-      rc = pthread_rwlock_rdlock( &route->lock );
-   }
-   else if( fent != NULL && route->consistency_discipline == FSKIT_INODE_SEQUENTIAL ) {
-      rc = fskit_entry_wlock( fent );
-   }
-   else if( fent != NULL && route->consistency_discipline == FSKIT_INODE_CONCURRENT ) {
-      rc = fskit_entry_rlock( fent );
-   }
-   
    if( rc != 0 ) {
       // indicates deadlock
       fskit_error("BUG: locking route %s with discipline %d rc = %d\n", route->path_regex_str, route->consistency_discipline, rc );
@@ -485,11 +487,13 @@ static int fskit_route_enter( struct fskit_path_route* route, struct fskit_entry
 // clean up from enforcing the consistency discipline
 static int fskit_route_leave( struct fskit_path_route* route, struct fskit_entry* fent ) {
    
-   if( fent != NULL && (route->consistency_discipline == FSKIT_INODE_SEQUENTIAL || route->consistency_discipline == FSKIT_INODE_CONCURRENT) ) {
-      fskit_entry_unlock( fent );
-   }
-   else if( route->consistency_discipline == FSKIT_SEQUENTIAL || route->consistency_discipline == FSKIT_CONCURRENT ) {
-      pthread_rwlock_unlock( &route->lock );
+   if( route->route_type != FSKIT_ROUTE_MATCH_SETMETADATA ) {
+       if( fent != NULL && (route->consistency_discipline == FSKIT_INODE_SEQUENTIAL || route->consistency_discipline == FSKIT_INODE_CONCURRENT) ) {
+          fskit_entry_unlock( fent );
+       }
+       else if( route->consistency_discipline == FSKIT_SEQUENTIAL || route->consistency_discipline == FSKIT_CONCURRENT ) {
+          pthread_rwlock_unlock( &route->lock );
+       }
    }
    
    return 0;
@@ -617,6 +621,11 @@ static int fskit_route_dispatch( struct fskit_core* core, struct fskit_route_met
       case FSKIT_ROUTE_MATCH_REMOVEXATTR:
 
          rc = fskit_safe_dispatch( route->method.removexattr_cb, core, route_metadata, fent, dargs->xattr_name );
+         break;
+
+      case FSKIT_ROUTE_MATCH_SETMETADATA:
+
+         rc = fskit_safe_dispatch( route->method.setmetadata_cb, core, route_metadata, fent, dargs->imd );
          break;
 
       default:
@@ -911,6 +920,15 @@ int fskit_route_call_setxattr( struct fskit_core* core, char const* path, struct
 // NOTE: fent *cannot* be locked--its lock status will be set through the route consistency discipline 
 int fskit_route_call_removexattr( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc ) {
     return fskit_route_call( core, FSKIT_ROUTE_MATCH_REMOVEXATTR, path, fent, dargs, cbrc );
+}
+
+
+// call the route to setmetadata 
+// return 0 if the route was called, or -EPERM if there are no routes
+// set the route callback return code in *cbrc
+// NOTE: fent *cannot* be locked
+int fskit_route_call_setmetadata( struct fskit_core* core, char const* path, struct fskit_entry* fent, struct fskit_route_dispatch_args* dargs, int* cbrc ) {
+   return fskit_route_call( core, FSKIT_ROUTE_MATCH_SETMETADATA, path, fent, dargs, cbrc );
 }
 
 
@@ -1393,7 +1411,7 @@ int fskit_unroute_listxattr( struct fskit_core* core, int route_handle ) {
 }
 
 
-// declare a route for setting an xattr 
+// declare a route for setting an xattr
 // return >=0 on success (the route handle)
 // return -EINVAL if consistency discipline is not supported
 // return -ENOMEM if out of memory 
@@ -1432,6 +1450,33 @@ int fskit_route_removexattr( struct fskit_core* core, char const* route_regex, f
 int fskit_unroute_removexattr( struct fskit_core* core, int route_handle ) {
 
    return fskit_path_route_undecl( core, FSKIT_ROUTE_MATCH_REMOVEXATTR, route_handle );
+}
+
+
+// declare a route for setting inode metadata 
+// consistency_discipline *must* be FSKIT_ROUTE_INODE_SEQUENTIAL 
+// return >= 0 on success (the route handle)
+// return -EINVAL if consistency discipline is not supported
+// return -ENOMEM if out of memory 
+int fskit_route_setmetadata( struct fskit_core* core, char const* route_regex, fskit_entry_route_setmetadata_callback_t setmetadata_cb, int consistency_discipline ) {
+
+   union fskit_route_method method;
+   method.setmetadata_cb = setmetadata_cb;
+
+   if( consistency_discipline != FSKIT_INODE_SEQUENTIAL ) {
+      fskit_error("Invalid consistency discipline %d\n", consistency_discipline);
+      return -EINVAL;
+   }
+
+   return fskit_path_route_decl( core, route_regex, FSKIT_ROUTE_MATCH_SETMETADATA, method, consistency_discipline );
+}
+
+// undeclare a route for setting inode metadata
+// return 0 on success
+// return -EINVAL if the route can't possibly exist 
+int fskit_unroute_setmetadata( struct fskit_core* core, int route_handle ) {
+
+   return fskit_path_route_undecl( core, FSKIT_ROUTE_MATCH_SETMETADATA, route_handle );
 }
 
 
@@ -1663,6 +1708,15 @@ int fskit_route_removexattr_args( struct fskit_route_dispatch_args* dargs, char 
 
    memset( dargs, 0, sizeof(struct fskit_route_dispatch_args));
    dargs->xattr_name = xattr_name;
+   return 0;
+}
+
+// set up dargs for setmetadata 
+// imd will NOT be duplicated, but referenced
+int fskit_route_setmetadata_args( struct fskit_route_dispatch_args* dargs, struct fskit_inode_metadata* imd ) {
+
+   memset( dargs, 0, sizeof(struct fskit_route_dispatch_args));
+   dargs->imd = imd;
    return 0;
 }
 
