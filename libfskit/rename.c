@@ -366,14 +366,20 @@ int fskit_rename( struct fskit_core* core, char const* old_path, char const* new
       fskit_entry_wlock( fent_new );
    }
 
-   // don't proceed if one is a directory and the other is not
    if( fent_new ) {
+      // don't proceed if one is a directory and the other is not
       if( fent_new->type != fent_old->type ) {
          if( fent_new->type == FSKIT_ENTRY_TYPE_DIR ) {
             err = -EISDIR;
          }
          else {
             err = -ENOTDIR;
+         }
+      }
+      if( fent_new->type == FSKIT_ENTRY_TYPE_DIR ) {
+         // must be empty 
+         if( fent_new->num_children > 0 ) {
+            err = -ENOTEMPTY;
          }
       }
    }
@@ -393,6 +399,11 @@ int fskit_rename( struct fskit_core* core, char const* old_path, char const* new
       // directory mismatch, or loop 
       fskit_entry_rename_unlock( fent_common_parent, fent_old_parent, fent_new_parent );
       
+      fskit_entry_unlock(fent_old);
+      if( fent_new ) {
+         fskit_entry_unlock( fent_new );
+      }
+
       fskit_safe_free( new_path_basename );
       fskit_safe_free( old_path_basename );
       
