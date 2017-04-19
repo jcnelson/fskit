@@ -29,6 +29,7 @@ FSKIT_C_LINKAGE_BEGIN
 
 struct fskit_dir_entry** fskit_readdir( struct fskit_core* core, struct fskit_dir_handle* dirh, uint64_t num_children, uint64_t* num_read, int* err );
 struct fskit_dir_entry** fskit_listdir( struct fskit_core* core, struct fskit_dir_handle* dirh, uint64_t* num_read, int* err );
+struct fskit_dir_entry** fskit_listdir_locked( struct fskit_core* core, struct fskit_entry* dent, uint64_t* num_read, int* err );
 
 void fskit_dir_entry_free_list( struct fskit_dir_entry** dir_ents );
 void fskit_dir_entry_free( struct fskit_dir_entry* d_ent );

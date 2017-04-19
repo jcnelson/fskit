@@ -158,67 +158,15 @@ static int fskit_readdir_find_start( struct fskit_dir_handle* dirh, fskit_entry_
 }
 
 
-// low-level read directory--read up to num_children directory entires from dirh->dent, starting with the last child previously read from dirh.
-// dirh->dent must be a directory.
-// dirh->dent must be at least read-locked.
-// dirh must be write-locked
-// On success, returns a duplicated copy of a range of the given directory's children (starting at the given offset), serialized as fskit_dir_entry structures.  It will be terminated with a NULL pointer.
-// Also, it sets *num_read to the number of dir entries in the returned range.
-// On error, returns NULL and sets *err to:
-// * -EDEADLK if there was a deadlock (this is a bug, and should be reported)
-// * -ENOMEM if there was insuffucient memory
-// If there are no children left to read (i.e. child_offset is beyond the end of the directory), then this method sets *err to 0 and returns NULL to indicate EOD
-static struct fskit_dir_entry** fskit_readdir_lowlevel( struct fskit_core* core, struct fskit_dir_handle* dirh, uint64_t num_children, uint64_t* num_read, int* err ) {
-
+// iterate through dent->children and return a null-terminated list of fskit_dir_entry* pointers
+// On error, return NULL and:
+//    set *err to ENOMEM on OOM
+static struct fskit_dir_entry** fskit_readdir_itr( struct fskit_core* core, struct fskit_entry* dent, uint64_t num_children, uint64_t* num_read, fskit_entry_set* read_start, fskit_entry_set_itr* read_itr, int* err ) {
+    
    int rc = 0;
    uint64_t read_count = 0;
-   struct fskit_entry* dent = dirh->dent;
-   
-   fskit_entry_set* read_start = NULL;
-   
-   fskit_entry_set_itr read_itr;
    fskit_entry_set* entry = NULL;
-   
-   if( dirh->eof ) {
-       // EOF
-       *num_read = 0;
-       return NULL;
-   }
 
-   if( strlen(dirh->curr_name) == 0 ) {
-       
-       // haven't begun reading yet 
-       read_start = fskit_entry_set_begin( &read_itr, dent->children );
-       strncpy( dirh->curr_name, fskit_entry_set_name_at( read_start ), FSKIT_FILESYSTEM_NAMEMAX );
-   }
-   else {
-
-       fskit_entry_set_itr test_itr;
-       fskit_entry_set* test_entry;
-
-       fskit_readdir_find_start( dirh, &read_itr, &read_start );
-       if( read_start == NULL ) {
-           
-           // out of directory 
-           *num_read = 0;
-           return NULL;
-       }
-       
-       // advance to the next entry, since that's the first unread one 
-       read_start = fskit_entry_set_next( &read_itr );
-       if( read_start == NULL ) {
-           
-           // out of directory 
-           *num_read = 0;
-           return NULL;
-       }
-   }
-   
-   // UINT64_MAX means 'all children'
-   if( num_children == UINT64_MAX ) {
-      num_children = fskit_entry_set_count( dirh->dent->children );
-   }
-   
    // allocate the children
    struct fskit_dir_entry** dir_ents = CALLOC_LIST( struct fskit_dir_entry*, num_children + 1 );
    if( dir_ents == NULL ) {
@@ -227,7 +175,7 @@ static struct fskit_dir_entry** fskit_readdir_lowlevel( struct fskit_core* core,
       return NULL;
    }
 
-   for( entry = read_start; entry != NULL && read_count < num_children; entry = fskit_entry_set_next( &read_itr ) ) {
+   for( entry = read_start; entry != NULL && read_count < num_children; entry = fskit_entry_set_next( read_itr ) ) {
 
       // extract values from iterators
       struct fskit_entry* fent = fskit_entry_set_child_at( entry );
@@ -332,9 +280,98 @@ static struct fskit_dir_entry** fskit_readdir_lowlevel( struct fskit_core* core,
        return NULL;
    }
 
-   *num_read = read_count;
+   *num_read = read_count;   
+   return dir_ents;
+}
+
+
+// read all of the children of a locked directory entry
+// dent must be at least read-locked or write-locked
+// Return null-terminated list of fskit_dir_entry* items on success
+// Return NULL on error, and set *err to:
+//   * -ENOMEM: oom
+//   * -EINVAL: not a dir
+struct fskit_dir_entry** fskit_listdir_locked( struct fskit_core* core, struct fskit_entry* dent, uint64_t* num_read, int* err ) {
+
+   if( dent->type != FSKIT_ENTRY_TYPE_DIR ) {
+      *err = -EINVAL;
+      return NULL;
+   }
+
+   uint64_t num_children = fskit_entry_set_count( dent->children );
+   fskit_entry_set_itr read_itr;
+   fskit_entry_set* read_start = fskit_entry_set_begin( &read_itr, dent->children );
+
+   return fskit_readdir_itr(core, dent, num_children, num_read, read_start, &read_itr, err);
+}
+
+
+// low-level read directory--read up to num_children directory entires from dirh->dent, starting with the last child previously read from dirh.
+// dirh->dent must be a directory.
+// dirh->dent must be at least read-locked.
+// dirh must be write-locked
+// On success, returns a duplicated copy of a range of the given directory's children (starting at the given offset), serialized as fskit_dir_entry structures.  It will be terminated with a NULL pointer.
+// Also, it sets *num_read to the number of dir entries in the returned range.
+// On error, returns NULL and sets *err to:
+// * -EDEADLK if there was a deadlock (this is a bug, and should be reported)
+// * -ENOMEM if there was insuffucient memory
+// If there are no children left to read (i.e. child_offset is beyond the end of the directory), then this method sets *err to 0 and returns NULL to indicate EOD
+static struct fskit_dir_entry** fskit_readdir_lowlevel( struct fskit_core* core, struct fskit_dir_handle* dirh, uint64_t num_children, uint64_t* num_read, int* err ) {
+
+   int rc = 0;
+   struct fskit_entry* dent = dirh->dent;
    
-   if( read_count == 0 ) {
+   fskit_entry_set* read_start = NULL;
+   
+   fskit_entry_set_itr read_itr;
+   fskit_entry_set* entry = NULL;
+   
+   if( dirh->eof ) {
+       // EOF
+       *num_read = 0;
+       return NULL;
+   }
+
+   if( strlen(dirh->curr_name) == 0 ) {
+       
+       // haven't begun reading yet 
+       read_start = fskit_entry_set_begin( &read_itr, dent->children );
+       strncpy( dirh->curr_name, fskit_entry_set_name_at( read_start ), FSKIT_FILESYSTEM_NAMEMAX );
+   }
+   else {
+
+       fskit_entry_set_itr test_itr;
+       fskit_entry_set* test_entry;
+
+       fskit_readdir_find_start( dirh, &read_itr, &read_start );
+       if( read_start == NULL ) {
+           
+           // out of directory 
+           *num_read = 0;
+           return NULL;
+       }
+       
+       // advance to the next entry, since that's the first unread one 
+       read_start = fskit_entry_set_next( &read_itr );
+       if( read_start == NULL ) {
+           
+           // out of directory 
+           *num_read = 0;
+           return NULL;
+       }
+   }
+   
+   // UINT64_MAX means 'all children'
+   if( num_children == UINT64_MAX ) {
+      num_children = fskit_entry_set_count( dirh->dent->children );
+   }
+
+   struct fskit_dir_entry** dir_ents = fskit_readdir_itr(core, dent, num_children, num_read, read_start, &read_itr, err );
+   if( dir_ents == NULL ) {
+      return NULL;
+   }
+      
+   if( *num_read == 0 ) {
        
        fskit_dir_entry_free_list( dir_ents );
        dir_ents = NULL;
@@ -346,7 +383,7 @@ static struct fskit_dir_entry** fskit_readdir_lowlevel( struct fskit_core* core,
        
        // remember the last name, so we can resume there
        memset( dirh->curr_name, 0, FSKIT_FILESYSTEM_NAMEMAX+1 );
-       strncpy( dirh->curr_name, dir_ents[read_count-1]->name, FSKIT_FILESYSTEM_NAMEMAX );
+       strncpy( dirh->curr_name, dir_ents[*num_read-1]->name, FSKIT_FILESYSTEM_NAMEMAX );
    }
    
    return dir_ents;

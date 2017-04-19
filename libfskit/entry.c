@@ -1587,6 +1587,10 @@ int fskit_entry_tag_garbage( struct fskit_entry* ent, fskit_entry_set** children
         ent->num_children = 0;
         ent->deletion_in_progress = true;
     }
+    else {
+       ent->deletion_in_progress = true;
+    }
+
     return 0;
 }
 
