@@ -161,10 +161,9 @@ int fskit_flistxattr( struct fskit_core* core, char const* path, struct fskit_en
    if( rc > 0 ) {
       // callback handled 
       user_size = rc;
+      return user_size;
    }
 
    // not handled
    return fskit_xattr_flistxattr( core, fent, list, size );
 }
-
-
