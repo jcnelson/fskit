@@ -218,6 +218,7 @@ int fskit_entry_detach_lowlevel( struct fskit_entry* parent, char const* name );
 uint64_t fskit_entry_get_file_id( struct fskit_entry* ent );
 void* fskit_entry_get_user_data( struct fskit_entry* ent );
 uint8_t fskit_entry_get_type( struct fskit_entry* ent );
+bool fskit_entry_get_deletion_in_progress( struct fskit_entry* ent );
 uint64_t fskit_entry_get_owner( struct fskit_entry* ent );
 uint64_t fskit_entry_get_group( struct fskit_entry* ent );
 mode_t fskit_entry_get_mode( struct fskit_entry* ent );
@@ -258,6 +259,9 @@ uint64_t fskit_inode_metadata_get_group( struct fskit_inode_metadata* imd );
 void fskit_inode_metadata_set_mode( struct fskit_inode_metadata* imd, mode_t mode );
 void fskit_inode_metadata_set_owner( struct fskit_inode_metadata* imd, uint64_t owner );
 void fskit_inode_metadata_set_group( struct fskit_inode_metadata* imd, uint64_t group );
+
+// garbage collection 
+int fskit_entry_try_garbage_collect( struct fskit_core* core, char const* path, struct fskit_entry* parent, struct fskit_entry* child );
 
 FSKIT_C_LINKAGE_END 
 

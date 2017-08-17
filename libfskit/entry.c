@@ -1644,6 +1644,11 @@ uint8_t fskit_entry_get_type( struct fskit_entry* ent ) {
    return ent->type;
 }
 
+// get deletion-in-progress flag (must be read-locked)
+bool fskit_entry_get_deletion_in_progress( struct fskit_entry* ent ) {
+   return ent->deletion_in_progress;
+}
+
 // get a pointer to the children 
 fskit_entry_set* fskit_entry_get_children( struct fskit_entry* ent ) {
    return ent->children;

@@ -274,9 +274,6 @@ struct fskit_path_route {
    pthread_rwlock_t lock;               // lock used to enforce the consistency discipline
 };
 
-// garbage collection 
-int fskit_entry_try_garbage_collect( struct fskit_core* core, char const* path, struct fskit_entry* parent, struct fskit_entry* child );
-
 // private--needed by closedir()
 int fskit_run_user_close( struct fskit_core* core, char const* path, struct fskit_entry* fent, void* handle_data );
 
