@@ -561,7 +561,11 @@ bool fskit_path_end( struct fskit_path_iterator* itr ) {
    if( itr->cur_ent == NULL ) {
       return true;
    }
-   
+  
+   if( itr->cur_ent->deletion_in_progress || itr->cur_ent->type == FSKIT_ENTRY_TYPE_DEAD ) {
+      return true;
+   }
+
    if( itr->end_of_path ) {
       return true;
    }
